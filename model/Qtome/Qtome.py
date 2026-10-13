@@ -63,7 +63,6 @@ class QtomePretrain(nn.Module):
         patch_len=20,
         spatial_heads=10,
         dropout=0.0,
-        blocks_per_stage=2,
         num_channels=1,
         spatial_embedding=True,
         n_atoms=16,
@@ -72,7 +71,6 @@ class QtomePretrain(nn.Module):
         n_shared_ffn_experts=1,
         ffn_top_k=2,
         patch_stride=None,
-        skip_drop=0.0,
     ):
         super().__init__()
         self.patch_len = patch_len
@@ -84,9 +82,9 @@ class QtomePretrain(nn.Module):
 
         self.embed   = SpatialTemporalEmbeddings(patch_len, embed_dim, spatial=spatial_embedding)
         self.encoder = TSAEncoder(embed_dim, depth=enc_depth, num_heads=spatial_heads, mlp_ratio=mlp_ratio,
-                                   dropout=dropout, blocks_per_stage=blocks_per_stage,
+                                   dropout=dropout,
                                    n_routed_ffn_experts=n_routed_ffn_experts, n_shared_ffn_experts=n_shared_ffn_experts,
-                                   ffn_top_k=ffn_top_k, skip_drop=skip_drop)
+                                   ffn_top_k=ffn_top_k)
         self.mask_token = nn.Parameter(torch.zeros(1, 1, 1, embed_dim))
         nn.init.normal_(self.mask_token, std=0.02)
         # Masked tokens swap their CONTENT for mask_token before the time/coord embeddings
@@ -372,12 +370,6 @@ class QtomePretrain(nn.Module):
 
     def get_metrics(self):
         metrics = {}
-
-        # U-Net skip gate(s) on the encoder's residual-add path: sigmoid(g) in [0,1],
-        # 0 = drop skip, 1 = plain add.
-        if self.encoder.skip_gates is not None:
-            for i, g in enumerate(self.encoder.skip_gates):
-                metrics[f'skip_gate_{i}'] = torch.sigmoid(g).item()
 
         # Per-block contribution norm — direct measure of how much each encoder block
         # actually changes its input (not the skip-gate proxy above, which conflates

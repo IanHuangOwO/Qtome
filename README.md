@@ -24,12 +24,10 @@ raw dataset files
 
 - **Patches.** 5 s windows (1000 samples at 200 Hz) are cut into 39 patches of 50 samples with a
   stride of 25 (50 % overlap). The model input is `[B, C=64, N=39, L=50]`.
-- **Encoder.** 8 TSA blocks (temporal attention → spatial attention → MoE FFN, with LayerScale) in
-  4 stages of 2. The patch axis is pooled 39 → 20 → 10 → 5 between stages and linearly upsampled
-  back, with gated skips from each stage. Electrode positions enter through a Fourier coordinate
+- **Encoder.** 8 TSA blocks (temporal attention → spatial attention → MoE FFN, with LayerScale) at
+  full patch resolution (no pooling of the patch axis). Electrode positions enter through a Fourier coordinate
   embedding and a relative spatial bias in every block; an optional relative temporal bias does the
-  same for time lags. During training each skip is dropped per sample (graded drop-path, strongest
-  on the finest skip), so the deeper stages have to carry patch detail too.
+  same for time lags.
 - **Q-atoms.** A Q-atom is a unit-norm temporal template `D` plus its quadrature partner `H`. Each
   Q-atom adds `a·D + b·H` to a channel, which gives an amplitude and a phase per channel; the
   per-channel gains of one Q-atom form a topography. The dictionary is static: 16 Q-atoms, all active

@@ -33,7 +33,6 @@ def build_model(bp, num_channels):
         patch_len=bp.get('patch_len', 20),
         spatial_heads=bp.get('spatial_heads', 8),
         dropout=bp.get('dropout', 0.0),
-        blocks_per_stage=bp.get('blocks_per_stage', 2),
         num_channels=num_channels,
         spatial_embedding=bp.get('spatial_embedding', True),
         n_atoms=sb.get('n_atoms', 16),
@@ -45,7 +44,6 @@ def build_model(bp, num_channels):
         # above) — the shared build_model(bp, num_channels) interface
         # (model/factory.py) doesn't pass preprocess_params through.
         patch_stride=bp.get('patch_stride'),
-        skip_drop=bp.get('skip_drop', 0.0),   # per-sample skip drop-path p (training); a list = one per skip, finest first
     )
 
 
@@ -317,11 +315,11 @@ class QtomePlotter(BasePlotter):
         loss_panels = [
             dict(title="Total Loss (the training objective)\n(weighted sum of this run's loss terms: not comparable "
                        "across loss configs)", ylabel='Loss', series=[dict(key='loss', color='b')]),
-            # Val is the comparable number: every skip on, no drop-path. masked is a 1.0 placeholder in
-            # the tokenizer phase; mse_patch mixes masked and visible.
-            dict(title='Val Recon MSE: compare runs here\n(all skips on; masked = 1.0 placeholder in tokenizer phase)',
+            # Val is the comparable number (no dropout). masked is a 1.0 placeholder in the tokenizer
+            # phase; mse_patch mixes masked and visible.
+            dict(title='Val Recon MSE: compare runs here\n(masked = 1.0 placeholder in tokenizer phase)',
                  ylabel='MSE', series=[dict(key=k, color=c, val_only=True, style_val='-') for k, c in recon]),
-            dict(title='Train Recon MSE\n(skip drop-path active, so above val by design)',
+            dict(title='Train Recon MSE\n(dropout active, so above val)',
                  ylabel='MSE', series=[dict(key=k, color=c, train_only=True) for k, c in recon]),
         ]
         if self.has_signal('mse_mp'):   # the per-atom anti-duplicate term, when trained
@@ -339,10 +337,7 @@ class QtomePlotter(BasePlotter):
         ]
 
         architecture_panels = [
-            dict(title='Residual-Add Skip Gates\n(0=drop skip, 1=plain add)',
-                 ylabel='sigmoid(gate)', series=self.indexed_series('skip_gate_')),
-            dict(title='Per-Block Contribution Norm\n(flat near-zero = block not used; pool-boundary blocks '
-                       'already have their skip gate folded in)',
+            dict(title='Per-Block Contribution Norm\n(flat near-zero = block not used)',
                  ylabel='Mean |delta| per block', series=self.indexed_series('block_norm_', cmap_name='viridis')),
         ]
 

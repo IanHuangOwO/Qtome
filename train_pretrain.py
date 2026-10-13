@@ -291,8 +291,8 @@ def main():
     total_epochs     = train_params['epochs']
     model.enter_tokenizer_phase()
     model.to(device)
-    logger.info(f"  [Tokenizer phase] epochs 1-{tokenizer_epochs}: every block, temporal only, unmasked; "
-                f"pool after blocks {model.encoder.pool_after}. Masked phase from epoch {tokenizer_epochs + 1}, "
+    logger.info(f"  [Tokenizer phase] epochs 1-{tokenizer_epochs}: every block, temporal only, unmasked. "
+                f"Masked phase from epoch {tokenizer_epochs + 1}, "
                 f"freeze_atoms={freeze_atoms}")
 
     logger.info("Warming up with dummy pass...")

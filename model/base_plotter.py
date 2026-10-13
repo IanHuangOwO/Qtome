@@ -69,7 +69,7 @@ class BasePlotter:
 
     def indexed_series(self, prefix, cmap_name=None, train_only=True):
         """Unbounded family of series sharing a key prefix, sorted by trailing index
-        (e.g. skip_gate_0, skip_gate_1, ...). train_only=False also plots the val curve
+        (e.g. block_norm_0, block_norm_1, ...). train_only=False also plots the val curve
         for each key, when val history for that key exists."""
         hist = self.history['train']
         keys = sorted((k for k in hist if k.startswith(prefix)),

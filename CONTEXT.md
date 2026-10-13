@@ -58,8 +58,9 @@ Routed (top-k selected) Q-atoms were removed (docs/adr/0022; `routed-stamps` bra
 **Residual ordering** (`mp_loss`): matching-pursuit grading -- slots ranked by amplitude, each graded against
 the residual the higher ranks leave (detached), so duplicate atoms earn nothing. Only while Q-atoms train.
 
-**Stage**: a group of `blocks_per_stage` (2) encoder blocks at one temporal resolution; the patch axis is
-pooled by 2 between stages (centred, no time shift) and upsampled back through gated skips.
+**Stage** (removed 2026-10-13): a group of encoder blocks at one temporal resolution, with the patch axis pooled by
+2 between stages and upsampled back through gated skips. The encoder is now one stack at full patch resolution; the
+pooled backbones (up to `qtome_tiny_v4tr2`) can no longer be rebuilt.
 
 **z**: the encoder output before the AtomBank, `[N', C, 100]`. The Q-atom codes on visible input are close
 to a fixed projection of each patch onto the templates, so a head on Q-atom codes sees little of the
@@ -108,7 +109,7 @@ What `configs/Qtome/pretrain.template.json` builds (2.26M parameters; the same a
 | module | params | what |
 |---|---|---|
 | `SpatialTemporalEmbeddings` | 0.51M | patch 50 -> 100, learnable time position embedding, Fourier coordinate MLP |
-| `TSAEncoder` | 1.74M | 8 blocks = 4 stages x 2 (39 -> 20 -> 10 -> 5 patches); block = temporal attention -> spatial attention (+ relative spatial bias) -> MoE FFN (4 routed + 1 shared, top-2), LayerScale |
+| `TSAEncoder` | 1.74M | 8 blocks at full patch resolution (one stage since 2026-10-13); block = temporal attention -> spatial attention (+ relative spatial bias) -> MoE FFN (4 routed + 1 shared, top-2), LayerScale |
 | `AtomBank` | 0.01M | 16 Q-atoms (sparsity budget 32 < 50) |
 
 Loss: patch MSE + per-atom `mp` (weight 1; Q-atoms ranked per patch by strength) + `ffn_lb` (0.01);

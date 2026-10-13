@@ -463,34 +463,19 @@ class TSABlock(nn.Module):
 
 
 class TSAEncoder(nn.Module):
-    """TSABlocks in stages of blocks_per_stage: the patch axis N is pooled by 2 after every stage
-    but the last (depth 8, 2 per stage: 4 stages at N, N/2, N/4, N/8 -- 39 -> 20 -> 10 -> 5), and
-    the way back up adds each stage's pre-pool output (a UNet skip, gated) onto the upsampled
-    deeper result. Pooling is centred ([1,3,3,1]/8, coarse token i sits between fine patches 2i and
-    2i+1) and upsampling interpolates linearly at the same positions, so no level shifts time.
-
-    skip_drop p (training only): each skip is dropped per sample with probability p and kept ones scaled
-    by 1/(1-p) (drop-path), so the deep path must carry the patch detail part of the time; a list gives
-    one p per skip, finest first (the skip_gate_0/1/2 order). use_skips = False (an analysis switch,
-    backbone_eval's skips_removed) runs without them.
-    Time position: FoPE on every block's temporal attention (fope_train_len = fine patches per training window)."""
-    def __init__(self, dim, depth=8, num_heads=8, mlp_ratio=4., dropout=0.0, blocks_per_stage=2,
+    """depth TSABlocks at one resolution: every block sees all N patches of every channel. (Until
+    2026-10-13 the patch axis was pooled by 2 between stages of blocks and upsampled back through gated
+    skips; the flat stack reconstructs better at the same parameter count, docs/cards/2026-10-12-no-pooling.md.)
+    Time position: FoPE on every block's temporal attention (fope_train_len = patches per training window)."""
+    def __init__(self, dim, depth=8, num_heads=8, mlp_ratio=4., dropout=0.0,
                  n_routed_ffn_experts=4, n_shared_ffn_experts=1, ffn_top_k=2,
-                 skip_drop=0.0, fope_train_len=19):
+                 fope_train_len=19):
         super().__init__()
-        assert depth % blocks_per_stage == 0, f"depth {depth} is not a multiple of blocks_per_stage {blocks_per_stage}"
         block = lambda: TSABlock(dim, num_heads=num_heads, mlp_ratio=mlp_ratio, dropout=dropout,
                                  n_routed_ffn_experts=n_routed_ffn_experts,
                                  n_shared_ffn_experts=n_shared_ffn_experts, ffn_top_k=ffn_top_k)
         self.blocks = nn.ModuleList([block() for _ in range(depth)])
-        self.pool_after = [i for i in range(blocks_per_stage - 1, depth - 1, blocks_per_stage)]
-        self.use_skips = True
         self.fope = FoPE(num_heads, dim // num_heads, fope_train_len)
-        drops = list(skip_drop) if isinstance(skip_drop, (list, tuple)) else [skip_drop] * len(self.pool_after)
-        assert len(drops) == len(self.pool_after), f"skip_drop {skip_drop}: one p per skip ({len(self.pool_after)})"
-        assert all(0.0 <= p < 1.0 for p in drops), f"skip_drop {skip_drop}: 0 <= p < 1"
-        self.skip_drop = [float(p) for p in drops]       # finest skip first
-        self.skip_gates = nn.ParameterList([nn.Parameter(torch.tensor(3.0)) for _ in self.pool_after])
 
     def enable_spatial(self):
         for block in self.blocks:
@@ -500,92 +485,24 @@ class TSAEncoder(nn.Module):
         for block in self.blocks:
             block.enable_temporal()
 
-    @staticmethod
-    def _pool(x):
-        """[B, C, N, D] -> [B, C, ceil(N/2), D]: coarse token i = (x[2i-1] + 3 x[2i] + 3 x[2i+1]
-        + x[2i+2]) / 8, centred on 2i + 0.5 (a lowpass before decimating, so content above the
-        new Nyquist rate doesn't alias). Edges replicate; an odd N repeats its last token."""
-        if x.shape[2] % 2:
-            x = torch.cat([x, x[:, :, -1:]], dim=2)
-        M = x.shape[2] // 2
-        xp = torch.cat([x[:, :, :1], x, x[:, :, -1:]], dim=2)                 # xp[j] = x[j - 1]
-        return (xp[:, :, 0:2 * M:2] + 3 * xp[:, :, 1:2 * M + 1:2]
-                + 3 * xp[:, :, 2:2 * M + 2:2] + xp[:, :, 3:2 * M + 3:2]) / 8.0
-
-    @staticmethod
-    def _upsample(x, n):
-        """[B, C, M, D] -> [B, C, n, D]: fine patch j reads the coarse sequence at (j - 0.5) / 2
-        (coarse token i sits at fine position 2i + 0.5), linear interpolation, clamped at the ends."""
-        M = x.shape[2]
-        u = ((torch.arange(n, device=x.device, dtype=x.dtype) - 0.5) / 2).clamp(0, M - 1)
-        i0 = u.floor().long().clamp(max=M - 1)
-        i1 = (i0 + 1).clamp(max=M - 1)
-        f = (u - i0.to(u.dtype)).view(1, 1, n, 1)
-        return x[:, :, i0] * (1 - f) + x[:, :, i1] * f
-
-    def upsample_bottleneck(self, n):
-        """last_bottleneck (the deepest stage's output) back to n patches through the same linear
-        upsamples, no skips, no decoder: a fixed full-rank linear map, so a linear probe on it
-        sees exactly the bottleneck."""
-        sizes = [n]
-        for _ in self.pool_after:
-            sizes.append((sizes[-1] + 1) // 2)
-        x = self.last_bottleneck
-        for m in reversed(sizes[:-1]):
-            x = self._upsample(x, m)
-        return x
-
-    @staticmethod
-    def _pool_valid(v):
-        """[B, N] bool -> [B, ceil(N/2)]: a coarse token is real if either of its two patches is."""
-        if v.shape[1] % 2:
-            v = torch.cat([v, v[:, -1:]], dim=1)
-        return v[:, 0::2] | v[:, 1::2]
-
     def forward(self, x, valid_channels=None, spatial_bias=None, valid_patches=None):
         """spatial_bias: optional [B, depth, H, C, C] from RelativeSpatialBias, block i gets [:, i].
         valid_patches: optional [B, N] bool, False on a window's zero-padded tail patches (left out
         of temporal attention as keys)."""
-        skips = []  # (pre-pool tensor) per pool point, in block order
-        # Per-block contribution norm (eval only): how much each block changes its input. A block
-        # right before a pool point has its delta scaled by sigmoid(its skip gate), since that is
-        # how strongly its output is re-added at the end.
+        # Per-block contribution norm (eval only): how much each block changes its input.
         record_norms = not self.training
         if record_norms:
             self.last_block_norms = []
-            gate_for_block = dict(zip(self.pool_after, self.skip_gates))
         ffn_lb_loss = x.new_zeros(())
-        vp = valid_patches
-        pos = torch.arange(x.shape[2], device=x.device, dtype=torch.float32)            # token times, fine patches
-        rot = self.fope(pos)
+        rot = self.fope(torch.arange(x.shape[2], device=x.device, dtype=torch.float32))   # token times
         for i, block in enumerate(self.blocks):
             x_in = x
-            x, blk_ffn_lb = block(x, valid_channels, None if spatial_bias is None else spatial_bias[:, i], vp,
-                                  rot)
+            x, blk_ffn_lb = block(x, valid_channels, None if spatial_bias is None else spatial_bias[:, i],
+                                  valid_patches, rot)
             ffn_lb_loss = ffn_lb_loss + blk_ffn_lb
             if record_norms:
                 with torch.no_grad():
-                    delta = (x - x_in).norm(dim=-1).mean()
-                    if i in gate_for_block:
-                        delta = delta * torch.sigmoid(gate_for_block[i])
-                    self.last_block_norms.append(delta.item())
-            if i in self.pool_after:
-                skips.append(x)
-                x = self._pool(x)
-                vp = None if vp is None else self._pool_valid(vp)
-                pos = torch.cat([pos, pos[-1:]]) if pos.shape[0] % 2 else pos   # coarse token i sits at the
-                pos = (pos[0::2] + pos[1::2]) / 2                                # mean time of fine 2i, 2i+1
-                rot = self.fope(pos)
-
-        self.last_bottleneck = x                                                        # [B, C, N_deep, D]
-        for level, skip in enumerate(reversed(skips)):
-            x = self._upsample(x, skip.shape[2])
-            i = len(skips) - 1 - level                                       # this skip's index, finest = 0
-            if self.use_skips:
-                if self.training and self.skip_drop[i] > 0:
-                    keep = (torch.rand(skip.shape[0], 1, 1, 1, device=skip.device) >= self.skip_drop[i])
-                    skip = skip * keep.to(skip.dtype) / (1 - self.skip_drop[i])
-                x = x + torch.sigmoid(self.skip_gates[i]) * skip
+                    self.last_block_norms.append((x - x_in).norm(dim=-1).mean().item())
 
         # Router health and the worst interior branch magnitude (TSABlock._watch), over every block.
         with torch.no_grad():

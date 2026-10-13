@@ -82,8 +82,12 @@ sub-montages), `configs/finetune_protocols.json` (evaluation splits per protocol
 `configs/EEGNet/settings.json`. See `configs/README.md`.
 
 Key fields (templates show defaults):
-- `model_params.Qtome.pretrain`: `patch_len`, `embed_dim`, `enc_depth`, `blocks_per_stage` (2), `skip_drop`
-  (per-sample drop-path probability of the gated UNet skips; a list = one per skip, finest first),
+- `model_params.Qtome.pretrain`: `patch_len`, `embed_dim`, `enc_depth`, (the encoder is `enc_depth` blocks at full patch
+  resolution; pooling of the patch axis, its upsampling and the gated skips -- `blocks_per_stage` -- were removed
+  2026-10-13: the user adopted the flat encoder on one seed, masked MSE -4.3%, docs/cards/2026-10-12-no-pooling.md; the
+  pooled backbones, up to `qtome_tiny_v4tr2`, can no longer be rebuilt, their results stay in their output dirs),
+  (the skip drop-path `skip_drop` was removed 2026-10-12: without it masked MSE fell 12% and no downstream cell lost
+  over 3 seeds, docs/cards/2026-10-11-skip-drop.md; a `skip_drop` key in an old build_config is ignored),
   (time position: FoPE on every block's temporal attention, the only option since 2026-10-07 -- it replaced the learned
   absolute time table and the `temporal_bias` lag bias; checkpoints from before, v2 / v3, can no longer be rebuilt,
   their results stay in their output dirs; `time_idx` is still passed but unused by Qtome; block order is sequential,
@@ -163,9 +167,7 @@ datas/<split>/<Name>/loader.py  compile time only; MOABB datasets use IO/loader.
 ```
 
 - `Qtome_modules.py`: `SpatialTemporalEmbeddings`, `RelativeSpatialBias`, `TSABlock` (temporal attention ->
-  spatial attention -> MoE FFN, LayerScale), `TSAEncoder` (stages of `blocks_per_stage` blocks; patch axis
-  pooled by 2 between stages with a centred [1,3,3,1]/8 kernel, linear-interpolation upsample, gated skips:
-  8 blocks = 4 stages, 39 -> 20 -> 10 -> 5 patches; padded channels and padded tail patches are masked out of
+  spatial attention -> MoE FFN, LayerScale), `TSAEncoder` (8 blocks at full patch resolution, no pooling; padded channels and padded tail patches are masked out of
   attention), `AtomBank`, and the finetune side: `AtomExtractor` (Q-atom codes and optionally z from the
   frozen backbone) and `FeatureHead` (the `ENTRY_TYPES` registry).
 - `Qtome.py`: `QtomePretrain` (phases, per-sample masked loss: a sample counts as masked only if every patch
@@ -179,7 +181,9 @@ datas/<split>/<Name>/loader.py  compile time only; MOABB datasets use IO/loader.
   channels (std < 0.10 x median, dead electrodes / the recording reference) are treated as padding.
 
 **Sparsity budget, a hard ceiling:** each active Q-atom gives two free scalars per channel, so keep
-`2 * n_atoms < patch_len` with margin. Past it, the active slots fit any patch
+`2 * n_atoms < patch_len` with margin (template: 24 Q-atoms since 2026-10-09, 48 < 100; 16 / 24 / 32 compared over 3
+seeds in docs/cards/2026-10-08-atoms-32.md: 24 keeps most of 32's hidden-channel and high-frequency gain at half its
+SSVEP cost). Past it, the active slots fit any patch
 regardless of the templates and it stops being sparse coding (measured at DOF 56 > 50: recon MSE ~0 on every
 dataset, kurtosis 6.7 -> 1.2). docs/adr/0011.
 

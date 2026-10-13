@@ -14,9 +14,7 @@ schemes are compared on one task.
    channels -- the sparse-cap imputation BNCI2014004 needs). Also split sparse (<= 22 real
    channels) vs dense windows.
 2. Ablations under every test mask: coords shuffled across channels, all channels at the mean
-   position, and skips_off (the encoder's UNet skips removed
-   at eval: what the deep path alone reconstructs -- a small rise = the deep path carries the
-   content), and coordinate jitter (2 / 5 / 10 mm per channel) and left-right mirror (cache_feature.
+   position, and coordinate jitter (2 / 5 / 10 mm per channel) and left-right mirror (cache_feature.
    transform_coords). Masked MSE per mask type;
    ablation_masked_mse keeps the token_runs row for older readers.
 3. Structure: coordinate-embedding similarity vs electrode closeness (Spearman, 10-10
@@ -178,16 +176,6 @@ KINDS = ['token_runs', 'random_channel', 'channel_cluster', 'time_block', 'motor
 
 # ---------- ablations ----------
 
-class skips_removed:
-    """Context manager: the encoder runs without its UNet skips (use_skips False) while inside."""
-    def __init__(self, model):
-        self.enc = model.encoder
-    def __enter__(self):
-        self.enc.use_skips = False
-    def __exit__(self, *exc):
-        self.enc.use_skips = True
-
-
 def ablate(name, coords, t, valid):
     coords, t = coords.clone(), t.clone()
     for b in range(coords.shape[0]):
@@ -201,7 +189,7 @@ def ablate(name, coords, t, valid):
     return coords, t
 
 
-ABLATIONS = ['baseline', 'coords_shuffle', 'coords_mean', 'skips_off',   # time_idx ablations dropped 2026-10-07: FoPE ignores it
+ABLATIONS = ['baseline', 'coords_shuffle', 'coords_mean',   # time_idx ablations dropped 2026-10-07: FoPE ignores it
              'coords_jitter_2mm', 'coords_jitter_5mm', 'coords_jitter_10mm', 'coords_mirror']
 
 
@@ -269,11 +257,7 @@ def evaluate(model, config, out_path, max_windows=512, name=''):
             for a in ABLATIONS:
                 cc, tt = ablate(a, coords, t, valid)
                 torch.manual_seed(0)
-                if a == 'skips_off':
-                    with skips_removed(model):
-                        o = model(x, cc, tt, bool_masked_pos=mp, valid_channels=valid)
-                else:
-                    o = model(x, cc, tt, bool_masked_pos=mp, valid_channels=valid)
+                o = model(x, cc, tt, bool_masked_pos=mp, valid_channels=valid)
                 e = (o.recon.float() - x).pow(2).mean(-1)
                 abl[kind][a][0] += float(e[sc].sum()); abl[kind][a][1] += int(sc.sum())
 

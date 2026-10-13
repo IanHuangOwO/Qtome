@@ -71,9 +71,8 @@ def attention_range(model, config, out_path, max_windows=256):
             logit = logit.masked_fill(kpm[:, None, None, :], float('-inf'))
         w = logit.softmax(-1).mean(1)                                        # [B*C, N, N], heads averaged
         B, C, i = cur['B'], cur['C'], cur['i']
-        stage = sum(p < i for p in enc.pool_after)
         pos = torch.arange(N, dtype=torch.float32)
-        d = (pos[:, None] - pos[None, :]).abs() * dt * 2 ** stage           # [N, N] seconds
+        d = (pos[:, None] - pos[None, :]).abs() * dt           # [N, N] seconds
         vp = cur['vp'] if cur['vp'] is not None else torch.ones(B, N, dtype=torch.bool)
         rows = (cur['vc'][:, :, None] & vp[:, None, :]).reshape(B * C * N)
         keyv = vp[:, None, :].expand(B, C, N).reshape(B * C, 1, N).float()
@@ -126,7 +125,7 @@ def attention_range(model, config, out_path, max_windows=256):
 
     res = []
     for i, (block, a) in enumerate(zip(enc.blocks, acc)):
-        r = {'block': i, 'stage': sum(p < i for p in enc.pool_after),
+        r = {'block': i,
              'scale_t': float(block.scale_t.abs().mean()), 'scale_s': float(block.scale_s.abs().mean())}
         t, s = a['t'], a['s']
         if t[4]:
@@ -137,11 +136,11 @@ def attention_range(model, config, out_path, max_windows=256):
     with open(out_path, 'w') as f:
         json.dump({'windows': len(idx), 'blocks': res}, f, indent=2)
 
-    print(f'  {"block":>5} {"stage":>5} | {"t: dt s":>8} {"unif s":>7} {"self":>5} {"ent":>5} {"scale":>6} | '
+    print(f'  {"block":>5} | {"t: dt s":>8} {"unif s":>7} {"self":>5} {"ent":>5} {"scale":>6} | '
           f'{"s: dist":>8} {"self":>5} {"ent":>5} {"scale":>6}')
     for r in res:
         t, s = r.get('temporal'), r.get('spatial')
         tt = f'{t["mean_dt_s"]:8.2f} {t["uniform_dt_s"]:7.2f} {t["self_w"]:5.2f} {t["entropy"]:5.2f}' if t else f'{"off":>8} {"":7} {"":5} {"":5}'
         ss = f'{s["dist_ratio"]:8.2f} {s["self_w"]:5.2f} {s["entropy"]:5.2f}' if s else f'{"off":>8} {"":5} {"":5}'
-        print(f'  {r["block"]:5d} {r["stage"]:5d} | {tt} {r["scale_t"]:6.3f} | {ss} {r["scale_s"]:6.3f}')
+        print(f'  {r["block"]:5d} | {tt} {r["scale_t"]:6.3f} | {ss} {r["scale_s"]:6.3f}')
     return res
