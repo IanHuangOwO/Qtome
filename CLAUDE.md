@@ -101,13 +101,15 @@ Key fields (templates show defaults):
   `window_min_real`, `window_fraction`, `patch_length` 50, `patch_stride` 25 (50% overlap), `sample_freq` 200,
   `bandpass_filter` (input normalisation: per-trial z-score, the only option), and `mask` (`IO/masking.py`): `masking_strategy` `mixture` (one
   MaskMode per window -- channel_cluster / random_channel / time_block / random_token -- on a shared ratio
-  ramp; the default) or `random` (the masking baseline); masks redrawn every masked epoch; `time_run` masks
-  runs of >= 3 patches (a lone patch leaks through the overlap); `time_block` `max_blocks` 2 (templates since 2026-10-05; the
+  ramp; the default) or `random` (the masking baseline); masks redrawn every masked epoch; `time_run` 2: `random_token`
+  masks runs of 2 patches per channel (a lone patch leaks through the overlap; 2 hide 0.25 s fully; 3 before 2026-10-13); `time_block` `max_blocks` 2 (templates since 2026-10-05; the
   v2 backbones predate it): 1-2 holes splitting the ratio at random cut points, each >= 3 patches; `subsample` removes channels down to a
   `montages.json` sub-montage for part of the dense-cap windows (`prob` 0.1 in the templates since 2026-10-06, the
-  user's choice without a test; earlier backbones used 0.2). Draw probabilities of the three masking methods: time
-  blocks 0.30, random channels 0.35, channel cluster 0.35; maximum ratios 0.4 / 0.3 / 0.3 (cluster 0.2 before
-  2026-10-06).
+  user's choice without a test; earlier backbones used 0.2). Draw probabilities of the four masking methods (adopted
+  2026-10-13 on 3 flat seeds, docs/cards/2026-10-12-token-runs-plus-time-block.md: token-run MSE -18%, channel masks -2%,
+  time holes +1 to +4%, loso level): channel cluster 0.35, random channels 0.35, token runs (`random_token`) 0.20, time
+  blocks 0.10; maximum ratios 0.3 / 0.3 / 0.4 / 0.4. Before: time blocks 0.30 and no token runs (cluster ratio 0.2
+  before 2026-10-06).
 - `training_params.pretrain`: `model_name`, `output_path`, `epochs`, `tokenizer_epochs`, `freeze_atoms`,
   `warmup_epochs`, `batch_size`, LR fields, `train_val_split`, `seed`.
 - `model_params.Qtome.finetune` (the head, validated at build): `features` = a list of `{"type": <entry>,

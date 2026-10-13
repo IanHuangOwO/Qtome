@@ -81,9 +81,10 @@ The phase is a checkpoint buffer, restored on load.
 
 **Mask mode / mixture**: one mask pattern per Window -- `channel_cluster` (a scalp region), `random_channel`,
 `time_block` (runs of patches on every channel), `random_token` -- drawn from a mixture on a shared ratio
-ramp, redrawn every masked epoch. `random` (one random_token mode) is the masking baseline. A patch run is
->= 3 patches: with 50% overlap a lone masked patch is visible through its neighbours, and the loss counts a
-sample as masked only if every patch covering it is masked.
+ramp, redrawn every masked epoch. `random` (one random_token mode) is the masking baseline. A lone masked
+patch is visible through its neighbours (50% overlap), and the loss counts a sample as masked only if every patch
+covering it is masked: token runs are 2 patches per channel (`time_run` 2, hiding 0.25 s fully), time-block holes
+>= 3 patches on every channel.
 
 **Channel subsampling**: removes (not masks) channels of a dense-cap Window down to a sub-montage, to train
 sparse-cap robustness.
@@ -114,7 +115,7 @@ What `configs/Qtome/pretrain.template.json` builds (2.26M parameters; the same a
 
 Loss: patch MSE + per-atom `mp` (weight 1; Q-atoms ranked per patch by strength) + `ffn_lb` (0.01);
 visible samples weighted 0.1 in the masked phase. Removed: trial MSE (ADR 0021), STFT (0019), nested (0018).
-50 epochs, 10 tokenizer. Masking: mixture (channel_cluster 0.2, random_channel 0.3, time_block 0.4 max ratios)
+50 epochs, 10 tokenizer. Masking: mixture (draw probability / max ratio: channel_cluster 0.35 / 0.3, random_channel 0.35 / 0.3, random_token runs 0.20 / 0.4, time_block 0.10 / 0.4)
 + channel subsampling. Channels: native layout, MNE template positions. Finetune head: atom_power + signed_ab (all-atom; atom_power + latent_signed is the stronger head).
 
 **Unit**: umbrella term in shared tooling (`model/base_*`, `tools/`) for whatever a model codes per patch --

@@ -4791,7 +4791,7 @@
     "post_event_seconds": 4.0,
     "mask": {
       "masking_strategy": "mixture",
-      "time_run": 3,
+      "time_run": 2,
       "random": {
         "mask_ratio": 0.3
       },
@@ -4815,13 +4815,18 @@
           },
           {
             "type": "time_block",
-            "prob": 0.3,
+            "prob": 0.1,
             "max_ratio": 0.4,
             "run_patches": [
               3,
               8
             ],
             "max_blocks": 2
+          },
+          {
+            "type": "random_token",
+            "prob": 0.2,
+            "max_ratio": 0.4
           }
         ]
       },

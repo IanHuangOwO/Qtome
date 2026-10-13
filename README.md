@@ -39,7 +39,7 @@ raw dataset files
 - **Two-phase pretraining** (`docs/adr/0013`). In the *tokenizer phase* every block runs with
   temporal attention only and no masking. In the *masked phase* spatial attention and the
   coordinate embedding switch on and the masking curriculum starts (channel clusters, random
-  channels, time blocks, plus channel subsampling to sparse montages).
+  channels, token runs, time blocks, plus channel subsampling to sparse montages).
 - **Loss.** Patch MSE (visible patches count at 0.1 of masked ones) + a per-atom matching-pursuit
   term (`mp`: Q-atoms ranked per patch by strength, each trained on what the stronger ones left, so a
   duplicate earns nothing) + MoE load balance. Tested and removed: an overlap-added trial MSE
