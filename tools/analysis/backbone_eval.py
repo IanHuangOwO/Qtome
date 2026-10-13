@@ -17,7 +17,8 @@ schemes are compared on one task.
    channels) vs dense windows. For the time masks also 'hidden': scored only on the samples no visible
    patch covers (the per-patch score includes the edge halves a visible neighbour shows).
 2. Ablations under every test mask: coords shuffled across channels, all channels at the mean
-   position, and coordinate jitter (2 / 5 / 10 mm per channel) and left-right mirror (cache_feature.
+   position, time position removed (time_off: every patch at position 0) or shuffled over the patches
+   (time_shuffle), and coordinate jitter (2 / 5 / 10 mm per channel) and left-right mirror (cache_feature.
    transform_coords). Masked MSE per mask type;
    ablation_masked_mse keeps the token_runs row for older readers.
 3. Structure: coordinate-embedding similarity vs electrode closeness (Spearman, 10-10
@@ -234,7 +235,25 @@ def ablate(name, coords, t, valid):
     return coords, t
 
 
-ABLATIONS = ['baseline', 'coords_shuffle', 'coords_mean',   # time_idx ablations dropped 2026-10-07: FoPE ignores it
+class time_position:
+    """Context manager for the time-position ablations: while inside, FoPE gets every patch at position 0
+    ('time_off': temporal attention no longer knows order or distance) or the positions in one fixed random order
+    ('time_shuffle'). Any other name changes nothing."""
+    def __init__(self, model, name):
+        self.fope, self.name = model.encoder.fope, name
+
+    def __enter__(self):
+        fwd = self.fope.forward
+        if self.name == 'time_off':
+            self.fope.forward = lambda pos: fwd(torch.zeros_like(pos))
+        elif self.name == 'time_shuffle':
+            self.fope.forward = lambda pos: fwd(pos[torch.randperm(len(pos), generator=torch.Generator().manual_seed(0)).to(pos.device)])
+
+    def __exit__(self, *exc):
+        self.fope.__dict__.pop('forward', None)
+
+
+ABLATIONS = ['baseline', 'coords_shuffle', 'coords_mean', 'time_off', 'time_shuffle',   # time through FoPE (time_idx is unused)
              'coords_jitter_2mm', 'coords_jitter_5mm', 'coords_jitter_10mm', 'coords_mirror']
 
 
@@ -317,7 +336,8 @@ def evaluate(model, config, out_path, max_windows=512, name=''):
             for a in ABLATIONS:
                 cc, tt = ablate(a, coords, t, valid)
                 torch.manual_seed(0)
-                o = model(x, cc, tt, bool_masked_pos=mp, valid_channels=valid)
+                with time_position(model, a):
+                    o = model(x, cc, tt, bool_masked_pos=mp, valid_channels=valid)
                 e = (o.recon.float() - x).pow(2).mean(-1)
                 abl[kind][a][0] += float(e[sc].sum()); abl[kind][a][1] += int(sc.sum())
 
