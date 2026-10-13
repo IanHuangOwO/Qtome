@@ -7,12 +7,15 @@ schemes are compared on one task.
    l_masked) for each mask type, next to two model-free baselines:
      idw     inverse-distance interpolation from the 4 nearest visible channels (channel masks)
      linear  linear interpolation over time across the hidden samples (time masks)
+     ar      least-squares AR(32) interpolation per channel from both sides of the hole (time blocks)
      zero    predicting 0 (= signal power of the normalised data)
    Types: token_runs (random 3-patch runs, 50%: the baseline's own task), random_channel
-   (30% of channels), channel_cluster (30%), time_block (30% of time), and motor3_to_bci22
+   (30% of channels), channel_cluster (30%), time_block (30% of time), time_block_short (one hole of
+   4 patches, 0.75 s hidden at stride 50), time_block_3 / time_block_2 (one hole of 3 / 2 patches), and motor3_to_bci22
    (dense caps only: every channel except C3/Cz/C4 hidden, scored on the other 19 BCI-22
    channels -- the sparse-cap imputation BNCI2014004 needs). Also split sparse (<= 22 real
-   channels) vs dense windows.
+   channels) vs dense windows. For the time masks also 'hidden': scored only on the samples no visible
+   patch covers (the per-patch score includes the edge halves a visible neighbour shows).
 2. Ablations under every test mask: coords shuffled across channels, all channels at the mean
    position, and coordinate jitter (2 / 5 / 10 mm per channel) and left-right mirror (cache_feature.
    transform_coords). Masked MSE per mask type;
@@ -132,6 +135,11 @@ def make_mask(kind, valid_tok, coords, window_id, names_idx, named=None):
         m = ChannelClusterMask().generate(valid_tok, coords, 0.3)
     elif kind == 'time_block':
         m = TimeBlockMask().generate(valid_tok, coords, 0.3)
+    elif kind == 'time_block_short':
+        m = TimeBlockMask(run_patches=(4, 4)).generate(valid_tok, coords, 4 / N)
+    elif kind in ('time_block_2', 'time_block_3'):   # one hole of 2 / 3 patches: 0.25 / 0.5 s with no sample visible
+        k = int(kind[-1])
+        m = TimeBlockMask(run_patches=(k, k)).generate(valid_tok, coords, k / N)
     elif kind == 'motor3_to_bci22':
         real = valid_tok.any(1) & (named if named is not None else True)
         motor = torch.zeros(C, dtype=torch.bool); motor[names_idx['motor-3']] = True
@@ -171,7 +179,44 @@ def linear_time_predict(x, m, stride):
     return out[:, idx]                                                    # [C, N, L]
 
 
-KINDS = ['token_runs', 'random_channel', 'channel_cluster', 'time_block', 'motor3_to_bci22']
+def ar_time_predict(x, m, stride, order=32):
+    """The linear reference for a time hole: per channel, fit an AR(order) model on the visible samples
+    of this window and fill the hidden ones with the values that minimise its prediction residual
+    given both sides (least-squares AR interpolation, Janssen et al. 1986). Unlike the straight line it
+    continues rhythms. Falls back to the straight line where too few samples are visible to fit.
+    x, m: [C, N, L] / [C, N]."""
+    C, N, L = x.shape
+    sig = overlap_add_patches(x[None], stride)[0].double().numpy()         # [C, T]
+    cover = (overlap_add_patches((~m)[None, :, :, None].float().expand(1, C, N, L), stride)[0] > 1e-6).numpy()
+    out = overlap_add_patches(linear_time_predict(x, m, stride)[None], stride)[0].double().numpy()
+    T, p = sig.shape[1], order
+    lag = np.arange(p + 1)
+    for c in range(C):
+        hid = ~cover[c]
+        if not hid.any() or not sig[c].any():
+            continue
+        rows = np.arange(p, T)
+        touch = hid[rows[:, None] - lag[None, :]]                          # [T - p, p + 1]: sample t - k hidden
+        fit = rows[~touch.any(1)]
+        var = sig[c][cover[c]].var()
+        if len(fit) < 4 * p or var < 1e-10:                                 # too little to fit, or a flat channel
+            continue
+        X = sig[c][fit[:, None] - lag[None, 1:]]
+        coef = np.linalg.lstsq(X.T @ X + 1e-3 * len(fit) * var * np.eye(p), X.T @ sig[c][fit], rcond=None)[0]
+        use = rows[touch.any(1)]
+        A = np.zeros((len(use), T))
+        A[np.arange(len(use))[:, None], use[:, None] - lag[None, :]] = np.concatenate([[1.0], -coef])[None, :]
+        # Residuals alone leave a hole at the window edge to an unstable backward recursion; the weak prior
+        # x ~ N(0, var) (rows scaled by the innovation std) bounds it and shrinks unpredictable samples to 0.
+        Ah = A[:, hid]
+        innov = max(float(np.mean((sig[c][fit] - X @ coef) ** 2)), 1e-6 * var)
+        out[c, hid] = np.linalg.solve(Ah.T @ Ah + innov / var * np.eye(Ah.shape[1]), -Ah.T @ (A[:, ~hid] @ sig[c, ~hid]))
+    idx = torch.arange(N)[:, None] * stride + torch.arange(L)[None, :]
+    return torch.from_numpy(out).float()[:, idx]                           # [C, N, L]
+
+
+KINDS = ['token_runs', 'random_channel', 'channel_cluster', 'time_block', 'motor3_to_bci22', 'time_block_short',
+         'time_block_3', 'time_block_2']
 
 
 # ---------- ablations ----------
@@ -217,7 +262,7 @@ def evaluate(model, config, out_path, max_windows=512, name=''):
         sp[0] += lsd; sp[1] += wsum
         for bnd in SPEC_BANDS:
             sp[2][bnd] += pr[bnd]; sp[3][bnd] += px[bnd]; sp[4][bnd] += pe[bnd]
-    spec = {k: [0.0, 0.0] + [dict.fromkeys(SPEC_BANDS, 0.0) for _ in range(3)] for k in KINDS + ['unmasked']}
+    spec = {k: [0.0, 0.0] + [dict.fromkeys(SPEC_BANDS, 0.0) for _ in range(3)] for k in KINDS + ['unmasked'] + [k + '|ar' for k in KINDS if k.startswith('time_block')]}
     fs = float(config['preprocess_params']['sample_freq'])
     seam = [0.0, 0.0]                                     # disagreement sum, signal power sum
     for wids, x, coords, t, valid in batches(ds, idx):
@@ -240,20 +285,35 @@ def evaluate(model, config, out_path, max_windows=512, name=''):
             if not sc.any():
                 continue
             out = model(x, coords, t, bool_masked_pos=mp, valid_channels=valid)
-            err_model = (out.recon.float() - x).pow(2).mean(-1)          # [B, C, N]
+            se_model = (out.recon.float() - x).pow(2)                    # [B, C, N, L]
             add_spectrum(spec[kind], masked_spectrum(out.recon, x, sc, stride, fs))
+            ar_rec = x.clone()                                           # AR reference, time holes only
             for b in range(B):
                 if not sc[b].any():
                     continue
                 group = 'sparse' if int(valid[b].sum()) <= 22 else 'dense'
-                preds = {'model': err_model[b], 'zero': x[b].pow(2).mean(-1)}
+                preds = {'model': se_model[b], 'zero': x[b].pow(2)}          # squared error per sample [C, N, L]
                 if kind in ('random_channel', 'channel_cluster', 'motor3_to_bci22'):
                     vis_ch = valid[b] & ~mp[b].any(1)
-                    preds['idw'] = (idw_predict(x[b], coords[b], vis_ch) - x[b]).pow(2).mean(-1)
-                if kind in ('time_block', 'token_runs'):
-                    preds['linear'] = (linear_time_predict(x[b], mp[b], stride) - x[b]).pow(2).mean(-1)
-                for p, e in preds.items():
+                    preds['idw'] = (idw_predict(x[b], coords[b], vis_ch) - x[b]).pow(2)
+                if kind.startswith('time_block') or kind == 'token_runs':
+                    preds['linear'] = (linear_time_predict(x[b], mp[b], stride) - x[b]).pow(2)
+                if kind.startswith('time_block'):
+                    ar_rec[b] = ar_time_predict(x[b], mp[b], stride)
+                    preds['ar'] = (ar_rec[b] - x[b]).pow(2)
+                # 'hidden': only the samples no visible patch covers. A masked patch at a hole's edge shares
+                # half its samples with a visible neighbour (50% overlap), so the per-patch score is diluted.
+                hid = None
+                if kind.startswith('time_block') or kind == 'token_runs':
+                    cover = overlap_add_patches((~mp[b])[None, :, :, None].float().expand(1, C, N, L), stride)[0] > 1e-6
+                    hid = (~cover)[:, torch.arange(N)[:, None] * stride + torch.arange(L)[None, :]] & sc[b][:, :, None]
+                for p, se in preds.items():
+                    e = se.mean(-1)
                     add((kind, 'all', p), e, sc[b]); add((kind, group, p), e, sc[b])
+                    if hid is not None:
+                        add((kind, 'hidden', p), se, hid)
+            if kind.startswith('time_block'):
+                add_spectrum(spec[kind + '|ar'], masked_spectrum(ar_rec, x, sc, stride, fs))
             for a in ABLATIONS:
                 cc, tt = ablate(a, coords, t, valid)
                 torch.manual_seed(0)
@@ -296,7 +356,7 @@ def evaluate(model, config, out_path, max_windows=512, name=''):
     print(f'  {"test mask":17} {"group":6} {"model":>7} {"idw":>7} {"linear":>7} {"zero":>7}')
     for k in KINDS:
         for g in ('all', 'sparse', 'dense'):
-            row = {p: res['test_masks'].get(f'{k}|{g}|{p}') for p in ('model', 'idw', 'linear', 'zero')}
+            row = {p: res['test_masks'].get(f'{k}|{g}|{p}') for p in ('model', 'idw', 'linear', 'ar', 'zero')}
             if row['model'] is None:
                 continue
             print(f'  {k:17} {g:6} ' + ' '.join(f'{v:7.4f}' if v is not None else f'{"-":>7}' for v in row.values()))
