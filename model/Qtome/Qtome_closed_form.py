@@ -27,11 +27,16 @@ from sklearn.preprocessing import StandardScaler
 
 
 class ClosedFormHead:
-    def __init__(self, spatial_k=8, atom_rank=4, time_rank=2, signed_time_rank=None):
-        self.K, self.M, self.R = int(spatial_k), int(atom_rank), int(time_rank)
-        # signed_ab's own time_rank (a per-entry key, as in the SGD head); 'full' = every patch kept. DEV few-shot
+    def __init__(self, spatial_k=8, atom_rank=4, time_rank=2, signed_time_rank=None, power_score='fisher', signed_score='between'):
+        rank = lambda r: None if r == 'full' else int(r)                          # 'full' = every patch kept
+        self.K, self.M, self.R = int(spatial_k), int(atom_rank), rank(time_rank)
+        # signed_ab's own time_rank (a per-entry key, as in the SGD head). DEV few-shot
         # 2026-10-06 (MI / P300 / SSVEP power / SSVEP phase-locked, mean): rank 2 53.2, 4 54.9, 8 56.7, full 59.7.
-        self.Rs = None if signed_time_rank == 'full' else int(signed_time_rank) if signed_time_rank else self.R
+        self.Rs = rank(signed_time_rank) if signed_time_rank else self.R
+        # how each half scores a (Q-atom, patch) for its factors: 'between' = the between-class variance of the class
+        # means (for the signed half: the HOSVD of the centred class means), 'fisher' = that over the within-class variance
+        assert power_score in ('fisher', 'between') and signed_score in ('fisher', 'between')
+        self.power_score, self.signed_score = power_score, signed_score
 
     @staticmethod
     def _top_geig(P, Q, k):
@@ -56,8 +61,8 @@ class ClosedFormHead:
         lp = np.log(p + 1e-12)
         mu = np.stack([lp[y == c].mean(0) for c in cls])                          # [k, N, K, S]
         within = sum(((lp[y == c] - mu[i]) ** 2).sum(0) for i, c in enumerate(cls)) / max(n - len(cls), 1)
-        fisher = (mu.var(0) / (within + 1e-12)).mean(1)                           # [N, S]
-        U, sv, Vt = np.linalg.svd(fisher.T, full_matrices=False)                  # [S, N] rank-R
+        score = (mu.var(0) / (within + 1e-12) if self.power_score == 'fisher' else mu.var(0)).mean(1)   # [N, S]
+        U, sv, Vt = np.linalg.svd(score.T, full_matrices=False)                   # [S, N] rank-R
         w = np.clip((U[:, :self.R] * sv[:self.R]) @ Vt[:self.R], 0, None) + 1e-6
         self.wt = w / w.sum(1, keepdims=True)                                     # [S, N]
         # signed_ab spatial filter: class-mean code covariance vs trial covariance
@@ -69,7 +74,11 @@ class ClosedFormHead:
         self.Ws = self._top_geig(sum(m @ m.T for m in means) / len(cls), Q, K)    # [C, K]
         ys = np.einsum('ntcsj,ck->nkjst', amp, self.Ws)                           # [n, K, 2, S, N]
         cm = np.stack([ys[y == c].mean(0) for c in cls])
-        D = (cm - cm.mean(0)).reshape(-1, S, N)                                   # centred class means
+        D = cm - cm.mean(0)                                                       # centred class means [k, K, 2, S, N]
+        if self.signed_score == 'fisher':                                        # each (filter, a/b, Q-atom, patch) over its noise
+            within = sum(((ys[y == c] - cm[i]) ** 2).sum(0) for i, c in enumerate(cls)) / max(n - len(cls), 1)
+            D = D / np.sqrt(within + 1e-12)
+        D = D.reshape(-1, S, N)
         self.Us = np.linalg.eigh(np.einsum('isn,itn->st', D, D))[1][:, ::-1][:, :self.M]     # [S, M]
         self.Qt = np.linalg.eigh(np.einsum('isn,ism->nm', D, D))[1][:, ::-1][:, :self.Rs]    # [N, Rs]
         k = len(cls)
