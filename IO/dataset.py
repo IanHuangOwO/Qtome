@@ -231,7 +231,17 @@ class EEGDataset(Dataset):
                 f"this config's preprocess_params)."
             )
         npz = np.load(cache_path)
-        data_np = npz['data'][:, ds_indices, :]
+        data_np = npz['data']
+        # dataset_params.<mode>.<ds>.trial_fraction (analysis panels, whole trials only): keep a fixed random share of the
+        # subject's real trials, so a panel that needs ~1000 trials of a dataset keeps every subject without loading them
+        # whole. Picked here, before the transform and the 64-slot padding, which would otherwise run on every trial.
+        frac = ds_config['dataset_params'].get('trial_fraction', 1.0)
+        keep = None
+        if not self.assemble_trials and frac < 1.0 and len(data_np):
+            keep = np.sort(np.random.default_rng(zlib.crc32(f"{ds_name}/{subject_id}".encode()))
+                           .permutation(len(data_np))[:max(1, int(round(frac * len(data_np))))])
+            data_np = data_np[keep]
+        data_np = data_np[:, ds_indices, :]
         if data_np.shape[0] == 0:
             return None
         coords_np = plan['coords']
@@ -263,6 +273,8 @@ class EEGDataset(Dataset):
         # get_subject_data itself uses.
         cache_valid_start = npz['valid_start'].tolist() if 'valid_start' in npz else [0] * N
         cache_valid_end = npz['valid_end'].tolist() if 'valid_end' in npz else [T] * N
+        if keep is not None and 'valid_start' in npz:
+            cache_valid_start, cache_valid_end = [cache_valid_start[i] for i in keep], [cache_valid_end[i] for i in keep]
 
         # Transform (bandpass/resample/normalize) on the REAL channels only, before padding —
         # normalizing after zero-padding folds the zero-filled missing-channel rows into the
@@ -305,19 +317,12 @@ class EEGDataset(Dataset):
                 padded, labels = padded[keep], labels[keep]
                 row_valid_start, row_valid_end = row_valid_start[keep], row_valid_end[keep]
         else:
-            labels = torch.from_numpy(npz['labels'].astype(np.int64))
+            labels = torch.from_numpy(npz['labels'].astype(np.int64) if keep is None else npz['labels'][keep].astype(np.int64))
             # Every row here is one real, untouched-by-assembly trial -- use the cache's
             # own per-trial bounds directly (cross-subject max_T padding, applied later in
             # EEGDataset.__init__, is handled separately via all_valid_length/FinetuneDataset).
             row_valid_start = torch.tensor(cache_valid_start, dtype=torch.long)
             row_valid_end = torch.tensor(cache_valid_end, dtype=torch.long)
-            # dataset_params.<mode>.<ds>.trial_fraction (analysis panels): keep a fixed random share of the subject's
-            # real trials, so a panel that needs ~1000 trials of a dataset keeps every subject without loading them whole
-            frac = ds_config['dataset_params'].get('trial_fraction', 1.0)
-            if frac < 1.0 and len(padded):
-                keep = torch.from_numpy(np.sort(np.random.default_rng(zlib.crc32(f"{ds_name}/{subject_id}".encode()))
-                                                .permutation(len(padded))[:max(1, int(round(frac * len(padded))))]))
-                padded, labels, row_valid_start, row_valid_end = padded[keep], labels[keep], row_valid_start[keep], row_valid_end[keep]
 
         task_coords = torch.zeros((self.Nc, 3), dtype=torch.float32)
         task_coords[target_pos] = torch.from_numpy(coords_np.astype(np.float32))

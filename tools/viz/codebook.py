@@ -65,7 +65,7 @@ def plot_usage_and_activity(out_path, strength, categories, category_order,
 def plot_embedding_scatter_by_dataset(out_path, usage_by_dataset, unit_label='Atom',
                                        max_points=3000, random_state=0):
     """PCA + t-SNE of each patch's Q-atom strengths (all units concatenated), colored by
-    source dataset. t-SNE runs on a PCA-reduced pre-projection for speed, standard practice
+    the source dataset's paradigm. t-SNE runs on a PCA-reduced pre-projection for speed, standard practice
     at this corpus size."""
     from sklearn.decomposition import PCA
     from sklearn.manifold import TSNE
@@ -90,14 +90,22 @@ def plot_embedding_scatter_by_dataset(out_path, usage_by_dataset, unit_label='At
     tsne2 = TSNE(n_components=2, init='pca', random_state=random_state,
                  perplexity=perplexity).fit_transform(pca_pre)
 
+    # coloured by paradigm (the corpus builder's groups): ten colours cannot tell ~46 datasets apart; one dataset at a
+    # time is in the per-dataset target plot
+    from tools.misc.build_pretrain_corpus import GROUPS
+    group = {d: g for g, (_, ds_) in GROUPS.items() for d in ds_}
+    groups = [g for g in GROUPS if any(group.get(d) == g for d in dataset_names)] + \
+             (['other'] if any(d not in group for d in dataset_names) else [])
+    palette = dict(zip(list(GROUPS) + ['other'], ['#2a78d6', '#eb6834', '#1baf7a', '#eda100', '#e87ba4', '#8a8a8a']))
+    point_group = np.array([group.get(d, 'other') for d in labels])
     fig, axes = plt.subplots(1, 2, figsize=(14, 6))
-    colors = plt.cm.tab10(np.linspace(0, 1, max(len(dataset_names), 1)))
     for proj, ax, title in ((pca2, axes[0], 'PCA'), (tsne2, axes[1], 't-SNE')):
-        for ds, color in zip(dataset_names, colors):
-            mask = labels == ds
-            ax.scatter(proj[mask, 0], proj[mask, 1], s=6, alpha=0.6, color=color, label=ds)
+        for g in groups:
+            mask = point_group == g
+            n_ds = len({d for d in dataset_names if group.get(d, 'other') == g})
+            ax.scatter(proj[mask, 0], proj[mask, 1], s=6, alpha=0.6, color=palette[g], label=f'{g} ({n_ds} dataset{"" if n_ds == 1 else "s"})')
         ax.set_title(f'{title} of {unit_label} strengths', fontsize=11, fontweight='bold')
-    axes[0].legend(fontsize=8, markerscale=2, loc='best')
+    axes[0].legend(fontsize=9, markerscale=3, loc='best')
 
     fig.suptitle('Cross-Dataset Embedding Separation', fontsize=13, fontweight='bold')
     fig.tight_layout()
