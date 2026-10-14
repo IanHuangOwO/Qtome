@@ -102,15 +102,16 @@ class ChannelClusterMask(MaskMode):
     the target channel count is reached. A radius rather than k-nearest keeps the physical
     size of the hole the same on a 19- and a 128-channel cap. exact (templates since 2026-10-15): the last region
     takes only its channels nearest the seed, up to the target, rounded down (without it, it is hidden whole and a dense
-    22-channel cap can lose 68% at ratio 0.3), and the mode applies only to caps of more than 4 channels, where
-    it would otherwise hide one random channel, as RandomChannelMask does."""
+    22-channel cap can lose 68% at ratio 0.3), and the mode applies only when it can hide a region of at least two
+    channels (floor(ratio x C) >= 2: at ratio 0.3 caps of 7+ channels, at 0.1 of 20+); a single channel is what
+    RandomChannelMask already does."""
     channel_mode = True
 
     def __init__(self, radius_cm=(3.0, 7.0), exact=False):
         self.radius, self.exact = (radius_cm[0] / 100.0, radius_cm[1] / 100.0), exact
 
-    def applicable(self, valid):
-        return not self.exact or int(valid.any(1).sum()) > 4
+    def applicable(self, valid, ratio):
+        return not self.exact or self._n_channels(int(valid.any(1).sum()), ratio, True) >= 2
 
     def generate(self, valid, coords, ratio):
         ch = valid.any(1).nonzero().flatten()
@@ -187,7 +188,7 @@ class MontageMask(MaskMode):
     def __init__(self, montages: List[str], dense_min_channels: int = 32, min_keep: int = 3):
         self.montages, self.dense_min, self.min_keep, self.montage_idx = list(montages), dense_min_channels, min_keep, None
 
-    def applicable(self, valid):
+    def applicable(self, valid, ratio):
         return int(valid.any(1).sum()) >= self.dense_min
 
     def generate(self, valid, coords, ratio):
@@ -268,7 +269,7 @@ class MaskingStrategy:
             modes = [m for m, k in zip(modes, keep.tolist()) if k]
             ratios = [r for r, k in zip(ratios, keep.tolist()) if k]
         if any(hasattr(m, 'applicable') for m in modes):                 # modes that fit only some windows (MontageMask)
-            ok = [not hasattr(m, 'applicable') or m.applicable(valid) for m in modes]
+            ok = [not hasattr(m, 'applicable') or m.applicable(valid, r) for m, r in zip(modes, ratios)]
             probs = probs[torch.tensor(ok)]
             modes = [m for m, k in zip(modes, ok) if k]
             ratios = [r for r, k in zip(ratios, ok) if k]

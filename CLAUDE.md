@@ -118,7 +118,8 @@ Key fields (templates show defaults):
   time holes +1 to +4%, loso level): channel cluster 0.35, random channels 0.35, token runs (`random_token`) 0.20, time
   blocks 0.10; maximum ratios 0.3 / 0.3 / 0.4 / 0.4. Before: time blocks 0.30 and no token runs (cluster ratio 0.2
   before 2026-10-06). Channel modes take `exact` (templates since 2026-10-15): the count is rounded down, and the
-  cluster stops at it (it used to overshoot, up to 68% of BCI-22 at ratio 0.3) and skips caps of <= 4 channels. Mode
+  cluster stops at it (it used to overshoot, up to 68% of BCI-22 at ratio 0.3) and applies only when it can hide >= 2
+  channels (floor(ratio x C) >= 2). Mode
   `montage` (MontageMask, not yet in the template): channels outside a sparse montage hidden as targets, replacing
   the padding subsampling; under test, docs/cards/2026-10-15-sparse-montage-mask.md.
 - `training_params.pretrain`: `model_name`, `output_path`, `epochs`, `tokenizer_epochs`, `freeze_atoms`,
