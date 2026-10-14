@@ -48,6 +48,13 @@ python analysis_pretrain.py --panel profile [--train]     # parameter counts + t
 # time_weights; also seed_equivalence, class_snapshots --checkpoint <head.pth>). Run backbone_eval first.
 python analysis_finetune.py --group base=<backbone> --group X=<backbone> --ref base [--head frozen_learned]
 python -m tools.analysis.summarize_runs 'output/Qtome/<backbone>/finetune/<head>/*' [--ref <backbone>:<head>] [--rank N]
+
+# Task filter: a reconstruction keeping only what classification heads use (model/Qtome/Qtome_filter_tools.py). Source 'multi'
+# (MI + P300 + SSVEP heads) or one dataset; needs loso cells <ds>_impute64_loso_seed1 (impute_missing_channels=true).
+# Tests on unseen datasets (mi / p300 / noise) and a panel -> output/Qtome/<backbone>/task_filter/<source>/
+python task_filter.py --run <backbone> --source multi build
+python task_filter.py --run <backbone> --source multi eval mi|p300|noise [--target <ds> ...]
+python task_filter.py --run <backbone> --source multi panel --target <ds> [--share 0.1]
 ```
 
 No test suite: modules carry runnable self-checks (e.g. `Qtome_modules._selfcheck_head_modules()`), and
@@ -125,7 +132,7 @@ Key fields (templates show defaults):
   `loso`, `subject_kfold` (`n_folds`), `eval_subjects`, `kfold`, `blocked_kfold`, `fewshot` (`train_fraction`,
   EEG-FM-Compass calibration); all take `sessions` and `seed`, per-subject types also `purge` (P300 overlap);
   unknown keys are rejected. Plus LR fields, `epochs`, `class_weight` (`balanced`), `batch_size`, `seed`.
-  `fit`: `sgd` (default) or `closed_form` (`model/Qtome/closed_form.py`, no SGD). Few-shot always uses the closed-form
+  `fit`: `sgd` (default) or `closed_form` (`model/Qtome/Qtome_closed_form.py`, no SGD). Few-shot always uses the closed-form
   structured head: the all-atom head's own factors (spatial filter x Q-atom weights x time course) set in closed
   form, one head for every paradigm, signed half at full time resolution (the protocols set it;
   docs/reports/2026-10-06-structured-fewshot-head.md). (The per-paradigm CSP / xDAWN / TRCA heads it replaced were removed 2026-10-07.)
@@ -137,7 +144,7 @@ Key fields (templates show defaults):
 | Owner | Code | Configs |
 |---|---|---|
 | shared (every model) | `cache_dataset.py`, `datas/`, `IO/` (incl. `IO/splits.py`: protocol splits, `make_runs`), `train_pretrain.py` (dispatches through `model/factory.py`'s plugin registry), `model/base_*.py`, `model/factory.py`, `tools/misc/` | `compile.json`, `montages.json`, `finetune_protocols.json` |
-| Qtome | `model/Qtome/`, `train_finetune.py` (frozen backbone + head), `cache_feature.py` (atom cache), `analysis_pretrain.py`, `analysis_finetune.py`, `tools/analysis/`, `tools/panels/`, `tools/viz/` | `configs/Qtome/` |
+| Qtome | `model/Qtome/`, `train_finetune.py` (frozen backbone + head), `cache_feature.py` (atom cache), `analysis_pretrain.py`, `analysis_finetune.py`, `task_filter.py` (task filter), `tools/analysis/`, `tools/panels/`, `tools/viz/` | `configs/Qtome/` |
 | from-scratch baselines | `model/EEGNet/`, `train_baseline.py` | `configs/EEGNet/` |
 
 A new pretrained backbone follows `docs/agents/adding-a-model.md` (plugin); a new from-scratch baseline is
