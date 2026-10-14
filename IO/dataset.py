@@ -311,6 +311,13 @@ class EEGDataset(Dataset):
             # EEGDataset.__init__, is handled separately via all_valid_length/FinetuneDataset).
             row_valid_start = torch.tensor(cache_valid_start, dtype=torch.long)
             row_valid_end = torch.tensor(cache_valid_end, dtype=torch.long)
+            # dataset_params.<mode>.<ds>.trial_fraction (analysis panels): keep a fixed random share of the subject's
+            # real trials, so a panel that needs ~1000 trials of a dataset keeps every subject without loading them whole
+            frac = ds_config['dataset_params'].get('trial_fraction', 1.0)
+            if frac < 1.0 and len(padded):
+                keep = torch.from_numpy(np.sort(np.random.default_rng(zlib.crc32(f"{ds_name}/{subject_id}".encode()))
+                                                .permutation(len(padded))[:max(1, int(round(frac * len(padded))))]))
+                padded, labels, row_valid_start, row_valid_end = padded[keep], labels[keep], row_valid_start[keep], row_valid_end[keep]
 
         task_coords = torch.zeros((self.Nc, 3), dtype=torch.float32)
         task_coords[target_pos] = torch.from_numpy(coords_np.astype(np.float32))

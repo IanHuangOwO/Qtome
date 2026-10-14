@@ -278,11 +278,11 @@ def setup_mne_info(dataset, fs=200.0):
     return info
 
 
-def cap_subjects(config: dict, ds_args: dict, max_trials: int, rng, min_subjects: int = 20):
+def cap_subjects(config: dict, ds_args: dict, max_trials: int, rng, min_subjects: int = 20, with_total: bool = False):
     """A shuffled subset of ds_args's subjects covering ~max_trials trials (and at least min_subjects
     subjects, subject diversity dominates EEG variance), counted from each subject's cached labels
     array without loading its data. subject_to_use ["all"] on a large dataset would otherwise load
-    every trial (this once ran out of memory at ~55 GB)."""
+    every trial (this once ran out of memory at ~55 GB). with_total: also return those subjects' trial count."""
     import numpy as np
     from IO.preprocessing import cache_suffix
     path = ds_args['dataset_path']
@@ -293,18 +293,19 @@ def cap_subjects(config: dict, ds_args: dict, max_trials: int, rng, min_subjects
         subjects = [s for s in subjects if s in {str(r) for r in requested}]
     rng.shuffle(subjects)
     pp = config['preprocess_params']
-    suffix = cache_suffix(pp['sample_freq'], pp['bandpass_filter'],
-                          pp.get('pre_event_seconds', 0.0), pp.get('post_event_seconds', 0.0))
+    # pretrain caches are event-free (continuous_seconds in the suffix), finetune caches are not: take the one on disk
+    suffixes = [cache_suffix(pp['sample_freq'], pp['bandpass_filter'], pp.get('pre_event_seconds', 0.0),
+                             pp.get('post_event_seconds', 0.0), c) for c in (pp.get('continuous_seconds', 0.0), 0.0)]
     picked, total = [], 0
     for sid in subjects:
-        cache = os.path.join(path, 'cache', f"{sid}_{suffix}.npz")
-        if not os.path.exists(cache):
+        cache = next((c for c in (os.path.join(path, 'cache', f"{sid}_{x}.npz") for x in suffixes) if os.path.exists(c)), None)
+        if cache is None:
             continue
         picked.append(sid)
         total += len(np.load(cache)['labels'])
         if total >= max_trials and len(picked) >= min_subjects:
             break
-    return picked
+    return (picked, total) if with_total else picked
 
 
 def write_csv(path: str, rows: list) -> str:

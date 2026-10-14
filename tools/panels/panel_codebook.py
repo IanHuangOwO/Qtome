@@ -19,8 +19,11 @@ def run(ctx):
     by_name = {}
     for name in ctx.args.datasets or list(ds_params):
         cfg = copy.deepcopy(ctx.config)
-        subjects = cap_subjects(cfg, ds_params[name], max_trials, rng)
-        cfg['dataset_params']['pretrain'] = {name: {**ds_params[name], 'subject_to_use': subjects}}
+        subjects, total = cap_subjects(cfg, ds_params[name], max_trials, rng, with_total=True)
+        # every dataset stays in memory until the checker ran: load 1.5 x max_trials spread over the subjects, not their
+        # every trial (20 subjects of each dataset in full reached > 50 GB, 2026-10-14)
+        cfg['dataset_params']['pretrain'] = {name: {**ds_params[name], 'subject_to_use': subjects,
+                                                    'trial_fraction': min(1.0, 1.5 * max_trials / max(total, 1))}}
         by_name[name] = build_dataset_from_config(cfg, mode='pretrain', assemble_trials=False)
         print(f"  {name}: {len(subjects)} subject(s)")
     checker = MODEL_REGISTRY['Qtome'].codebook_checker_cls()
