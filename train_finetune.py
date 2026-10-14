@@ -237,9 +237,9 @@ def _pca_axes(z, train_idx, m, chunk=256):
 
 
 def run_closed_form(config, run, source, tag, logger):
-    """training_params.finetune.fit 'closed_form': fit ClosedFormHead (model/Qtome/closed_form.py) on run['train'],
+    """training_params.finetune.fit 'closed_form': fit ClosedFormHead (model/Qtome/Qtome_closed_form.py) on run['train'],
     no SGD; per-subject balanced accuracy + kappa on run['eval'], in run_one's format (tail = last: one fit)."""
-    from model.Qtome.closed_form import ClosedFormHead
+    from model.Qtome.Qtome_closed_form import ClosedFormHead
     tp = config['training_params']['finetune']
     if source.kind != 'atom':
         raise ValueError("fit 'closed_form' reads the atom code: the head needs a atom entry")
