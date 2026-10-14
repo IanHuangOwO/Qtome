@@ -590,11 +590,15 @@ class PretrainDataset(Dataset):
         self.masking_strategy = masking_strategy
         subsampler = masking_strategy.subsampler
         bd = self.base_dataset
+        norm = bd._normalize_label
+        name_to_idx = {norm(n): i for i, n in enumerate(bd.channel_names)}
+        to_idx = lambda montages: [[name_to_idx[norm(n)] for n in load_montage_channels(m) if norm(n) in name_to_idx]
+                                   for m in montages]
         if subsampler is not None and not hasattr(self, '_montage_idx'):
-            norm = bd._normalize_label
-            name_to_idx = {norm(n): i for i, n in enumerate(bd.channel_names)}
-            self._montage_idx = [[name_to_idx[norm(n)] for n in load_montage_channels(m) if norm(n) in name_to_idx]
-                                 for m in subsampler.montages]
+            self._montage_idx = to_idx(subsampler.montages)
+        for mode in masking_strategy.modes:                                 # MontageMask: the same channel lookup
+            if hasattr(mode, 'montage_idx') and mode.montage_idx is None:
+                mode.montage_idx = to_idx(mode.montages)
         self._keep, self._masks = [], []
         for i in range(len(bd)):
             valid, keep = self._valid_masks[i], None

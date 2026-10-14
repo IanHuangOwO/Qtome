@@ -76,19 +76,23 @@ class MaskMode(ABC):
         pass
 
     @staticmethod
-    def _n_channels(n_valid: int, ratio: float) -> int:
-        """Channels to hide: ratio of the valid ones, at least 1; exactly 1 on caps of <= 4."""
-        return 1 if n_valid <= 4 else max(1, int(round(ratio * n_valid)))
+    def _n_channels(n_valid: int, ratio: float, exact: bool = False) -> int:
+        """Channels to hide: ratio of the valid ones, at least 1; exactly 1 on caps of <= 4. exact: rounded down,
+        so never above the ratio (rounding to nearest hides 2 of 5 channels at ratio 0.3)."""
+        return 1 if n_valid <= 4 else max(1, int(ratio * n_valid) if exact else int(round(ratio * n_valid)))
 
 
 class RandomChannelMask(MaskMode):
-    """Whole channels, chosen at random, hidden for the whole window."""
+    """Whole channels, chosen at random, hidden for the whole window. exact: the count is rounded down."""
     channel_mode = True
+
+    def __init__(self, exact=False):
+        self.exact = exact
 
     def generate(self, valid, coords, ratio):
         ch = valid.any(1).nonzero().flatten()
         hidden = torch.zeros(valid.shape[0], dtype=torch.bool)
-        hidden[ch[torch.randperm(len(ch))[:self._n_channels(len(ch), ratio)]]] = True
+        hidden[ch[torch.randperm(len(ch))[:self._n_channels(len(ch), ratio, self.exact)]]] = True
         return valid & hidden[:, None]
 
 
@@ -96,15 +100,21 @@ class ChannelClusterMask(MaskMode):
     """Scalp regions hidden for the whole window: a random valid seed electrode plus every
     valid channel within a random radius (radius_cm; coords are in metres), repeated until
     the target channel count is reached. A radius rather than k-nearest keeps the physical
-    size of the hole the same on a 19- and a 128-channel cap."""
+    size of the hole the same on a 19- and a 128-channel cap. exact (templates since 2026-10-15): the last region
+    takes only its channels nearest the seed, up to the target, rounded down (without it, it is hidden whole and a dense
+    22-channel cap can lose 68% at ratio 0.3), and the mode applies only to caps of more than 4 channels, where
+    it would otherwise hide one random channel, as RandomChannelMask does."""
     channel_mode = True
 
-    def __init__(self, radius_cm=(3.0, 7.0)):
-        self.radius = (radius_cm[0] / 100.0, radius_cm[1] / 100.0)
+    def __init__(self, radius_cm=(3.0, 7.0), exact=False):
+        self.radius, self.exact = (radius_cm[0] / 100.0, radius_cm[1] / 100.0), exact
+
+    def applicable(self, valid):
+        return not self.exact or int(valid.any(1).sum()) > 4
 
     def generate(self, valid, coords, ratio):
         ch = valid.any(1).nonzero().flatten()
-        target = self._n_channels(len(ch), ratio)
+        target = self._n_channels(len(ch), ratio, self.exact)
         hidden = torch.zeros(valid.shape[0], dtype=torch.bool)
         if len(ch) <= 4 or coords is None:
             hidden[ch[torch.randint(len(ch), (1,))]] = True
@@ -113,7 +123,13 @@ class ChannelClusterMask(MaskMode):
             free = ch[~hidden[ch]]
             seed = free[torch.randint(len(free), (1,))]
             r = self.radius[0] + (self.radius[1] - self.radius[0]) * float(torch.rand(1))
-            hidden[ch[(coords[ch] - coords[seed]).norm(dim=-1) <= r]] = True
+            d = (coords[ch] - coords[seed]).norm(dim=-1)
+            if self.exact:                                                # nearest first, only up to the target
+                inside = ch[(d <= r) & ~hidden[ch]]
+                inside = inside[d[(d <= r) & ~hidden[ch]].argsort()][:target - int(hidden[ch].sum())]
+                hidden[inside] = True
+            else:
+                hidden[ch[d <= r]] = True
         return valid & hidden[:, None]
 
 
@@ -159,8 +175,33 @@ class RandomTokenMask(MaskMode):
         return random_token_mask(C, N, ratio, valid.flatten(), self.time_run).view(C, N)
 
 
+class MontageMask(MaskMode):
+    """A dense cap seen through a sparse montage: one montage drawn uniformly from `montages`
+    (configs/montages.json names), and every valid channel outside it hidden for the whole window --
+    hidden, so a target, unlike ChannelSubsampler, which makes them padding. Only windows with >=
+    dense_min_channels valid channels (applicable); fewer than min_keep montage channels on the cap
+    = no mask (None), and MaskingStrategy draws another mode. The dataset sets montage_idx (each
+    montage as canonical channel indices) before the first draw."""
+    channel_mode = True
+
+    def __init__(self, montages: List[str], dense_min_channels: int = 32, min_keep: int = 3):
+        self.montages, self.dense_min, self.min_keep, self.montage_idx = list(montages), dense_min_channels, min_keep, None
+
+    def applicable(self, valid):
+        return int(valid.any(1).sum()) >= self.dense_min
+
+    def generate(self, valid, coords, ratio):
+        assert self.montage_idx is not None, 'MontageMask: the dataset has not set montage_idx'
+        ch = valid.any(1)
+        keep = [i for i in self.montage_idx[int(torch.randint(len(self.montage_idx), (1,)))] if ch[i]]
+        if len(keep) < self.min_keep:
+            return None
+        hidden = ch.clone(); hidden[keep] = False
+        return valid & hidden[:, None]
+
+
 MASK_MODES = {'random_token': RandomTokenMask, 'random_channel': RandomChannelMask,
-              'channel_cluster': ChannelClusterMask, 'time_block': TimeBlockMask}
+              'channel_cluster': ChannelClusterMask, 'time_block': TimeBlockMask, 'montage': MontageMask}
 
 
 class MaskingStrategy:
@@ -174,8 +215,12 @@ class MaskingStrategy:
                  label: str = 'mixture', subsample: Optional[dict] = None):
         self._epoch = 1
         self.subsampler = ChannelSubsampler(**subsample) if subsample else None
-        self.modes = [MASK_MODES[m['type']](**{k: v for k, v in m.items() if k not in ('type', 'prob', 'max_ratio')})
-                      for m in modes]
+        sched = ('type', 'prob', 'max_ratio', 'start_epoch', 'ramp_epochs', 'prob_from')
+        self.modes = [MASK_MODES[m['type']](**{k: v for k, v in m.items() if k not in sched}) for m in modes]
+        # a mode with start_epoch ramps its prob in like ChannelSubsampler (0 before start_epoch, full after
+        # ramp_epochs more); until then the rest of its prob goes to the mode named by prob_from
+        self._sched = [(i, int(m['start_epoch']), max(1, int(m.get('ramp_epochs', 10))), [x['type'] for x in modes].index(m['prob_from']))
+                       for i, m in enumerate(modes) if 'start_epoch' in m]
         self.names = [m['type'] for m in modes]
         self.probs = torch.tensor([float(m['prob']) for m in modes])
         self.max_ratio = [float(m['max_ratio']) for m in modes]
@@ -195,6 +240,15 @@ class MaskingStrategy:
             return 0.0 if self._epoch <= 1 else 1.0
         return min(self._epoch - 1, self.ramp_epochs - 1) / (self.ramp_epochs - 1)
 
+    def current_probs(self) -> torch.Tensor:
+        if not self._sched:
+            return self.probs
+        p = self.probs.clone()
+        for i, start, ramp, j in self._sched:
+            on = 0.0 if self._epoch < start else min(1.0, (self._epoch - start + 1) / ramp)
+            p[j] += p[i] * (1 - on); p[i] *= on
+        return p
+
     def ratios(self) -> List[float]:
         p = self.progress()
         return [self.start_ratio + p * (m - self.start_ratio) for m in self.max_ratio]
@@ -205,7 +259,7 @@ class MaskingStrategy:
         (e.g. motor-3's 3 real channels, halved again), so those modes are excluded here and
         the draw falls back to the remaining (non-channel) modes, renormalized."""
         valid = _valid(num_channels, num_patches, valid).view(num_channels, num_patches)
-        probs, ratios, modes = self.probs, self.ratios(), self.modes
+        probs, ratios, modes = self.current_probs(), self.ratios(), self.modes
         if subsampled and any(m.channel_mode for m in modes):
             keep = torch.tensor([not m.channel_mode for m in modes])
             if not keep.any():
@@ -213,12 +267,21 @@ class MaskingStrategy:
             probs = probs[keep]
             modes = [m for m, k in zip(modes, keep.tolist()) if k]
             ratios = [r for r, k in zip(ratios, keep.tolist()) if k]
-        i = int(torch.multinomial(probs, 1))
-        return modes[i].generate(valid, coords, ratios[i]).flatten()
+        if any(hasattr(m, 'applicable') for m in modes):                 # modes that fit only some windows (MontageMask)
+            ok = [not hasattr(m, 'applicable') or m.applicable(valid) for m in modes]
+            probs = probs[torch.tensor(ok)]
+            modes = [m for m, k in zip(modes, ok) if k]
+            ratios = [r for r, k in zip(ratios, ok) if k]
+        while True:
+            i = int(torch.multinomial(probs, 1))
+            out = modes[i].generate(valid, coords, ratios[i])
+            if out is not None:                                           # None: the mode does not fit this window
+                return out.flatten()
+            probs = probs.clone(); probs[i] = 0
 
     def describe(self):
         return f'{self.label} ' + ' '.join(
-            f'{n}:{p:.2f}@{r:.2f}' for n, p, r in zip(self.names, self.probs.tolist(), self.ratios())) + \
+            f'{n}:{p:.2f}@{r:.2f}' for n, p, r in zip(self.names, self.current_probs().tolist(), self.ratios())) + \
             (f' | {self.subsampler.describe()}' if self.subsampler is not None else '')
 
 

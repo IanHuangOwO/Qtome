@@ -117,7 +117,10 @@ Key fields (templates show defaults):
   2026-10-13 on 3 flat seeds, docs/cards/2026-10-12-token-runs-plus-time-block.md: token-run MSE -18%, channel masks -2%,
   time holes +1 to +4%, loso level): channel cluster 0.35, random channels 0.35, token runs (`random_token`) 0.20, time
   blocks 0.10; maximum ratios 0.3 / 0.3 / 0.4 / 0.4. Before: time blocks 0.30 and no token runs (cluster ratio 0.2
-  before 2026-10-06).
+  before 2026-10-06). Channel modes take `exact` (templates since 2026-10-15): the count is rounded down, and the
+  cluster stops at it (it used to overshoot, up to 68% of BCI-22 at ratio 0.3) and skips caps of <= 4 channels. Mode
+  `montage` (MontageMask, not yet in the template): channels outside a sparse montage hidden as targets, replacing
+  the padding subsampling; under test, docs/cards/2026-10-15-sparse-montage-mask.md.
 - `training_params.pretrain`: `model_name`, `output_path`, `epochs`, `tokenizer_epochs`, `freeze_atoms`,
   `warmup_epochs`, `batch_size`, LR fields, `train_val_split`, `seed`.
 - `model_params.Qtome.finetune` (the head, validated at build): `features` = a list of `{"type": <entry>,
@@ -136,7 +139,9 @@ Key fields (templates show defaults):
   `fit`: `sgd` (default) or `closed_form` (`model/Qtome/Qtome_closed_form.py`, no SGD). Few-shot always uses the closed-form
   structured head: the all-atom head's own factors (spatial filter x Q-atom weights x time course) set in closed
   form, one head for every paradigm, signed half at full time resolution (the protocols set it;
-  docs/reports/2026-10-06-structured-fewshot-head.md). (The per-paradigm CSP / xDAWN / TRCA heads it replaced were removed 2026-10-07.)
+  docs/reports/2026-10-06-structured-fewshot-head.md); since 2026-10-15 both halves use the Fisher score and full time
+  rank (`power_score` / `signed_score` `fisher`, `time_rank` / `signed_time_rank` `full`; DEV +4.6, Nakanishi2015
+  few-shot 86.3 -> 96.7; docs/reports/2026-10-15-closed-form-unified.md). (The per-paradigm CSP / xDAWN / TRCA heads it replaced were removed 2026-10-07.)
   Loso uses SGD (closed-form loses there). SSVEP DEV sets: Kalunga2016 (not phase-locked), Wang2016_dev (phase-locked,
   in the pretraining corpus as unlabelled windows).
 

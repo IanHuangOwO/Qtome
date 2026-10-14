@@ -4806,12 +4806,14 @@
             "radius_cm": [
               3.0,
               7.0
-            ]
+            ],
+            "exact": true
           },
           {
             "type": "random_channel",
             "prob": 0.35,
-            "max_ratio": 0.3
+            "max_ratio": 0.3,
+            "exact": true
           },
           {
             "type": "time_block",
