@@ -9,11 +9,11 @@ kept components are mapped back to the channels with their patterns. The filter 
 with its missing channels imputed (mask tokens at template coordinates: imputed_encoder) and its real channels are
 read out, so one filter serves any channel layout.
 
-Two sources, both from loso heads trained on imputed 64-channel gains (finetune cell <dataset>_impute64_loso_seed1 under
+Two filters, both from loso heads trained on imputed 64-channel gains (finetune cell <dataset>_impute64_loso_seed1 under
 the backbone's finetune/allatom):
-  dataset     one dataset's heads. Per fold: components from the head's two filter banks on 3000 training trials,
+  single-task one dataset's heads (one task). Per fold: components from the head's two filter banks on 3000 training trials,
               cells scored, hard cut; the filter = the mean over the folds and the patches.
-  multi       several paradigms at once (default MI BNCI2014001, P300 BNCI2014009, SSVEP Nakanishi2015). Per fold
+  multi-task  several paradigms at once (default MI BNCI2014001, P300 BNCI2014009, SSVEP Nakanishi2015). Per fold
               index i (the first n folds of every source, n = the fewest): components from every source's fold-i filters
               stacked, on the mean of the sources' covariances (N_PER trials each, so each source weighs the same
               whatever its patches per trial); each source scores every cell on its own trials, and a cell is kept if it
@@ -42,7 +42,7 @@ MONT = json.load(open('configs/montages.json'))['10-10']['channels']
 CHANNELS = [m['label'] for m in MONT]                                     # the 64 slots, in slot order
 FS, SHARES = 200, (0.5, 0.25, 0.1)                                        # sample rate; shares of cells the filter keeps
 SOURCES = ('BNCI2014001', 'BNCI2014009', 'Nakanishi2015')                 # the multi-task filter's paradigms: MI, P300, SSVEP
-POWER_ONLY_HZ, N_PER, N_DATASET = 45, 1000, 3000                          # multi: power-only above; training trials per source and fold; dataset filter
+POWER_ONLY_HZ, N_PER, N_SINGLE = 45, 1000, 3000                           # multi: power-only above; training trials per source and fold; single-task filter
 
 
 def cell_dir(bb, ds):                                                     # bb = output/Qtome/<backbone>
@@ -114,7 +114,7 @@ def load_head(cell, fold):
     return hc, torch.cat([head.spatials[b].weight for b in head.entries]).detach()   # stacked filters [2K, 64]
 
 
-def dataset_filter(bb, ds, rng, shares=SHARES):
+def single_task_filter(bb, ds, rng, shares=SHARES):
     """{share: [S, 64, 64]}, importance [64, S]."""
     cell = cell_dir(bb, ds); data, ops, imp = None, {q: [] for q in shares}, []
     for fold, info in json.load(open(f'{cell}/artifacts/group_eval.json')).items():
@@ -122,7 +122,7 @@ def dataset_filter(bb, ds, rng, shares=SHARES):
         data = data or gains(bb, ds, hc['num_channels'], hc['num_patches'])
         tr = [data[s] for s in info['train_subjects']]                    # newest cache of that shape: it must hold this head's classes
         assert set(np.concatenate([t[1] for t in tr]).tolist()) == set(range(hc['num_classes'])), 'the gain cache does not hold the classes of this head'
-        k = rng.permutation(sum(len(t[1]) for t in tr))[:N_DATASET]
+        k = rng.permutation(sum(len(t[1]) for t in tr))[:N_SINGLE]
         atr, ytr = torch.cat([t[0] for t in tr])[k], torch.from_numpy(np.concatenate([t[1] for t in tr])[k])
         imp.append(class_info(atr, ytr).sum(0))
         unmix, mix, A = components(W, atr)
@@ -238,7 +238,7 @@ def build(bb, source, backbone, sources=SOURCES, seed=0, log=print):
     if source == 'multi':
         filters, imp = multi_filter(bb, list(sources), backbone.freqs, rng, log=log)
     else:
-        filters, imp = dataset_filter(bb, source, rng)
+        filters, imp = single_task_filter(bb, source, rng)
     _, coords64, _ = layout64(bb, sources[0] if source == 'multi' else source)
     return {'source': source, 'sources': list(sources) if source == 'multi' else [source], 'shares': list(SHARES),
             'filters': filters, 'importance': imp, 'coords64': coords64}

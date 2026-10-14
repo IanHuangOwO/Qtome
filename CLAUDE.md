@@ -50,11 +50,12 @@ python analysis_finetune.py --group base=<backbone> --group X=<backbone> --ref b
 python -m tools.analysis.summarize_runs 'output/Qtome/<backbone>/finetune/<head>/*' [--ref <backbone>:<head>] [--rank N]
 
 # Task filter: a reconstruction keeping only what classification heads use (model/Qtome/Qtome_filter_tools.py). Source 'multi'
-# (MI + P300 + SSVEP heads) or one dataset; needs loso cells <ds>_impute64_loso_seed1 (impute_missing_channels=true).
+# (multi-task filter: MI + P300 + SSVEP heads) or one dataset (single-task filter); needs loso cells <ds>_impute64_loso_seed1 (impute_missing_channels=true).
 # Tests on unseen datasets (mi / p300 / noise) and a panel -> output/Qtome/<backbone>/task_filter/<source>/
 python task_filter.py --run <backbone> --source multi build
 python task_filter.py --run <backbone> --source multi eval mi|p300|noise [--target <ds> ...]
 python task_filter.py --run <backbone> --source multi panel --target <ds> [--share 0.1]
+python task_filter.py --run <backbone> compare --target <ds> --single <source ds>   # both filters vs ASR / ICLabel
 ```
 
 No test suite: modules carry runnable self-checks (e.g. `Qtome_modules._selfcheck_head_modules()`), and

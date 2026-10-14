@@ -19,6 +19,7 @@ the filter output's mean power spectrum, so the same frequencies are removed wit
          effect and lda as in mi.
 Per subject, then mean +- SE over subjects; paired differences with their own standard error."""
 import glob
+import json
 
 import numpy as np
 import torch
@@ -81,7 +82,7 @@ def hann_at(T, centre, width):                                            # [T] 
     return np.where(np.abs(t) < width / 2, 0.5 + 0.5 * np.cos(2 * np.pi * t / width), 0.0)
 
 
-def artifacts(B, coords, T, rng):
+def artifacts(B, coords, T, rng, line=False):
     """{name: n [B, C, T]}: shapes only, scaled later to POWER times the trial's power."""
     C = len(coords)
     near = lambda p, tau: np.exp(-np.linalg.norm(coords - np.array(p), axis=1) / tau)     # [C] falls off with distance
@@ -93,15 +94,36 @@ def artifacts(B, coords, T, rng):
     side = np.where(rng.random(B)[:, None] < 0.5, near(T7, 0.04)[None], near(T8, 0.04)[None])   # [B, C]
     env = np.stack([hann_at(T, rng.integers(T // 4, 3 * T // 4), min(T, FS)) for _ in range(B)])[:, None]
     out['muscle'] = side[:, :, None] * emg * env
+    if line:                                                              # last, so the others keep their draws (the noise test has none)
+        t = np.arange(T) / FS
+        out['line 50 Hz'] = (0.5 + rng.random((1, C, 1))) * np.sin(2 * np.pi * (50 * t + rng.random((B, 1, 1))))
     return {k: v.astype(np.float32) for k, v in out.items()}
 
 
-def asr_clean(noisy, calib, chans):
-    import asrpy, mne                                                     # only this test needs them
+def _raw(w, chans):                                                       # trials [B, C, T] -> one continuous mne Raw
+    import mne                                                            # only the reference cleaners need it
     mne.set_log_level('ERROR')
-    raw = lambda w: mne.io.RawArray(np.concatenate(list(w), -1).astype(np.float64), mne.create_info(chans, FS, 'eeg')).set_montage('standard_1005')
-    asr = asrpy.ASR(sfreq=FS, cutoff=20); asr.fit(raw(calib))
-    return np.stack(np.split(asr.transform(raw(noisy)).get_data(), len(noisy), -1)).astype(np.float32)
+    return mne.io.RawArray(np.concatenate(list(w), -1).astype(np.float64), mne.create_info(chans, FS, 'eeg')).set_montage('standard_1005')
+
+
+def asr_clean(noisy, calib, chans):
+    import asrpy
+    asr = asrpy.ASR(sfreq=FS, cutoff=20); asr.fit(_raw(calib, chans))
+    return np.stack(np.split(asr.transform(_raw(noisy, chans)).get_data(), len(noisy), -1)).astype(np.float32)
+
+
+def iclabel_clean(noisy, chans, thr=0.8):
+    """-> cleaned trials, number of components removed. Extended infomax ICA and ICLabel on the average-referenced copy
+    (ICLabel's training reference); components labelled eye, muscle, heart, line noise or channel noise with probability
+    > thr are removed, and what they carry is subtracted from the trials in their own reference."""
+    import mne
+    from mne_icalabel import label_components
+    raw = _raw(noisy, chans).set_eeg_reference('average', projection=False)
+    ica = mne.preprocessing.ICA(n_components=len(chans) - 1, method='infomax', fit_params=dict(extended=True), random_state=0).fit(raw)
+    lab = label_components(raw, ica, method='iclabel')
+    ica.exclude = [i for i, (l, p) in enumerate(zip(lab['labels'], lab['y_pred_proba'])) if l not in ('brain', 'other') and p > thr]
+    removed = raw.get_data() - ica.apply(raw.copy()).get_data()
+    return noisy - np.stack(np.split(removed, len(noisy), -1)).astype(np.float32), len(ica.exclude)
 
 
 def subjects(ds):                                                         # compiled trials per subject, numeric order
@@ -196,6 +218,49 @@ def noise(ctx, dst, seed=0, log=print):
     for kind, r in rows.items():
         table(r, f'{kind} at {POWER:.0%} of trial power on {dst}, filter from {ctx.filt["source"]}',
               [(f'full64 {q:g}', o.format(q=q)) for q in ops for o in ('matched {q:g}', 'band 8-30 Hz', 'ASR', 'input')], log)
+    return rows
+
+
+COMPARE_KINDS = ('noisy channel', 'blink', 'muscle', 'line 50 Hz')
+
+
+def compare(ctxs, dst, seed=0, log=print):
+    """The artifact comparison behind task_filter.py compare: every filter of ctxs ({label: ctx}, e.g. single-task and
+    multi-task) at every share, against ASR and ICLabel (8 channels or more), on dst with one artifact of COMPARE_KINDS
+    added to every trial at POWER of the trial's power. Scores per signal: signal and artifact kept, gain dB (as in
+    noise) and the paradigm's lda (P300: lda_auc; otherwise lda), trained and tested on the cleaned trials.
+    -> {kind: {signal: {score: [per subject]}}, plus 'clean': the clean recording's lda and the metric's name."""
+    ctx0 = next(iter(ctxs.values()))
+    assert all(torch.equal(c.filt['coords64'], ctx0.filt['coords64']) for c in ctxs.values()), 'filters on different 64-channel layouts'
+    dst_r, dst_c, sel, encode, _ = _setup(ctx0, dst); dec = ctx0.backbone.decode; rng = np.random.default_rng(seed)
+    ops = {lab: {q: o[:, sel] for q, o in c.filt['filters'].items()} for lab, c in ctxs.items()}
+    p300_ = json.load(open(f'datas/finetune/{dst}/metadata.json'))['data_metadata'].get('targets', {}).get('type') == 'p300'
+    score, ica = (lda_auc if p300_ else lda), len(dst_c) >= 8
+    lab_ = {m['label']: [m['cartesian'][k] for k in 'xyz'] for m in MONT}; xyz = np.array([lab_[n] for n in dst_c])
+    rows = {k: {} for k in COMPARE_KINDS}; rows['clean'] = {'raw': {'lda': []}, 'metric': 'ROC AUC, shrinkage LDA' if p300_ else 'balanced accuracy, shrinkage LDA'}
+    for f in subjects(dst):
+        z = np.load(f); y = z['labels']; x = z['data'].astype(np.float64); x = x / x.std((1, 2), keepdims=True)
+        T = int(z['valid_end'][0]); x = x[:, [dst_r.index(n) for n in dst_c], :T]; rows['clean']['raw']['lda'].append(score(x, y))
+        arts = artifacts(len(x), xyz, T, rng, line=True)
+        for kind in COMPARE_KINDS:
+            n = arts[kind].astype(np.float64)
+            n = n * np.sqrt(POWER * (x ** 2).sum((1, 2), keepdims=True) / (n ** 2).sum((1, 2), keepdims=True)); w1 = x + n
+            g = encode(w1, True); sig = {'input': w1, 'backbone64': dec(g[:, :, sel])[..., :T]}
+            for lab, o in ops.items():
+                for q, op in o.items(): sig[f'{lab} {q:g}'] = dec(torch.einsum('scd,bndsx->bncsx', op, g))[..., :T]
+            sig['ASR'] = asr_clean(w1.astype(np.float32) * 1e-5, x.astype(np.float32) * 1e-5, dst_c).astype(np.float64) * 1e5   # ~10 microvolts for mne
+            if ica:
+                c, nrem = iclabel_clean(w1.astype(np.float32) * 1e-5, dst_c); sig['ICLabel'] = c.astype(np.float64) * 1e5
+                rows[kind].setdefault('ICLabel', {}).setdefault('removed', []).append(float(nrem))
+            for m, w in sig.items():
+                s_, a_ = kept(w, x, n)
+                for k, v in (('signal', s_), ('artifact', a_), ('gain dB', 10 * np.log10(max(s_, 1e-3) / max(a_, 1e-3))), ('lda', score(w, y))):
+                    rows[kind].setdefault(m, {}).setdefault(k, []).append(float(v))
+        log(f'  {dst} {f.split("/")[-1].split("_")[0]} done')
+    for kind in COMPARE_KINDS:
+        r = {m: {k: v for k, v in d.items() if k != 'removed'} for m, d in rows[kind].items()}
+        table(r, f'{kind} at {POWER:.0%} of trial power on {dst} (clean lda {np.mean(rows["clean"]["raw"]["lda"]):.3f})',
+              [(f'{lab} {q:g}', b) for lab in ops for q in ops[lab] for b in ('input', 'ASR') + (('ICLabel',) if ica else ())], log)
     return rows
 
 
