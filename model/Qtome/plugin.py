@@ -56,8 +56,6 @@ class QtomeTrainer(BaseTrainer):
                                unmasked_weight=hparams.get('unmasked_weight', 1.0),
                                ffn_lb_loss=out.ffn_lb_loss, ffn_lb_weight=ffn_lb_weight,
                                valid_channels=out.valid_channels,
-                               whiten_max_hz=hparams.get('whiten_max_hz', 0.0),
-                               whiten_alpha=hparams.get('whiten_alpha', 1.0),
                                # nested reconstruction loss (docs/adr/0018); unset = QtomePretrain.NESTED_* defaults
                                nested_sizes=hparams.get('nested_sizes'), nested_weights=hparams.get('nested_weights'))
 

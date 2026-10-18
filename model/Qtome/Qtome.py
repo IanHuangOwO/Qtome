@@ -283,7 +283,7 @@ class QtomePretrain(nn.Module):
     def _band_errors(cls, e, x, valid, fs=200.0):
         """Relative reconstruction error per band for the log: error power / target power in each band (rFFT of every
         valid patch; 0 = perfect, 1 = predicting zero), all valid positions as mse_patch. Patch bins are 2 Hz wide at
-        100 samples, so delta is the 2 Hz bin alone. shortcut: fs fixed at 200 Hz, as _bin_weights.
+        100 samples, so delta is the 2 Hz bin alone. shortcut: fs fixed at 200 Hz.
         Returned as per-band sums ('<band>_num' error power, '<band>_den' target power): train_pretrain.py divides the
         epoch sums, so the logged value is the ratio over the epoch. A per-batch ratio explodes on a batch with almost
         no power in a band (a single pure-50 Hz BI2014a window in val, 2026-10-17)."""
@@ -296,34 +296,12 @@ class QtomePretrain(nn.Module):
             out[f'{b}_num'], out[f'{b}_den'] = float(Pe[..., sel].sum()), float(Px[..., sel].sum())
         return out
 
-    @staticmethod
-    def _bin_weights(x, wp, max_hz, alpha=1.0, fs=200.0):
-        """Per-rFFT-bin weights of the whitened loss (docs/cards/2026-10-17-whitened-mse.md and
-        2026-10-17-partial-whitening-mse-mp.md): x [B, C, N, L] target, wp [B, C, N] patch weights -> [L//2+1] =
-        Parseval multiplicity x S^-alpha, S the weighted mean patch spectrum (detached, floored at 1 % of its mean;
-        bins above max_hz weighted as the last bin below), normalised so an error with the batch's own spectrum scores
-        as plain MSE. (|rfft(e)|^2 * weights).sum(-1) / L^2 is then a patch's whitened mean squared error. alpha 1 =
-        full whitening, 0 = plain MSE. shortcut: fs fixed at the project's 200 Hz, pass it in if that changes."""
-        L = x.shape[-1]; k = torch.arange(L // 2 + 1, device=x.device)
-        mult = torch.full((len(k),), 2.0, device=x.device, dtype=x.dtype); mult[0] = 1
-        if L % 2 == 0:
-            mult[-1] = 1                                                    # Parseval: mean(e^2) = sum(mult |E|^2) / L^2
-        with torch.no_grad():
-            S = (torch.fft.rfft(x, dim=-1).abs().pow(2) * wp[..., None]).sum((0, 1, 2)) / wp.sum().clamp(min=1e-12)
-            S = S.clamp(min=0.01 * S.mean())
-            top = int((k * fs / L <= max_hz).nonzero().max())
-            S = torch.cat([S[:top + 1], S[top].expand(len(S) - top - 1)])
-            wk = 1.0 / S if alpha == 1.0 else S.pow(-alpha)
-            wk = wk * (mult * S).sum() / (mult * S * wk).sum()
-        return mult * wk
-
     # Nested sets (default): the strongest S/8, S/4, S/2 and all S Q-atoms, weighted 1/8, 1/8, 1/4, 1/2 -- half the
     # weight on the full reconstruction, so the first Q-atoms cannot dominate.
     NESTED_FRACTIONS, NESTED_WEIGHTS = (1 / 8, 1 / 4, 1 / 2, 1), (0.125, 0.125, 0.25, 0.5)
 
     def _recon_loss(self, recon, x, ranked, bool_masked_pos, valid_channels=None,
-                    mse_patch_weight=1.0, unmasked_weight=1.0, nested_sizes=None, nested_weights=None,
-                    whiten_max_hz=0.0, whiten_alpha=1.0):
+                    mse_patch_weight=1.0, unmasked_weight=1.0, nested_sizes=None, nested_weights=None):
         """Recon loss: the nested reconstruction loss (docs/adr/0018; adopted 2026-10-17 over 3 seeds,
         docs/cards/2026-10-17-nested-loss-retest.md) -- per patch, sum_k w_k * |x - (strongest s_k Q-atoms)|^2,
         Q-atoms ranked per patch by strength (ranked [B, C, N, S, L], AtomBank.forward), nothing detached. The last
@@ -337,13 +315,11 @@ class QtomePretrain(nn.Module):
         position counts equally). With bool_masked_pos=None (tokenizer phase) every valid position
         is a target and unmasked_weight is unused.
 
-        whiten_max_hz > 0: every nested term's error is spectrally whitened per patch (_bin_weights; whiten_alpha
-        sets the strength), patches weighted by the mean of their samples' position weights, since whitening mixes a
-        patch's samples. 0 = plain MSE.
-
         Removed terms, with the evidence: the overlap-added trial MSE (it let
         neighbouring patches disagree on their shared samples as long as the crossfade averaged
-        out; without it seam disagreement fell 40%), a masked STFT loss (0019); a window level (0011).
+        out; without it seam disagreement fell 40%), a masked STFT loss (0019); a window level (0011); spectral
+        whitening of the error (full to 90 Hz, then partial S^-1/2 to 40 Hz: it did not beat plain error, docs/cards/
+        2026-10-17-whitened-mse.md and 2026-10-17-partial-whitening-mse-mp.md; removed 2026-10-18).
 
         Logged mse_patch stays the plain all-valid-position MSE, comparable across phases
         whatever the weights, and mse_nested_<k> each set's plain error. masked/unmasked are a diagnostic split.
@@ -367,18 +343,8 @@ class QtomePretrain(nn.Module):
         sel = torch.as_tensor([k - 1 for k in nested_sizes], device=x.device)
         prefix = ranked.float().cumsum(dim=3).index_select(3, sel)                     # [B, C, N, P, L]
         nw = torch.as_tensor(nested_weights, dtype=x.dtype, device=x.device).view(1, 1, 1, -1, 1)
-        if whiten_max_hz:
-            wp = w.mean(-1)                                                            # [B, C, N]
-            bw = self._bin_weights(x, wp, whiten_max_hz, whiten_alpha)
-            err = (torch.fft.rfft(prefix - x.unsqueeze(3), dim=-1).abs().pow(2) * bw).sum(-1) / x.shape[-1] ** 2
-            err = (err * nw[..., 0]).sum(dim=3)                                        # [B, C, N]
-            s = wp.sum()
-            total = mse_patch_weight * ((wp * err).sum() / s if s > 0 else err.new_zeros(()))
-            with torch.no_grad():
-                nested_err = (prefix - x.unsqueeze(3)).pow(2)
-        else:
-            nested_err = (prefix - x.unsqueeze(3)).pow(2)                              # [B, C, N, P, L]
-            total = mse_patch_weight * wmean((nested_err * nw).sum(dim=3), w)
+        nested_err = (prefix - x.unsqueeze(3)).pow(2)                                  # [B, C, N, P, L]
+        total = mse_patch_weight * wmean((nested_err * nw).sum(dim=3), w)
 
         patch_err = (recon - x).pow(2)
         with torch.no_grad():
@@ -396,12 +362,12 @@ class QtomePretrain(nn.Module):
     def get_loss(self, x, recon, ranked, bool_masked_pos=None,
                  mse_patch_weight=1.0, unmasked_weight=1.0,
                  ffn_lb_loss=None, ffn_lb_weight=0.01, valid_channels=None,
-                 nested_sizes=None, nested_weights=None, whiten_max_hz=0.0, whiten_alpha=1.0):
+                 nested_sizes=None, nested_weights=None):
         """
         Returns (total, l_masked, l_unmasked).
 
         Reconstruction term is _recon_loss's nested loss (see its docstring for mse_patch_weight /
-        unmasked_weight / nested_* / whiten_*). Dictionary shaping (no near-duplicate Q-atoms) is the nested
+        unmasked_weight / nested_*). Dictionary shaping (no near-duplicate Q-atoms) is the nested
         sets' job; earlier attempts -- activation decorrelation / negentropy, then the MP residual loss
         (ADR 0011) -- were measured and dropped.
 
@@ -415,8 +381,7 @@ class QtomePretrain(nn.Module):
         total, l_masked, l_unmasked = self._recon_loss(
             recon, x, ranked, bool_masked_pos, valid_channels=valid_channels,
             mse_patch_weight=mse_patch_weight, unmasked_weight=unmasked_weight,
-            nested_sizes=nested_sizes, nested_weights=nested_weights,
-            whiten_max_hz=whiten_max_hz, whiten_alpha=whiten_alpha)
+            nested_sizes=nested_sizes, nested_weights=nested_weights)
 
         if ffn_lb_loss is not None:
             total = total + ffn_lb_weight * ffn_lb_loss

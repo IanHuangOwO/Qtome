@@ -100,10 +100,10 @@ Key fields (templates show defaults):
   absolute time table and the `temporal_bias` lag bias; checkpoints from before, v2 / v3, can no longer be rebuilt,
   their results stay in their output dirs; `time_idx` is still passed but unused by Qtome; block order is sequential,
   temporal -> spatial -> FFN: parallel attention was screened and rejected 2026-10-07),
-  `spatial_heads`, `moe_ffn`, `atom_bank`, `loss` (the nested reconstruction loss, the only one since 2026-10-17:
+  `spatial_heads`, `moe_ffn`, `atom_bank` (`n_atoms`, `hidden_width`), `loss` (the nested reconstruction loss, the only one since 2026-10-17:
   per patch, the error of the strongest 3 / 6 / 12 / 24 Q-atoms weighted 1/8, 1/8, 1/4, 1/2 -- `nested_sizes` /
-  `nested_weights`; it replaced the MP loss, removed with `mp_weight`, docs/adr/0018; optional `whiten_max_hz` /
-  `whiten_alpha` whiten every term, not adopted), `spatial_embedding` (true: Fourier electrode-coordinate
+  `nested_weights`; it replaced the MP loss, removed with `mp_weight`, docs/adr/0018; spectral whitening of the error
+  was tested and removed 2026-10-18), `spatial_embedding` (true: Fourier electrode-coordinate
   embedding + per-block directional relative spatial bias; false: neither -- the spatial ablation).
 - `preprocess_params`: `canonical_channels` (a `montages.json` name or a list; every EEG channel
   of the dataset is kept, non-10-10 ones in free slots, > 64 channels reduced to the 64 sites, coordinates = MNE's
@@ -123,8 +123,8 @@ Key fields (templates show defaults):
   before 2026-10-06). Channel modes take `exact` (templates since 2026-10-15): the count is rounded down, and the
   cluster stops at it (it used to overshoot, up to 68% of BCI-22 at ratio 0.3) and applies only when it can hide >= 2
   channels (floor(ratio x C) >= 2). Mode
-  `montage` (MontageMask, not yet in the template): channels outside a sparse montage hidden as targets, replacing
-  the padding subsampling; under test, docs/cards/2026-10-15-sparse-montage-mask.md.
+  `montage` (MontageMask, not in the template, never evaluated, card closed 2026-10-18): channels outside a sparse
+  montage hidden as targets, replacing the padding subsampling (docs/cards/2026-10-15-sparse-montage-mask.md).
 - `training_params.pretrain`: `model_name`, `output_path`, `epochs`, `tokenizer_epochs`, `freeze_atoms`,
   `warmup_epochs`, `batch_size`, LR fields, `train_val_split`, `seed`.
 - `model_params.Qtome.finetune` (the head, validated at build): `features` = a list of `{"type": <entry>,
