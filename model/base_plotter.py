@@ -127,6 +127,8 @@ class BasePlotter:
             ax.legend(fontsize='x-small')
 
         if plotted:
+            if panel.get('logy'):
+                ax.set_yscale('log')
             ax.set_title(panel.get('title', ''))
             ax.set_ylabel(panel.get('ylabel', ''))
             ax.set_xlabel('Epoch')

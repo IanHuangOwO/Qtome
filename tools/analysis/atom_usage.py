@@ -1,6 +1,6 @@
 """
 Q-atom usage on held-out pretrain windows (unmasked, CPU): the direct measures of whether the Q-atom
-dictionary's slots are distinct and all used -- what mp_loss (and any dedup change) is for.
+dictionary's slots are distinct and all used -- what the nested loss (and any dedup change) is for.
 
 Per Q-atom:
   first       share of patches where it is the strongest Q-atom (per-patch ranking by strength h)

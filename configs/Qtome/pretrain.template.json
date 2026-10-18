@@ -4877,7 +4877,8 @@
           "mse_patch_weight": 1.0,
           "unmasked_weight": 0.1,
           "ffn_lb_weight": 0.01,
-          "mp_weight": 1.0
+          "nested_sizes": [3, 6, 12, 24],
+          "nested_weights": [0.125, 0.125, 0.25, 0.5]
         },
         "spatial_embedding": true
       }

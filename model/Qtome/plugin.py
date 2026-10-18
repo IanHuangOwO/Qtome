@@ -4,6 +4,7 @@ model/base_checker.py, model/base_plotter.py)."""
 import os
 import random
 
+import matplotlib
 import numpy as np
 import torch
 
@@ -50,19 +51,21 @@ def build_model(bp, num_channels):
 class QtomeTrainer(BaseTrainer):
     def compute_loss(self, model, x, out, mp, **hparams):
         ffn_lb_weight = hparams.get('ffn_lb_weight', 0.01)
-        mp_weight = hparams.get('mp_weight', 0.0)
-        return model.get_loss(x, out.recon, bool_masked_pos=mp,
+        return model.get_loss(x, out.recon, out.ranked, bool_masked_pos=mp,
                                mse_patch_weight=hparams.get('mse_patch_weight', 1.0),
                                unmasked_weight=hparams.get('unmasked_weight', 1.0),
                                ffn_lb_loss=out.ffn_lb_loss, ffn_lb_weight=ffn_lb_weight,
                                valid_channels=out.valid_channels,
-                               mp_loss=out.mp_loss, mp_weight=mp_weight, mp_map=out.mp_map)
+                               whiten_max_hz=hparams.get('whiten_max_hz', 0.0),
+                               whiten_alpha=hparams.get('whiten_alpha', 1.0),
+                               # nested reconstruction loss (docs/adr/0018); unset = QtomePretrain.NESTED_* defaults
+                               nested_sizes=hparams.get('nested_sizes'), nested_weights=hparams.get('nested_weights'))
 
     def update_diagnostics(self, model, out):
         model.update_ffn_router_metrics(out.ffn_router_entropy, out.ffn_router_load_std, out.ffn_gate_entropy)
 
     def epoch_metrics(self, model, out):
-        # mse_patch (and mse_mp) are accumulated per-batch and epoch-averaged in
+        # mse_patch (and the other mse_* terms) are accumulated per-batch and epoch-averaged in
         # train_pretrain.py (train_one_epoch/validate_one_epoch), not added here — this
         # function only ever sees the last batch's out, which would make them a
         # last-batch snapshot instead of an epoch average like every other loss stat.
@@ -84,7 +87,7 @@ class QtomeCodebookChecker(BaseCodebookChecker):
 
     def decoder_fingerprint_matrix(self, model):
         """Pairwise cosine similarity of the unit templates D_s (content-free: D never depends on
-        input) -- the check on template diversity that mp_loss is meant to keep."""
+        input) -- the check on template diversity that the nested loss is meant to keep."""
         D = model.atoms.templates()[0].detach().cpu().numpy()        # [n_atoms, patch_len], unit rows
         return D @ D.T
 
@@ -317,13 +320,22 @@ class QtomePlotter(BasePlotter):
                        "across loss configs)", ylabel='Loss', series=[dict(key='loss', color='b')]),
             # Val is the comparable number (no dropout). masked is a 1.0 placeholder in the tokenizer
             # phase; mse_patch mixes masked and visible.
-            dict(title='Val Recon MSE: compare runs here\n(masked = 1.0 placeholder in tokenizer phase)',
-                 ylabel='MSE', series=[dict(key=k, color=c, val_only=True, style_val='-') for k, c in recon]),
-            dict(title='Train Recon MSE\n(dropout active, so above val)',
-                 ylabel='MSE', series=[dict(key=k, color=c, train_only=True) for k, c in recon]),
+            dict(title='Recon MSE, train (solid) and val (dashed): compare runs on val\n(masked = 1.0 placeholder in '
+                       'tokenizer phase; dropout puts train above val)',
+                 ylabel='MSE', series=[dict(key=k, color=c) for k, c in recon]),
         ]
-        if self.has_signal('mse_mp'):   # the per-atom anti-duplicate term, when trained
-            loss_panels[1]['series'].append(dict(key='mse_mp', color='gray', val_only=True, style_val='-', label='mp_loss'))
+        nested = sorted((k for k in self.history['val'] if k.startswith('mse_nested_')), key=lambda k: int(k.rsplit('_', 1)[1]))
+        for i, k in enumerate(nested):   # nested loss: error from the strongest k Q-atoms per patch
+            loss_panels[1]['series'].append(dict(key=k, color=matplotlib.colormaps['cividis'](i / max(len(nested) - 1, 1)),
+                                                 label=f"strongest {k.rsplit('_', 1)[1]}"))
+        bands = [k for k in ('delta', 'theta', 'alpha', 'beta', 'gamma', 'high') if self.has_signal(f'mse_band_{k}')]
+        if bands:   # Qtome._band_errors: error power / target power per band, all valid positions
+            cmap = matplotlib.colormaps['viridis']
+            loss_panels.append(dict(title='Recon error per band, train (solid) and val (dashed)\n(error power / target '
+                                          'power; 0.5-4 / 4-8 / 8-13 / 13-30 / 30-45 / 45-90 Hz)',
+                                    ylabel='relative error (log)', logy=True,
+                                    series=[dict(key=f'mse_band_{k}', color=cmap(i / max(len(bands) - 1, 1)), label=k)
+                                            for i, k in enumerate(bands)]))
 
         # FFN Router Health — the MoEFFN routers inside every TSABlock (averaged across blocks),
         # see Qtome.update_ffn_router_metrics.

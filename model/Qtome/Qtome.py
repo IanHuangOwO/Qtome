@@ -138,7 +138,7 @@ class QtomePretrain(nn.Module):
     def enter_masked_phase(self, freeze_atoms=True):
         """Freeze before enable_spatial: a frozen dictionary never sees mixed z. With
         freeze_atoms=False it trains on mixed z, so per-atom amp is no longer a
-        source topomap (mp_loss stays on — get_loss gates it on atoms_frozen)."""
+        source topomap."""
         self.masked_phase.fill_(True)
         if freeze_atoms:
             self.freeze_atoms()
@@ -148,8 +148,7 @@ class QtomePretrain(nn.Module):
     def freeze_atoms(self):
         """
         End of Tokenizer stage: lock AtomBank so the Masked stage's frozen reconstruction
-        target stops moving (mp_loss is dropped from the Masked-stage loss once this is
-        called, see get_loss): two-stage/sequential rather than joint-warmup-then-freeze.
+        target stops moving: two-stage/sequential rather than joint-warmup-then-freeze.
         """
         for p in self.atoms.parameters():
             p.requires_grad_(False)
@@ -178,7 +177,7 @@ class QtomePretrain(nn.Module):
     @torch.no_grad()
     def encode_atoms(self, x, coords, time_idx=None, valid_channels=None):
         """Unmasked Q-atom code for analysis/viz: AtomBank output (recon [G, C, L], amp
-        [G, C, n_atoms, 2] with rms, h [G, n_atoms]; G = B*N positions, b*N + n), no mp_loss.
+        [G, C, n_atoms, 2] with rms, h [G, n_atoms]; G = B*N positions, b*N + n), no ranked contents.
         Same per-channel rms as forward() -- without it amp lacks its raw-amplitude factor."""
         B, C, N, L = x.shape
         z, _ = self.stage_features(x, coords, time_idx=time_idx, valid_channels=valid_channels)
@@ -194,13 +193,13 @@ class QtomePretrain(nn.Module):
         pass real masks only in the Masked stage, once temporal/spatial mixing are enabled
         and the Q-atoms are frozen (see enable_temporal/enable_spatial/freeze_atoms).
         valid_channels: [B, C] bool, True=real (not zero-padded) channel, or None. Passed into
-        AtomBank (padded channels stay out of h and mp_loss) and carried through on the returned
+        AtomBank (padded channels stay out of h) and carried through on the returned
         SimpleNamespace so get_loss/_recon_loss can exclude padded channels from the loss — a
         zero-padded channel's "reconstruction" is meaningless signal, not a real target. Padded
         channels still decode/reconstruct like any other.
         returns SimpleNamespace(recon [B,C,N,L], h [G, n_atoms] Q-atom strengths and amp
         [G, C, n_atoms, 2] (G = B*N patch positions, b*N + n; AtomBank.decode re-expands amp),
-        mp_loss/mp_map, ffn_lb_loss scalar (TSABlock MoEFFN routers, summed across blocks), FFN
+        ranked [B, C, N, n_atoms, L] (every Q-atom's content, strongest first per patch: the nested loss), ffn_lb_loss scalar (TSABlock MoEFFN routers, summed across blocks), FFN
         router health.
         """
         B, C, N, L = x.shape
@@ -213,7 +212,7 @@ class QtomePretrain(nn.Module):
         # reshape itself). One group = one patch position with all its channels.
         G = B * N
         z_g = z.permute(0, 2, 1, 3).reshape(G, C, -1)          # [G, C, D]
-        x_g = x.permute(0, 2, 1, 3).reshape(G, C, L)           # [G, C, L] — mp_loss target
+        x_g = x.permute(0, 2, 1, 3).reshape(G, C, L)           # [G, C, L] — for the per-channel rms
 
         # Per-channel raw-input RMS — the amplitude signal the LayerNorm stack erased
         # from z (embed.norm -> per-block norm_out -> atoms.input_norm), multiplied back
@@ -225,7 +224,7 @@ class QtomePretrain(nn.Module):
 
         vc_g = None
         if valid_channels is not None:
-            # [B, C] -> broadcast over N -> [G, C]: real channels only in h / mp_loss.
+            # [B, C] -> broadcast over N -> [G, C]: real channels only in h.
             vc_g = valid_channels.unsqueeze(1).expand(B, N, C).reshape(G, C)
 
         if bool_masked_pos is not None:
@@ -239,7 +238,7 @@ class QtomePretrain(nn.Module):
                 mask_g = mask_g & vc_g.unsqueeze(-1)
             rms = torch.where(mask_g, torch.ones_like(rms), rms)
 
-        out = self.atoms(z_g, x_target=x_g, rms=rms, valid_channels=vc_g)
+        out = self.atoms(z_g, rms=rms, valid_channels=vc_g, rank=True)
 
         recon = out.recon.reshape(B, N, C, L).permute(0, 2, 1, 3)  # back to [B, C, N, L]
 
@@ -247,9 +246,8 @@ class QtomePretrain(nn.Module):
             recon=recon,
             h=out.h,
             amp=out.amp,   # [G, C, n_atoms, 2] (G = B*N), for AtomBank.decode
-            mp_loss=out.mp_loss,
-            # [B, C, N], same layout as bool_masked_pos (G = B*N rows were b*N + n)
-            mp_map=None if out.mp_map is None else out.mp_map.reshape(B, N, C).permute(0, 2, 1),
+            # [B, C, N, S, L] (G = B*N rows split into adjacent B, N): rank-ordered content, the nested loss
+            ranked=out.ranked.reshape(B, N, C, *out.ranked.shape[2:]).permute(0, 2, 1, 3, 4),
             ffn_lb_loss=ffn_lb_loss,
             ffn_router_entropy=self.encoder.last_ffn_router_entropy,
             ffn_router_load_std=self.encoder.last_ffn_router_load_std,
@@ -265,7 +263,7 @@ class QtomePretrain(nn.Module):
         if every patch covering it is masked -- with 50% patch overlap, the outer half of a run's
         first/last masked patch is also inside a visible neighbour, so it is visible content,
         not a reconstruction target. w: valid, times (1 on hidden samples, unmasked_weight on
-        visible ones) in the masked phase. Shared by the recon MSE and mp_loss."""
+        visible ones) in the masked phase."""
         B, C, N, L = x.shape
         valid = x.new_ones(B, C, 1, 1) if valid_channels is None \
             else valid_channels.view(B, C, 1, 1).to(x.dtype)
@@ -279,22 +277,76 @@ class QtomePretrain(nn.Module):
         hidden = (fold_sum(m, stride) > n_cover - 0.5).to(x.dtype).unfold(-1, L, stride)  # [B, C, N, L]
         return valid, valid * (hidden + unmasked_weight * (1.0 - hidden)), hidden
 
-    def _recon_loss(self, recon, x, bool_masked_pos, valid_channels=None,
-                    mse_patch_weight=1.0, unmasked_weight=1.0):
-        """Recon loss: plain time-domain MSE of every raw patch against its own reconstruction.
+    BANDS = {'delta': (0.5, 4), 'theta': (4, 8), 'alpha': (8, 13), 'beta': (13, 30), 'gamma': (30, 45), 'high': (45, 90)}
+
+    @classmethod
+    def _band_errors(cls, e, x, valid, fs=200.0):
+        """Relative reconstruction error per band for the log: error power / target power in each band (rFFT of every
+        valid patch; 0 = perfect, 1 = predicting zero), all valid positions as mse_patch. Patch bins are 2 Hz wide at
+        100 samples, so delta is the 2 Hz bin alone. shortcut: fs fixed at 200 Hz, as _bin_weights.
+        Returned as per-band sums ('<band>_num' error power, '<band>_den' target power): train_pretrain.py divides the
+        epoch sums, so the logged value is the ratio over the epoch. A per-batch ratio explodes on a batch with almost
+        no power in a band (a single pure-50 Hz BI2014a window in val, 2026-10-17)."""
+        L = e.shape[-1]; f = torch.fft.rfftfreq(L, 1 / fs, device=e.device)
+        v = valid.expand(*e.shape[:3], 1)                                   # [B, C, N, 1]
+        Pe, Px = (torch.fft.rfft(t, dim=-1).abs().pow(2) * v for t in (e, x))
+        out = {}
+        for b, (lo, hi) in cls.BANDS.items():
+            sel = (f >= lo) & (f < hi)
+            out[f'{b}_num'], out[f'{b}_den'] = float(Pe[..., sel].sum()), float(Px[..., sel].sum())
+        return out
+
+    @staticmethod
+    def _bin_weights(x, wp, max_hz, alpha=1.0, fs=200.0):
+        """Per-rFFT-bin weights of the whitened loss (docs/cards/2026-10-17-whitened-mse.md and
+        2026-10-17-partial-whitening-mse-mp.md): x [B, C, N, L] target, wp [B, C, N] patch weights -> [L//2+1] =
+        Parseval multiplicity x S^-alpha, S the weighted mean patch spectrum (detached, floored at 1 % of its mean;
+        bins above max_hz weighted as the last bin below), normalised so an error with the batch's own spectrum scores
+        as plain MSE. (|rfft(e)|^2 * weights).sum(-1) / L^2 is then a patch's whitened mean squared error. alpha 1 =
+        full whitening, 0 = plain MSE. shortcut: fs fixed at the project's 200 Hz, pass it in if that changes."""
+        L = x.shape[-1]; k = torch.arange(L // 2 + 1, device=x.device)
+        mult = torch.full((len(k),), 2.0, device=x.device, dtype=x.dtype); mult[0] = 1
+        if L % 2 == 0:
+            mult[-1] = 1                                                    # Parseval: mean(e^2) = sum(mult |E|^2) / L^2
+        with torch.no_grad():
+            S = (torch.fft.rfft(x, dim=-1).abs().pow(2) * wp[..., None]).sum((0, 1, 2)) / wp.sum().clamp(min=1e-12)
+            S = S.clamp(min=0.01 * S.mean())
+            top = int((k * fs / L <= max_hz).nonzero().max())
+            S = torch.cat([S[:top + 1], S[top].expand(len(S) - top - 1)])
+            wk = 1.0 / S if alpha == 1.0 else S.pow(-alpha)
+            wk = wk * (mult * S).sum() / (mult * S * wk).sum()
+        return mult * wk
+
+    # Nested sets (default): the strongest S/8, S/4, S/2 and all S Q-atoms, weighted 1/8, 1/8, 1/4, 1/2 -- half the
+    # weight on the full reconstruction, so the first Q-atoms cannot dominate.
+    NESTED_FRACTIONS, NESTED_WEIGHTS = (1 / 8, 1 / 4, 1 / 2, 1), (0.125, 0.125, 0.25, 0.5)
+
+    def _recon_loss(self, recon, x, ranked, bool_masked_pos, valid_channels=None,
+                    mse_patch_weight=1.0, unmasked_weight=1.0, nested_sizes=None, nested_weights=None,
+                    whiten_max_hz=0.0, whiten_alpha=1.0):
+        """Recon loss: the nested reconstruction loss (docs/adr/0018; adopted 2026-10-17 over 3 seeds,
+        docs/cards/2026-10-17-nested-loss-retest.md) -- per patch, sum_k w_k * |x - (strongest s_k Q-atoms)|^2,
+        Q-atoms ranked per patch by strength (ranked [B, C, N, S, L], AtomBank.forward), nothing detached. The last
+        size is every Q-atom, so that term is the plain patch MSE (nested_sizes [S] + nested_weights [1] is plain MSE,
+        bit-identical). The smaller sets penalise a Q-atom that repeats a stronger one's content: the anti-duplicate
+        job of the MP residual loss it replaced (ADR 0011; MP code removed 2026-10-17). Defaults: NESTED_FRACTIONS /
+        NESTED_WEIGHTS ([3, 6, 12, 24] at 24 Q-atoms).
 
         Position weights: padded channels 0; in the masked phase masked positions 1 and visible
         positions `unmasked_weight` (0 = standard MAE, loss on masked patches only; 1 = every
         position counts equally). With bool_masked_pos=None (tokenizer phase) every valid position
         is a target and unmasked_weight is unused.
 
+        whiten_max_hz > 0: every nested term's error is spectrally whitened per patch (_bin_weights; whiten_alpha
+        sets the strength), patches weighted by the mean of their samples' position weights, since whitening mixes a
+        patch's samples. 0 = plain MSE.
+
         Removed terms, with the evidence: the overlap-added trial MSE (it let
         neighbouring patches disagree on their shared samples as long as the crossfade averaged
-        out; without it seam disagreement fell 40%), a masked STFT loss (0019), a nested
-        reconstruction loss (0018); earlier spectral whitening and a window level (0011).
+        out; without it seam disagreement fell 40%), a masked STFT loss (0019); a window level (0011).
 
         Logged mse_patch stays the plain all-valid-position MSE, comparable across phases
-        whatever the weights. masked/unmasked are a diagnostic split.
+        whatever the weights, and mse_nested_<k> each set's plain error. masked/unmasked are a diagnostic split.
         Returns (weighted total, l_masked, l_unmasked).
         """
         recon, x = recon.float(), x.float()
@@ -305,67 +357,69 @@ class QtomePretrain(nn.Module):
             s = wt.sum()
             return (wt * err).sum() / s if s > 0 else err.new_zeros(())
 
-        patch_err = (recon - x).pow(2)
-        total = mse_patch_weight * wmean(patch_err, w)
+        K = ranked.shape[3]
+        nested_sizes = list(nested_sizes or [int(K * f) for f in self.NESTED_FRACTIONS])
+        nested_weights = list(nested_weights or self.NESTED_WEIGHTS)
+        assert nested_sizes == sorted(set(nested_sizes)) and nested_sizes[0] > 0 and nested_sizes[-1] == K, \
+            f"nested_sizes {nested_sizes}: increasing, last = every Q-atom ({K})"
+        assert len(nested_weights) == len(nested_sizes) and abs(sum(nested_weights) - 1) < 1e-6, \
+            f"nested_weights {nested_weights}: one per size, summing to 1"
+        sel = torch.as_tensor([k - 1 for k in nested_sizes], device=x.device)
+        prefix = ranked.float().cumsum(dim=3).index_select(3, sel)                     # [B, C, N, P, L]
+        nw = torch.as_tensor(nested_weights, dtype=x.dtype, device=x.device).view(1, 1, 1, -1, 1)
+        if whiten_max_hz:
+            wp = w.mean(-1)                                                            # [B, C, N]
+            bw = self._bin_weights(x, wp, whiten_max_hz, whiten_alpha)
+            err = (torch.fft.rfft(prefix - x.unsqueeze(3), dim=-1).abs().pow(2) * bw).sum(-1) / x.shape[-1] ** 2
+            err = (err * nw[..., 0]).sum(dim=3)                                        # [B, C, N]
+            s = wp.sum()
+            total = mse_patch_weight * ((wp * err).sum() / s if s > 0 else err.new_zeros(()))
+            with torch.no_grad():
+                nested_err = (prefix - x.unsqueeze(3)).pow(2)
+        else:
+            nested_err = (prefix - x.unsqueeze(3)).pow(2)                              # [B, C, N, P, L]
+            total = mse_patch_weight * wmean((nested_err * nw).sum(dim=3), w)
 
+        patch_err = (recon - x).pow(2)
         with torch.no_grad():
             plain_patch = wmean(patch_err, valid)
             l_masked, l_unmasked = 1.0, plain_patch
             if bool_masked_pos is not None:
                 l_masked = wmean(patch_err, valid * hidden)
                 l_unmasked = wmean(patch_err, valid * (1.0 - hidden))
+            bands = self._band_errors(recon - x, x, valid)
+            nested_plain = {f'nested_{k}': wmean(nested_err[:, :, :, i], valid).item() for i, k in enumerate(nested_sizes)}
         # Logged as mse_<name> (train_pretrain.py reads _last_loss_terms; plugin.py matches 'mse_').
-        self._last_loss_terms = {'patch': plain_patch.item()}
+        self._last_loss_terms = {'patch': plain_patch.item(), **{f'band_{b}': v for b, v in bands.items()}, **nested_plain}
         return total, l_masked, l_unmasked
 
-    def get_loss(self, x, recon, bool_masked_pos=None,
+    def get_loss(self, x, recon, ranked, bool_masked_pos=None,
                  mse_patch_weight=1.0, unmasked_weight=1.0,
                  ffn_lb_loss=None, ffn_lb_weight=0.01, valid_channels=None,
-                 mp_loss=None, mp_weight=0.0, mp_map=None):
+                 nested_sizes=None, nested_weights=None, whiten_max_hz=0.0, whiten_alpha=1.0):
         """
         Returns (total, l_masked, l_unmasked).
 
-        mp_map/mp_weight: the Matching-Pursuit-style residual loss per position (AtomBank.forward),
-        trained under the same position weights as the recon MSE; mp_loss (its plain valid-channel
-        mean) is only logged. Added only when mp_weight != 0.
+        Reconstruction term is _recon_loss's nested loss (see its docstring for mse_patch_weight /
+        unmasked_weight / nested_* / whiten_*). Dictionary shaping (no near-duplicate Q-atoms) is the nested
+        sets' job; earlier attempts -- activation decorrelation / negentropy, then the MP residual loss
+        (ADR 0011) -- were measured and dropped.
 
-        Reconstruction term is _recon_loss's weighted patch MSE (see its docstring for
-        mse_patch_weight / unmasked_weight).
-
-        Tokenizer stage (bool_masked_pos=None): plain full reconstruction, l_masked=1.0
+        Tokenizer stage (bool_masked_pos=None): full reconstruction, l_masked=1.0
         placeholder (nothing masked yet).
-
-        Dictionary shaping is mp_loss's job (see AtomBank.forward): the residual-ordered term
-        that stops Q-atoms being rewarded for re-explaining what a higher-ranked Q-atom already
-        covered. Earlier attempts at this — spectral whitening, then activation
-        decorrelation/negentropy — were measured and dropped.
 
         ffn_lb_loss (MoEFFN routers' load-balance loss, summed across TSABlocks) is added unconditionally, both stages: it comes
         from the encoder, which keeps training through the Masked stage (freeze_atoms()
         never locks the encoder).
         """
         total, l_masked, l_unmasked = self._recon_loss(
-            recon, x, bool_masked_pos, valid_channels=valid_channels,
-            mse_patch_weight=mse_patch_weight, unmasked_weight=unmasked_weight)
+            recon, x, ranked, bool_masked_pos, valid_channels=valid_channels,
+            mse_patch_weight=mse_patch_weight, unmasked_weight=unmasked_weight,
+            nested_sizes=nested_sizes, nested_weights=nested_weights,
+            whiten_max_hz=whiten_max_hz, whiten_alpha=whiten_alpha)
 
         if ffn_lb_loss is not None:
             total = total + ffn_lb_weight * ffn_lb_loss
-
-        # Gated on atoms_frozen: mp_loss exists to shape WHICH atom owns which content (see AtomBank.forward's
-        # mp_loss section), and a frozen dictionary's atoms can't be reshaped. Gradient
-        # would still reach the (never-frozen) encoder through amp=f(z), but pushing the
-        # encoder to make greedy residual decomposition easier is not the Masked stage's
-        # job — that stage optimizes masked reconstruction, and leaving this on would
-        # quietly add a second, unrelated objective to it.
-        if mp_map is not None and mp_weight and (bool_masked_pos is None or not self.atoms_frozen):
-            # Same position weights as the recon MSE: without them mp_loss counts visible patches at
-            # full weight and undoes unmasked_weight.
-            _, w, _ = self._position_weights(x, bool_masked_pos, valid_channels, unmasked_weight)
-            w = w.mean(-1).to(mp_map.dtype)                                          # per patch
-            s = w.sum()
-            total = total + mp_weight * ((w * mp_map).sum() / s if s > 0 else mp_map.new_zeros(()))
-            # logged value stays the plain valid-channel mean, comparable across phases
-            self._last_loss_terms['mp'] = mp_loss.detach().item()
         return total, l_masked, l_unmasked
 
     def get_metrics(self):

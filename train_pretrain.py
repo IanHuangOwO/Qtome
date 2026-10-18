@@ -59,6 +59,15 @@ def _unpack_batch(batch, device):
 
 
 
+def _ratio_terms(metrics):
+    """'<name>_num' / '<name>_den' pairs (epoch means of per-batch sums) -> '<name>' = their ratio, the ratio over
+    the whole epoch rather than a mean of per-batch ratios (Qtome's per-band recon error)."""
+    for k in [k for k in metrics if k.endswith('_num') and k[:-4] + '_den' in metrics]:
+        num, den = metrics.pop(k), metrics.pop(k[:-4] + '_den')
+        metrics[k[:-4]] = num / den if den > 0 else float('nan')
+    return metrics
+
+
 def train_one_epoch(model, trainer, data_loader, optimizer, scaler, device, epoch, masked,
                      **loss_hparams):
     model.train()
@@ -71,7 +80,7 @@ def train_one_epoch(model, trainer, data_loader, optimizer, scaler, device, epoc
     for batch_idx, batch in enumerate(pbar):
         x, coords, time_idx, bool_masked_pos, valid_channels = _unpack_batch(batch, device)
         # Tokenizer phase: the dataset still generates masks, they're just not used. Must be
-        # None, not all-False — get_loss's None branch is what keeps mp_loss on.
+        # None, not all-False — get_loss's None branch is the tokenizer phase's full reconstruction.
         if not masked:
             bool_masked_pos = None
         optimizer.zero_grad()
@@ -116,7 +125,7 @@ def train_one_epoch(model, trainer, data_loader, optimizer, scaler, device, epoc
             })
 
     n = max(batch_idx + 1 - skipped, 1)
-    epoch_metrics = {k: v / n for k, v in totals.items()}
+    epoch_metrics = _ratio_terms({k: v / n for k, v in totals.items()})
     epoch_metrics.update(trainer.epoch_metrics(model, out))
     if skipped:
         logging.warning(f"epoch {epoch}: skipped {skipped}/{batch_idx + 1} non-finite batches")
@@ -161,7 +170,7 @@ def validate_one_epoch(model, trainer, data_loader, device, masked, **loss_hpara
                 })
 
     n = batch_idx + 1
-    val_metrics = {k: v / n for k, v in totals.items()}
+    val_metrics = _ratio_terms({k: v / n for k, v in totals.items()})
     val_metrics.update(trainer.epoch_metrics(model, out))
 
     return val_metrics
@@ -356,6 +365,13 @@ def main():
         logging.info(f"--- Epoch {epoch}/{total_epochs} ({'masked' if masked else 'tokenizer'}) Summary ---")
         logging.info(f"  [Train] " + " | ".join([f"{k}: {train_metrics.get(k, 0.0):.4f}" for k in ['loss', 'masked', 'unmasked']]))
         logging.info(f"  [Val]   " + " | ".join([f"{k}: {val_metrics.get(k, 0.0):.4f}"   for k in ['loss', 'masked', 'unmasked']]))
+        # every loss term side by side, train against val (mse_band_* = relative error per band)
+        loss_terms = [k for k in train_metrics if k.startswith('mse_')]
+        if loss_terms:
+            logging.info(f"  {'term':22s}{'train':>9s}{'val':>9s}")
+            for k in loss_terms:
+                logging.info(f"  {k:22s}{train_metrics[k]:9.4f}{val_metrics.get(k, float('nan')):9.4f}")
+        other_metrics = {k: v for k, v in other_metrics.items() if not k.startswith('mse_')}
 
         if other_metrics:
             o_str = " | ".join([f"{k}: {v:.4f}" if isinstance(v, float) else f"{k}: {v}" for k, v in other_metrics.items()])
@@ -405,6 +421,10 @@ def main():
                                          cmap=config.get('training_params', {}).get('visualize_params', {}).get('cmap', 'YlOrRd'))
                 except Exception as e:
                     logger.warning(f"  Topomap viz failed (epoch {epoch}, subject={topo_subject_id}, trial_idx={topo_trial_idx}): {e}")
+            # and after: the panels' whole-trial activations would otherwise stay reserved (6.5 GB against 5.4 for
+            # training, 2026-10-17), enough to OOM a second run sharing the GPU
+            if 'cuda' in str(device):
+                torch.cuda.empty_cache()
 
     logger.info("Pretraining Complete.")
 

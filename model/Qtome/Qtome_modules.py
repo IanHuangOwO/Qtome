@@ -595,19 +595,18 @@ class AtomBank(nn.Module):
         amp = self._amp(self.input_norm(z))
         return amp if rms is None else amp * rms.unsqueeze(-1)
 
-    def forward(self, z, x_target=None, rms=None, valid_channels=None):
+    def forward(self, z, rms=None, valid_channels=None, rank=False):
         """
-        z: [G, C, D] channel-grouped token embeddings (G = B*N patch positions), x_target: [G, C, patch_len]
-        the real patch content (for mp_loss; None skips it), rms: [G, C, 1] per-channel raw-input RMS or
-        None -- multiplied into every amp; callers running the real pipeline always pass it.
-        valid_channels: [G, C] bool (True = real channel) or None -- excludes zero-padded channels from
-        h and mp_loss; padded channels still decode.
+        z: [G, C, D] channel-grouped token embeddings (G = B*N patch positions), rms: [G, C, 1] per-channel
+        raw-input RMS or None -- multiplied into every amp; callers running the real pipeline always pass it.
+        valid_channels: [G, C] bool (True = real channel) or None -- excludes zero-padded channels from h;
+        padded channels still decode. rank: also return every Q-atom's decoded content in per-patch strength
+        order (the nested reconstruction loss, QtomePretrain._recon_loss).
 
         Returns recon [G, C, patch_len], amp [G, C, n_atoms, 2] (per-channel (a, b), rms included -- a
         Q-atom's [C] magnitude column is its phase-invariant topomap at this patch time), h [G, n_atoms]
-        (post-rms amp magnitude averaged over valid channels: reconstruction-energy importance, orders
-        mp_loss), mp_loss (scalar, valid-channel mean, for logging) and mp_map ([G, C], per position, what
-        get_loss weights and trains on).
+        (post-rms amp magnitude averaged over valid channels: reconstruction-energy importance, the rank
+        order) and ranked ([G, C, n_atoms, patch_len], strongest Q-atom first per patch; None unless rank).
         """
         G, C, _ = z.shape
         amp = self._amp(self.input_norm(z))                                 # [G, C, S, 2]
@@ -624,27 +623,15 @@ class AtomBank(nn.Module):
         D, H = self.templates()
         recon = torch.einsum('gck,kl->gcl', amp[..., 0], D) + torch.einsum('gck,kl->gcl', amp[..., 1], H)
 
-        # Matching-Pursuit-style residual loss: rank the Q-atoms per position by h, then grade rank m
-        # against x_target MINUS what ranks 0..m-1 already explained (detached, so gradient only pushes a
-        # Q-atom toward what is still unexplained). A duplicate of a higher-ranked Q-atom sees a near-zero
-        # residual and earns nothing. Doesn't change recon; only reshapes each Q-atom's training target.
-        # Ranked per patch, not by Q-atom index (a fixed global hierarchy).
-        mp_loss, mp_map = amp.new_zeros(()), None
-        if x_target is not None:
+        # Ranked per patch by h, not by Q-atom index (a fixed global hierarchy): the nested loss's sets are each
+        # patch's strongest k Q-atoms (docs/adr/0018, adopted 2026-10-17; it replaced the MP residual loss).
+        ranked = None
+        if rank:
             contrib = self.decode(amp)                                      # [G, C, S, L]
             order = h.argsort(dim=-1, descending=True)                      # [G, S]
             ranked = contrib.gather(2, order[:, None, :, None].expand_as(contrib))
-            # Exclusive cumsum over rank of the detached contributions = every rank's residual at once.
-            cum_excl = ranked.detach().cumsum(dim=2) - ranked.detach()
-            diff2 = (ranked - (x_target.unsqueeze(2) - cum_excl)).pow(2)    # [G, C, S, L]
-            mp_map = diff2.mean(dim=(2, 3))                                 # [G, C]
-            if valid_channels is not None:
-                vm = valid_channels.to(diff2.dtype)
-                mp_loss = (mp_map * vm).sum() / vm.sum().clamp(min=1.0)
-            else:
-                mp_loss = mp_map.mean()
 
-        return SimpleNamespace(recon=recon, amp=amp, h=h, mp_loss=mp_loss, mp_map=mp_map)
+        return SimpleNamespace(recon=recon, amp=amp, h=h, ranked=ranked)
 
 
 # ==========================================

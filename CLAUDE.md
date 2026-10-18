@@ -100,7 +100,10 @@ Key fields (templates show defaults):
   absolute time table and the `temporal_bias` lag bias; checkpoints from before, v2 / v3, can no longer be rebuilt,
   their results stay in their output dirs; `time_idx` is still passed but unused by Qtome; block order is sequential,
   temporal -> spatial -> FFN: parallel attention was screened and rejected 2026-10-07),
-  `spatial_heads`, `moe_ffn`, `atom_bank`, `loss`, `spatial_embedding` (true: Fourier electrode-coordinate
+  `spatial_heads`, `moe_ffn`, `atom_bank`, `loss` (the nested reconstruction loss, the only one since 2026-10-17:
+  per patch, the error of the strongest 3 / 6 / 12 / 24 Q-atoms weighted 1/8, 1/8, 1/4, 1/2 -- `nested_sizes` /
+  `nested_weights`; it replaced the MP loss, removed with `mp_weight`, docs/adr/0018; optional `whiten_max_hz` /
+  `whiten_alpha` whiten every term, not adopted), `spatial_embedding` (true: Fourier electrode-coordinate
   embedding + per-block directional relative spatial bias; false: neither -- the spatial ablation).
 - `preprocess_params`: `canonical_channels` (a `montages.json` name or a list; every EEG channel
   of the dataset is kept, non-10-10 ones in free slots, > 64 channels reduced to the 64 sites, coordinates = MNE's
@@ -161,7 +164,7 @@ A new pretrained backbone follows `docs/agents/adding-a-model.md` (plugin); a ne
 
 **Qtome**: an EEG tokenizer. A TSA encoder feeds a static Q-atom dictionary (AtomBank: every Q-atom active at
 every patch; each reconstructs a patch as `a*D + b*H`, D a template and H its quadrature partner), trained by
-masked reconstruction. Routed (top-k) Q-atoms were removed (docs/adr/0022; code on the `routed-stamps`
+masked reconstruction (nested loss: Q-atoms ranked per patch by strength, docs/adr/0018). Routed (top-k) Q-atoms were removed (docs/adr/0022; code on the `routed-stamps`
 branch). The default downstream head reads only the Q-atoms: Q-atom power (`atom_power`, induced band power: MI) and the
 signed Q-atom gains (`signed_ab`: phase-locked / P300). The stronger head swaps `signed_ab` for the signed encoder
 output z (`latent_signed`, PCA): level on loso, better on MI few-shot (BNCI2014004 +3.5)

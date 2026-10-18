@@ -64,7 +64,8 @@ def val_config(config):
     return cfg
 
 
-SPEC_BANDS = {'delta': (0.5, 4), 'theta': (4, 8), 'alpha': (8, 13), 'beta': (13, 30), 'gamma': (30, 45)}
+SPEC_BANDS = {'delta': (0.5, 4), 'theta': (4, 8), 'alpha': (8, 13), 'beta': (13, 30), 'gamma': (30, 45),
+              'high': (45, 90)}                                   # 'high' added 2026-10-17 (whitened-MSE card)
 
 
 LOG_FLOOR = 0.1   # added to |X| before the log, so near-silent bins don't dominate

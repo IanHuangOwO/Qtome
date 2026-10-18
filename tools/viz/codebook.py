@@ -382,7 +382,7 @@ def plot_fingerprint_similarity(out_path, matrix, unit_label='Atom'):
     off_diag = matrix[~np.eye(Q, dtype=bool)]
     print(f"  [codebook] -> {out_path}")
     print(f"    off-diagonal cosine: mean {off_diag.mean():.3f} | max {off_diag.max():.3f} "
-          f"(near-1 = two atoms learned the same shape, mp_loss should keep this low)")
+          f"(near-1 = two atoms learned the same shape, the nested loss should keep this low)")
 
 
 def plot_atom_phase_consistency(out_path, circ_var, fire_count, unit_label='Atom',
