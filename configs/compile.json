@@ -198,6 +198,9 @@
       "ErpCore2021_P3": {
         "dataset_path": "datas/pretrain/ErpCore2021_P3"
       },
+      "TUH": {
+        "dataset_path": "datas/pretrain/TUH"
+      },
       "Liu2024": {
         "dataset_path": "datas/pretrain/Liu2024"
       },

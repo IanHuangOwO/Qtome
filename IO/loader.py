@@ -557,11 +557,15 @@ class BidsLoader(BaseSubjectLoader):
         ch = self.data_metadata['channels']
         self.pick_names = [ch[str(i + 1)]['original_label'] for i in desired_channel_indices]
 
+    def _prepare(self, raw):
+        """Hook: a dataset whose channel names differ from its metadata labels renames them here."""
+        return raw
+
     def _load_data(self):
         trials, ranges, sessions, ses_idx = [], [], [], {}
         for path in self._existing(self.files):
             try:
-                raw = _read_raw(path, preload=True)
+                raw = self._prepare(_read_raw(path, preload=True))
             except Exception as e:
                 print(f"  [Warning] {path}: {e}")
                 continue
