@@ -1,4 +1,4 @@
-"""The task filter panel (task_filter.py panel): a task filter (model/Qtome/Qtome_filter_tools.py) applied to one dataset it
+"""The task filter panel (the task_filter_panel panel): a task filter (model/Qtome/Qtome_filter_tools.py) applied to one dataset it
 never saw (no label, head or trial of it is used). Left: the filter itself -- share of power kept per Q-atom, the
 power it keeps of white input and its effective rank per Q-atom, and per Q-atom a pair of maps: IMPORTANCE of each
 channel (class information less chance from the heads that built it, as a share of the total over every channel and

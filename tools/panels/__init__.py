@@ -17,7 +17,7 @@ PANELS_DIR = os.path.dirname(os.path.abspath(__file__))
 PRESETS = {
     'pretrain': {
         'standard': ['backbone_eval', 'attention_range', 'atom_usage', 'ridge_probe', 'atom_vs_raw',
-                     'atom_templates', 'atom_duplicates', 'atom_distribution', 'snapshot', 'codebook'],
+                     'atom_templates', 'atom_duplicates', 'atom_distribution', 'snapshot', 'codebook', 'training_dashboard'],
         'quick': ['backbone_eval', 'attention_range', 'atom_usage', 'ridge_probe', 'atom_vs_raw',
                   'atom_templates', 'atom_duplicates'],
     },
@@ -32,16 +32,18 @@ class PanelContext:
     """One per entrypoint call, passed to every selected panel.
     pretrain: config is the backbone's run config (plus the --config overlay), checkpoint its .pth,
     `model` builds lazily from the checkpoint on first use. finetune: groups {name: backbone},
-    ref (a group name) and head (the finetune label, output/<backbone>/finetune/<head>/<cell>)."""
+    ref (a group name) and head (the finetune label, output/<backbone>/finetune/<head>/<cell>).
+    Figures go to ctx.fig_dir, everything else to ctx.out_dir."""
     stage: str
     config: dict
-    out_dir: str
+    out_dir: str                       # numbers, logs, markdown (pretrain: <backbone>/pretrain/analysis)
     args: object                       # argparse.Namespace: panel-specific options
     device: object = None
     checkpoint: Optional[str] = None
     groups: dict = field(default_factory=dict)
     ref: Optional[str] = None
     head: Optional[str] = None
+    fig_dir: Optional[str] = None      # figures: pretrain <backbone>/analysis/pretrain, finetune = out_dir (out_dir = numbers, logs, markdown)
     _model: object = None
 
     @property

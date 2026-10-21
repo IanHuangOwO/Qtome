@@ -2,12 +2,14 @@ import os
 import sys
 import json
 import argparse
-import shutil
+import socket
+import subprocess
+import time
+from datetime import datetime
 
 import copy
 import logging
-import matplotlib
-matplotlib.use('Agg')
+import numpy as np
 import torch
 import torch.optim as optim
 from torch.utils.data import DataLoader
@@ -17,9 +19,8 @@ from IO.dataset import MontageBatchSampler, build_dataset_from_config, split_pre
 from IO.masking import build_masking_strategy_from_config
 from model.base_trainer import nonfinite_step_report
 from model.factory import build_pretrain_from_config, checkpoint_build_config, optimizer_param_groups, MODEL_REGISTRY
-from tools.analysis import apply_overrides, pick_trial, resolve_output_path, model_output_root
-from tools.analysis.snapshot import build_pretrain_bundle
-from tools.viz.snapshot import render_recon, render_atom_gallery
+from model.history import History
+from tools.analysis import apply_overrides, resolve_output_path, model_output_root
 
 torch.set_float32_matmul_precision('high')
 
@@ -103,13 +104,14 @@ def train_one_epoch(model, trainer, data_loader, optimizer, scaler, device, epoc
 
         scaler.scale(l_total).backward()
         scaler.unscale_(optimizer)
-        torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
+        grad_norm = torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)      # total norm before clipping
         scaler.step(optimizer)
         scaler.update()
 
         totals["loss"]     += l_total.item()
         totals["masked"]   += float(l_masked) if not hasattr(l_masked, 'item') else l_masked.item()
         totals["unmasked"] += l_unmasked.item()
+        totals["grad_norm"] = totals.get("grad_norm", 0.0) + float(grad_norm)
         if hasattr(out, 'lb_loss'):
             totals["lb_loss"] = totals.get("lb_loss", 0.0) + (out.lb_loss.item() if hasattr(out.lb_loss, 'item') else float(out.lb_loss))
         for name, v in (getattr(model, '_last_loss_terms', None) or {}).items():
@@ -176,6 +178,28 @@ def validate_one_epoch(model, trainer, data_loader, device, masked, **loss_hpara
     return val_metrics
 
 
+def _run_info(config, model, train_dataset, val_dataset, device):
+    """Provenance of a run, stored as artifacts/run_info.json (finished_at / status / epochs_done are filled at the end):
+    code version, environment, hardware, model size, corpus size."""
+    def sh(*cmd):
+        try:
+            return subprocess.check_output(cmd, stderr=subprocess.DEVNULL, text=True).strip()
+        except Exception:
+            return None
+    try:
+        import mne
+        mne_version = mne.__version__
+    except ImportError:
+        mne_version = None
+    return {'started_at': datetime.now().isoformat(timespec='seconds'), 'host': socket.gethostname(),
+            'git_commit': sh('git', 'rev-parse', 'HEAD'), 'git_dirty': bool(sh('git', 'status', '--porcelain')),
+            'python': sys.executable, 'torch': torch.__version__, 'cuda': torch.version.cuda, 'mne': mne_version,
+            'gpu': torch.cuda.get_device_name(device) if 'cuda' in str(device) else None,
+            'n_params': sum(p.numel() for p in model.parameters()),
+            'n_train_windows': len(train_dataset), 'n_val_windows': len(val_dataset),
+            'epochs': config['training_params']['pretrain']['epochs'], 'status': 'running'}
+
+
 def main():
     parser = argparse.ArgumentParser(description='Qtome pretraining, one run, two phases: unmasked tokenizer phase '
                                                    '(training_params.pretrain.tokenizer_epochs), then masked phase.')
@@ -198,11 +222,9 @@ def main():
     base_output_dir = os.path.join(model_output_root(config, 'pretrain'), resolve_output_path(config, mode='pretrain'))
     checkpoint_dir  = os.path.join(base_output_dir, "checkpoint")
     artifact_dir    = os.path.join(base_output_dir, "artifacts")
-    vis_dir         = os.path.join(base_output_dir, "visualization")
 
     os.makedirs(checkpoint_dir, exist_ok=True)
     os.makedirs(artifact_dir, exist_ok=True)
-    os.makedirs(vis_dir, exist_ok=True)
 
     logger, timestamp = setup_logger(artifact_dir)
     for name in ('config.json', f'config_{timestamp}.json'):     # the effective config, overrides applied
@@ -231,53 +253,6 @@ def main():
     logger.info("Building Validation Dataset...")
     val_dataset   = build_dataset_from_config(val_config,   transform=None, mode='pretrain')
     logger.info(f"Dataset Sizes: Train={len(train_dataset)}, Val={len(val_dataset)}")
-
-    # Separate assemble_trials=False dataset(s) just for periodic snapshot viz --
-    # val_dataset itself stays assembled (assemble_trials=True, continuous windows) for
-    # real train/val loss. A snapshot built from an assembled window mixes multiple real
-    # trials with no single event to mark, so _lookup_event_onset
-    # (tools/analysis/snapshot.py) silently drops recon_signal's onset line whenever it's
-    # handed one. Same assemble_trials=False dataset analysis_pretrain.py's own snapshot
-    # path already uses.
-    #
-    # ONE ISOLATED single-dataset build per distinct target dataset name -- NOT one
-    # combined multi-dataset build (even restricted to just the wanted datasets isn't
-    # enough, see below). EEGDataset standardizes every trial's length to the single
-    # longest trial across EVERY dataset it loads in that one build (its "Standardize
-    # temporal length" step); combining a short-trial dataset (PhysionetMI, 800-sample
-    # trials -- its loader deliberately hardcodes pre_event_seconds=0, see
-    # datas/finetune/PhysionetMI/loader.py) with a long-trial one in the SAME build (e.g.
-    # SRM_RestingState's one 48000-sample recording, itself one of this run's viz targets)
-    # pads the short one to 98%+ zero -- a near-empty recon_signal snapshot and, per the
-    # "CUDA out of memory" viz-failure log lines this caused, a real crash risk from the
-    # oversized padded tensor. Building each target dataset on its own keeps its max_T its
-    # own longest trial only.
-    viz_params  = config.get('training_params', {}).get('visualize_params', {}).get('pretrain', {})
-    viz_target_cfg = viz_params.get('targets') or [{'subject': None, 'trial': 0}]
-    viz_every_n = viz_params.get('every_n_epochs', 2)
-
-    default_viz_dataset_name = next(iter(val_config['dataset_params']['pretrain']))
-    wanted_viz_datasets = sorted({t.get('dataset') or default_viz_dataset_name for t in viz_target_cfg})
-
-    viz_datasets_by_name = {}
-    for ds_name in wanted_viz_datasets:
-        single_config = copy.deepcopy(val_config)
-        single_config['dataset_params']['pretrain'] = {ds_name: val_config['dataset_params']['pretrain'][ds_name]}
-        logger.info(f"Building Viz Snapshot Dataset for {ds_name} (assemble_trials=False)...")
-        viz_datasets_by_name[ds_name] = build_dataset_from_config(
-            single_config, transform=None, mode='pretrain', assemble_trials=False)
-
-    def _first_subject(dataset_name):
-        return viz_datasets_by_name[dataset_name].base_dataset.subject_data[0].item()
-
-    viz_targets = []
-    for t in viz_target_cfg:
-        ds_name = t.get('dataset') or default_viz_dataset_name
-        viz_ds = viz_datasets_by_name[ds_name]
-        subject = t.get('subject') if t.get('subject') is not None else _first_subject(ds_name)
-        trial_idx, subject_id = pick_trial(viz_ds, subject, trial=t.get('trial'), dataset_name=t.get('dataset'))
-        viz_targets.append((ds_name, trial_idx, subject_id))
-    logger.info(f"Recon viz targets (dataset, trial_idx, subject): {viz_targets} every_n_epochs={viz_every_n}")
 
     def _make_loader(dataset, shuffle):
         return DataLoader(dataset, batch_sampler=MontageBatchSampler(dataset, train_params['batch_size'], shuffle),
@@ -320,7 +295,7 @@ def main():
     warmup_scheduler = optim.lr_scheduler.LinearLR(optimizer, start_factor=0.01, total_iters=train_params['warmup_epochs'])
     scheduler        = optim.lr_scheduler.SequentialLR(optimizer, schedulers=[warmup_scheduler, main_scheduler], milestones=[train_params['warmup_epochs']])
 
-    plotter = entry.plotter_cls(output_dir=vis_dir)
+    history = History()                       # stored as artifacts/history.json; the dashboard is drawn afterwards
 
     mask_pp     = config.get('preprocess_params', {}).get('mask', {})
     loss_params = config.get('model_params', {}).get(model_type, {}).get('pretrain', {}).get('loss', {})
@@ -333,8 +308,18 @@ def main():
 
     best_val_loss = float('inf')  # reset at the phase boundary: masked loss isn't comparable
     logger.info(f"Starting {model_type} Pretraining ({total_epochs} epochs)")
+    run_info = _run_info(config, model, train_dataset, val_dataset, device)
+    run_info_path = os.path.join(artifact_dir, 'run_info.json')
+    snapshots = {}                                         # per-epoch model state arrays -> artifacts/epoch_snapshots.npz
+    checkpoint_every = train_params.get('checkpoint_every', 10)       # checkpoint/epoch_<n>.pth every n epochs (0 = never)
+
+    def _write_run_info():
+        with open(run_info_path, 'w') as f:
+            json.dump(run_info, f, indent=2)
+    _write_run_info()
 
     for epoch in range(1, total_epochs + 1):
+        t_epoch, lr_epoch = time.time(), optimizer.param_groups[0]['lr']
         masked = epoch > tokenizer_epochs
         if epoch == tokenizer_epochs + 1:
             model.enter_masked_phase(freeze_atoms=freeze_atoms)
@@ -396,36 +381,24 @@ def main():
             torch.save({'model_state_dict': model.state_dict(), 'build_config': build_config}, os.path.join(checkpoint_dir, 'best.pth'))
             logger.info(f"  > Saved Best Checkpoint ({'masked' if masked else 'tokenizer'} phase)")
 
-        plotter.update(train_metrics=train_metrics, val_metrics=val_metrics)
-        plotter.plot_pretrain()
+        history.update(train_metrics=train_metrics, val_metrics=val_metrics,
+                       epoch_info={'epoch': epoch, 'phase': 'masked' if masked else 'tokenizer', 'lr': lr_epoch,
+                                   'seconds': time.time() - t_epoch, 'grad_scale': float(scaler.get_scale()),
+                                   'mask': mask_strategy.describe() if masked else None})
+        history.save(os.path.join(artifact_dir, 'history.json'))
+        for k, v in trainer.epoch_snapshot(model).items():
+            snapshots.setdefault(k, []).append(v)
+        if snapshots:
+            np.savez(os.path.join(artifact_dir, 'epoch_snapshots.npz'), epochs=np.arange(1, epoch + 1),
+                     **{k: np.stack(v) for k, v in snapshots.items()})
+        if checkpoint_every and epoch % checkpoint_every == 0:      # intermediate models: recon / atom figures at any epoch afterwards
+            torch.save({'model_state_dict': model.state_dict(), 'build_config': build_config},
+                       os.path.join(checkpoint_dir, f'epoch_{epoch:04d}.pth'))
+        run_info.update(epochs_done=epoch, last_epoch_at=datetime.now().isoformat(timespec='seconds'))
+        _write_run_info()
 
-        # every_n_epochs: int (0 = never) or "last" (final epoch only, for quick tests)
-        if epoch == total_epochs if viz_every_n == 'last' else (viz_every_n > 0 and epoch % viz_every_n == 0):
-            # Training holds the GPU close to capacity; the caching allocator doesn't
-            # return freed blocks to the OS on its own, so a big new alloc here (recon
-            # panels build separate activations) can OOM even though nothing is really
-            # using that memory anymore. One empty_cache() before the batch of panels
-            # releases it back -- cheap relative to the epoch itself, only paid every
-            # every_n_epochs.
-            if 'cuda' in str(device):
-                torch.cuda.empty_cache()
-            for topo_dataset_name, topo_trial_idx, topo_subject_id in viz_targets:
-                try:
-                    topo_dataset = viz_datasets_by_name[topo_dataset_name]
-                    bundle, _metrics = build_pretrain_bundle(
-                        model, topo_dataset, topo_trial_idx, config, device,
-                        subject_id=topo_subject_id, epoch=epoch)
-                    recon_dir = os.path.join(vis_dir, 'recon')
-                    render_recon(bundle, config, recon_dir)
-                    render_atom_gallery(bundle, config, recon_dir,
-                                         cmap=config.get('training_params', {}).get('visualize_params', {}).get('cmap', 'YlOrRd'))
-                except Exception as e:
-                    logger.warning(f"  Topomap viz failed (epoch {epoch}, subject={topo_subject_id}, trial_idx={topo_trial_idx}): {e}")
-            # and after: the panels' whole-trial activations would otherwise stay reserved (6.5 GB against 5.4 for
-            # training, 2026-10-17), enough to OOM a second run sharing the GPU
-            if 'cuda' in str(device):
-                torch.cuda.empty_cache()
-
+    run_info.update(status='complete', finished_at=datetime.now().isoformat(timespec='seconds'))
+    _write_run_info()
     logger.info("Pretraining Complete.")
 
 

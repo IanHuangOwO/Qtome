@@ -4797,7 +4797,7 @@
       },
       "mixture": {
         "start_ratio": 0.1,
-        "ramp_epochs": 10,
+        "ramp_epochs": 20,
         "modes": [
           {
             "type": "channel_cluster",
@@ -4843,7 +4843,7 @@
           "bci-22"
         ],
         "prob": 0.1,
-        "start_epoch": 11,
+        "start_epoch": 21,
         "ramp_epochs": 10,
         "dense_min_channels": 32,
         "min_keep": 3
@@ -4888,7 +4888,8 @@
     "pretrain": {
       "model_type": "Qtome",
       "model_name": "qtome_vXX_small",
-      "tokenizer_epochs": 10,
+      "tokenizer_epochs": 0,
+      "checkpoint_every": 10,
       "freeze_atoms": false,
       "learning_rate": 0.001,
       "min_learning_rate": 0.0001,
@@ -4937,8 +4938,7 @@
             "subject": null,
             "trial": 0
           }
-        ],
-        "every_n_epochs": 10
+        ]
       }
     }
   }

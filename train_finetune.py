@@ -5,10 +5,8 @@ features from the compiled dataset; only the head is optimised (fp32, batches in
 training_params.finetune.split picks a split type (SPLITS: loso, subject_kfold, eval_subjects,
 kfold, blocked_kfold, fewshot). Every run writes artifacts/group_eval.json: per-subject tail (mean of the last 10
 epochs) and last-epoch balanced accuracy."""
-import argparse, copy, json, logging, os, subprocess, sys, warnings
+import argparse, copy, json, logging, os, subprocess, sys, time, warnings
 
-import matplotlib
-matplotlib.use('Agg')
 import numpy as np
 import torch
 import torch.nn.functional as F
@@ -18,7 +16,7 @@ from sklearn.metrics import balanced_accuracy_score, cohen_kappa_score, f1_score
 from IO.dataset import build_dataset_from_config
 from IO.preprocessing import num_patches, slice_patches
 from cache_feature import CachedAtomDataset, get_atom_cache
-from model.factory import MODEL_REGISTRY
+from model.history import History
 from model.Qtome.Qtome_modules import (FeatureHead, make_head_checkpoint,
                                        resolve_head_config, needs_atom, needs_raw, needs_latent, feature_names)
 from tools.analysis import apply_overrides, load_config, model_output_root
@@ -236,7 +234,7 @@ def _pca_axes(z, train_idx, m, chunk=256):
     return torch.linalg.eigh(cov)[1][:, -m:].flip(1).T.float()
 
 
-def run_closed_form(config, run, source, tag, logger):
+def run_closed_form(config, run, source, tag, logger, out_dir=None):
     """training_params.finetune.fit 'closed_form': fit ClosedFormHead (model/Qtome/Qtome_closed_form.py) on run['train'],
     no SGD; per-subject balanced accuracy + kappa on run['eval'], in run_one's format (tail = last: one fit)."""
     from model.Qtome.Qtome_closed_form import ClosedFormHead
@@ -246,11 +244,12 @@ def run_closed_form(config, run, source, tag, logger):
     amp, y = source.data.amp, source.labels.numpy()
     head = ClosedFormHead(**tp.get('closed_form', {})).fit(amp[run['train']].float().numpy(), y[run['train']])
     logger.info(f"[{tag}] closed_form {tp.get('closed_form', {})} train={len(run['train'])}")
-    out = {}
+    out, rows = {}, []
     for g, subs in run['eval'].items():
         sd = {}
         for s, i in subs.items():
             pred = head.predict(amp[i].float().numpy())
+            rows.append((f'{g}/{s}', np.asarray(i), y[i], np.asarray(pred)))
             with warnings.catch_warnings():
                 warnings.simplefilter('ignore')
                 acc, kappa = float(balanced_accuracy_score(y[i], pred)), float(cohen_kappa_score(y[i], pred))
@@ -258,6 +257,10 @@ def run_closed_form(config, run, source, tag, logger):
         out[g] = {'subjects': sd, 'n_subjects': len(sd),
                   **{f'mean_{k}': float(np.mean([v[k] for v in sd.values()]))
                      for k in ('tail', 'last', 'kappa_tail', 'kappa_last')}}
+    if out_dir:                                      # per-trial predictions: confusion matrices, ROC ... afterwards
+        np.savez(os.path.join(out_dir, 'predictions.npz'), subjects=np.array([r[0] for r in rows]),
+                 trial_index=np.concatenate([r[1] for r in rows]), y_true=np.concatenate([r[2] for r in rows]),
+                 y_pred=np.concatenate([r[3] for r in rows]), counts=np.array([len(r[1]) for r in rows]))
     return out
 
 
@@ -286,10 +289,11 @@ def run_one(config, run, source, head_cfg, new_head, tag, out_dir, logger, devic
         counts = np.bincount(y_all[run['train']], minlength=head_cfg['num_classes']).astype(float)
         cw = torch.tensor(counts.sum() / (len(counts) * np.maximum(counts, 1)), dtype=torch.float32, device=device)
     gen = torch.Generator().manual_seed(seed)
-    plotter = MODEL_REGISTRY[tp.get('model_type', 'Qtome')].plotter_cls(output_dir=out_dir['vis'])
-    tail_start, hist = max(0, E - 10), {}
+    history = History()
+    tail_start, hist, curves = max(0, E - 10), {}, {}
     logger.info(f"[{tag}] train={len(run['train'])} eval={len(ev_idx)} head_params={sum(p.numel() for p in head.parameters())}")
     for epoch in range(1, E + 1):
+        t_epoch, lr_epoch = time.time(), opt.param_groups[0]['lr']
         head.train()
         losses, preds, ys = [], [], []
         for x, y in iter_batches(source, run['train'], bs, device, shuffle=True, gen=gen):
@@ -307,19 +311,28 @@ def run_one(config, run, source, head_cfg, new_head, tag, out_dir, logger, devic
         logits, val_loss = _predict(head, source, ev_idx, max(bs, 1024), device)
         val_pred = logits.argmax(1)
         val_metrics = _metrics(y_ev, val_pred, val_loss)
-        if epoch > tail_start:                       # per-subject balanced accuracy + kappa, from the same pass
-            with warnings.catch_warnings():
-                warnings.simplefilter('ignore')
-                for key, p in pos.items():
-                    hist.setdefault(key, []).append(
-                        (balanced_accuracy_score(y_ev[p], val_pred[p]), cohen_kappa_score(y_ev[p], val_pred[p])))
+        with warnings.catch_warnings():              # per-subject balanced accuracy + kappa every epoch, from the same pass
+            warnings.simplefilter('ignore')
+            for key, p in pos.items():
+                bk = (balanced_accuracy_score(y_ev[p], val_pred[p]), cohen_kappa_score(y_ev[p], val_pred[p]))
+                curves.setdefault(key, []).append(bk)
+                if epoch > tail_start:               # the tail (last 10 epochs) is what group_eval reports
+                    hist.setdefault(key, []).append(bk)
         logger.info(f"--- [{tag}] Epoch {epoch}/{E} Summary ---")
         for name, m in (('Train', train_metrics), ('Val  ', val_metrics)):
             logger.info(f"  [{name}] loss: {m['loss']:.4f} | acc: {m['acc']:.4f} | f1: {m['f1']:.4f} | f1_w: {m['f1_weighted']:.4f}"
                         f" | bal_acc: {m['balanced_acc']:.4f} | kappa: {m['kappa']:.4f}")
         logger.info("-" * 40)
-        plotter.update(train_metrics=train_metrics, val_metrics=val_metrics)
-    plotter.plot_finetune(freeze_backbone=True)       # once, at the end (the 'Backbone Recon MSE' panel stays empty)
+        history.update(train_metrics=train_metrics, val_metrics=val_metrics,
+                       epoch_info={'epoch': epoch, 'lr': lr_epoch, 'seconds': time.time() - t_epoch})
+    history.history['subjects'] = {f'{g}/{s}': {'bal_acc': [float(b) for b, _ in v], 'kappa': [float(k) for _, k in v]}
+                                   for (g, s), v in curves.items()}
+    history.save(os.path.join(out_dir['ckpt'], 'history.json'))
+    logits_ev = logits.detach().cpu().numpy() if torch.is_tensor(logits) else np.asarray(logits)
+    np.savez(os.path.join(out_dir['ckpt'], 'predictions.npz'), trial_index=ev_idx, y_true=y_ev,        # last epoch's eval-set logits
+             logits=logits_ev.astype(np.float32), subjects=np.array([f'{g}/{s}' for g, s in pos]),
+             counts=np.array([len(p) for p in pos.values()]), positions=np.concatenate(list(pos.values())))
+     # the dashboard is drawn afterwards (training_dashboard panel)
     torch.save(make_head_checkpoint(head, head_cfg, source.channel_idx, tp['pretrained_checkpoint']),
                os.path.join(out_dir['ckpt'], 'head.pth'))
     out = {}
@@ -380,10 +393,10 @@ def main():
     result = {}
     for run in runs:
         tag = f"{ds_name}_{run['name']}"
-        dirs = {'ckpt': os.path.join(base, 'finetune', f"run_{run['name']}"), 'vis': os.path.join(base, 'visualization', f"run_{run['name']}")}
+        dirs = {'ckpt': os.path.join(base, 'finetune', f"run_{run['name']}")}
         for d in dirs.values():
             os.makedirs(d, exist_ok=True)
-        groups = (run_closed_form(config, run, source, tag, logger) if tp.get('fit') == 'closed_form'
+        groups = (run_closed_form(config, run, source, tag, logger, dirs['ckpt']) if tp.get('fit') == 'closed_form'
                   else run_one(config, run, source, head_cfg, new_head, tag, dirs, logger, device))
         for g, d in groups.items():
             logger.info(f"  [{run['name']}] group {g}: n={d['n_subjects']} mean_tail={d['mean_tail']:.4f} mean_last={d['mean_last']:.4f}")

@@ -19,6 +19,12 @@ class BaseTrainer:
         Default: no-op, for models with nothing to track here."""
         pass
 
+    def epoch_snapshot(self, model):
+        """Small arrays (numpy) describing the model's learned state at the end of an epoch, stacked over epochs by
+        train_pretrain.py into artifacts/epoch_snapshots.npz (e.g. a dictionary's templates: figures of how they
+        evolve, drawn after training). Default: nothing."""
+        return {}
+
     def epoch_metrics(self, model, out):
         """Returns a dict of extra metrics to merge into the epoch's averaged totals
         (codebook perplexity, STE gap, head diversity, ...)."""

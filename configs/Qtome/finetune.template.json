@@ -55,11 +55,6 @@
       "output_path": "qtome_vXX_small/finetune/learned/BNCI2014001_loso",
       "class_weight": null,
       "protocol": "mi_loso"
-    },
-    "visualize_params": {
-      "finetune": {
-        "every_n_epochs": 10
-      }
     }
   }
 }

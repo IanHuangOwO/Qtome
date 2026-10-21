@@ -1,4 +1,4 @@
-"""Tests of a task filter (model/Qtome/Qtome_filter_tools.py) on a dataset it never saw, run by task_filter.py eval. The target
+"""Tests of a task filter (model/Qtome/Qtome_filter_tools.py) on a dataset it never saw, run by the task_filter_eval panel. The target
 is encoded with its missing channels imputed, the whole 64-channel filter is applied and the target's real channels
 are read out. Every test compares the filter with 'matched q': the 64-channel reconstruction filtered (zero phase) to
 the filter output's mean power spectrum, so the same frequencies are removed with no channel or Q-atom choice.
@@ -20,6 +20,8 @@ the filter output's mean power spectrum, so the same frequencies are removed wit
 Per subject, then mean +- SE over subjects; paired differences with their own standard error."""
 import glob
 import json
+import os
+from types import SimpleNamespace
 
 import numpy as np
 import torch
@@ -28,7 +30,7 @@ from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
 from sklearn.metrics import balanced_accuracy_score, roc_auc_score
 from sklearn.model_selection import StratifiedKFold, cross_val_predict
 
-from model.Qtome.Qtome_filter_tools import CHANNELS, FS, MONT, gains, imputed_encoder, names
+from model.Qtome.Qtome_filter_tools import CHANNELS, FS, MONT, SOURCES, Backbone, build, gains, imputed_encoder, names
 
 POWER = 0.5                                                               # noise: artifact power as a share of the trial's
 KINDS = ('noisy channel', 'blink', 'muscle')
@@ -225,7 +227,7 @@ COMPARE_KINDS = ('noisy channel', 'blink', 'muscle', 'line 50 Hz')
 
 
 def compare(ctxs, dst, seed=0, log=print):
-    """The artifact comparison behind task_filter.py compare: every filter of ctxs ({label: ctx}, e.g. single-task and
+    """The artifact comparison behind the task_filter_compare panel: every filter of ctxs ({label: ctx}, e.g. single-task and
     multi-task) at every share, against ASR and ICLabel (8 channels or more), on dst with one artifact of COMPARE_KINDS
     added to every trial at POWER of the trial's power. Scores per signal: signal and artifact kept, gain dB (as in
     noise) and the paradigm's lda (P300: lda_auc; otherwise lda), trained and tested on the cleaned trials.
@@ -265,6 +267,30 @@ def compare(ctxs, dst, seed=0, log=print):
 
 
 TESTS = {'mi': mi, 'p300': p300, 'noise': noise}
+
+
+def filter_context(ctx, source, rebuild=False):
+    """(out dir, test context) of one filter source ('multi' or a dataset) for an analysis_pretrain.py run: the saved
+    filter <analysis>/task_filter/<source>/filter.pt, built first if missing (or rebuilt). The backbone is
+    output/Qtome/<backbone>, three levels above the checkpoint (<backbone>/pretrain/checkpoint/last.pth)."""
+    bb = os.path.dirname(os.path.dirname(os.path.dirname(ctx.checkpoint)))
+    if not hasattr(ctx, '_tf_backbone'):
+        ctx._tf_backbone = Backbone(bb)
+    sources = ctx.args.filter_sources or list(SOURCES)
+    out = f'{ctx.out_dir}/task_filter/{source}'; os.makedirs(out, exist_ok=True); path = f'{out}/filter.pt'
+    if rebuild or not os.path.exists(path):
+        filt = build(bb, source, ctx._tf_backbone, sources)
+        torch.save(filt, path); print(f'filter saved: {path}')
+    else:
+        filt = torch.load(path, weights_only=False)
+        assert source != 'multi' or filt['sources'] == sources, f'{path} was built from {filt["sources"]}: run task_filter_build'
+    return out, SimpleNamespace(bb=bb, name=os.path.basename(bb), backbone=ctx._tf_backbone, filt=filt)
+
+
+def write_table(stem, rows, lines):
+    """<stem>.json (rows) and <stem>.log (the printed tables, without the progress lines)."""
+    json.dump(rows, open(stem + '.json', 'w'), indent=1)
+    open(stem + '.log', 'w').write('\n'.join(l for l in lines if not l.endswith(' done')) + '\n')
 DEFAULT_TARGETS = {'mi': ['BNCI2014001', 'BNCI2014004'], 'p300': ['BNCI2014008'], 'noise': ['BNCI2014004']}
 
 

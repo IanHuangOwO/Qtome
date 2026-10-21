@@ -1,4 +1,4 @@
-"""The artifact comparison plot (task_filter.py compare; numbers from tools/analysis/task_filter_eval.compare). One
+"""The artifact comparison plot (the task_filter_compare panel; numbers from tools/analysis/task_filter_eval.compare). One
 column per artifact. Top: the paradigm's lda on the cleaned trials against the gain (signal kept over artifact kept,
 dB). Bottom: signal kept against artifact kept. Each task filter is a line over its shares (labelled at the points);
 input, the 64-channel reconstruction without filter, ASR and ICLabel are single points. Mean over subjects; the dashed

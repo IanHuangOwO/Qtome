@@ -1,5 +1,5 @@
 """codebook: cross-dataset Q-atom-usage diagnostics (model/base_codebook_checker.py via the plugin's
-codebook_checker_cls) -> analysis/. One dataset per pretrain entry (usage stays attributable to its
+codebook_checker_cls) -> analysis/pretrain/. One dataset per pretrain entry (usage stays attributable to its
 source), real trials with their labels, each capped at --max-trials trials (tools.analysis.cap_subjects).
 Options: --datasets, --max-trials."""
 import copy
@@ -27,6 +27,6 @@ def run(ctx):
         by_name[name] = build_dataset_from_config(cfg, mode='pretrain', assemble_trials=False)
         print(f"  {name}: {len(subjects)} subject(s)")
     checker = MODEL_REGISTRY['Qtome'].codebook_checker_cls()
-    checker.check_codebook(ctx.config, ctx.out_dir, ctx.model, by_name, max_trials_per_dataset=max_trials)
+    checker.check_codebook(ctx.config, ctx.fig_dir, ctx.model, by_name, max_trials_per_dataset=max_trials)
     del by_name
     gc.collect()

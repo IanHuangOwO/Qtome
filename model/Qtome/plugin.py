@@ -59,6 +59,11 @@ class QtomeTrainer(BaseTrainer):
                                # nested reconstruction loss (docs/adr/0018); unset = QtomePretrain.NESTED_* defaults
                                nested_sizes=hparams.get('nested_sizes'), nested_weights=hparams.get('nested_weights'))
 
+    @torch.no_grad()
+    def epoch_snapshot(self, model):
+        D, H = model.atoms.templates()                              # unit templates and quadrature partners [n_atoms, patch_len]
+        return {'atom_templates': D.float().cpu().numpy(), 'atom_quadrature': H.float().cpu().numpy()}
+
     def update_diagnostics(self, model, out):
         model.update_ffn_router_metrics(out.ffn_router_entropy, out.ffn_router_load_std, out.ffn_gate_entropy)
 
@@ -354,7 +359,7 @@ class QtomePlotter(BasePlotter):
         panels = loss_panels + routing_panels + architecture_panels
         self.render(panels, filename, suptitle='Tokenizer (Atom) Training Dashboard', ncols=4)
 
-    def plot_finetune(self, filename='training_dashboard.png', freeze_backbone=False):
+    def plot_finetune(self, filename='training_dashboard.png'):
         panels = [
             dict(title='Total Loss', ylabel='Loss', series=[dict(key='loss', color='b')]),
             dict(title='Accuracy', ylabel='Acc', series=[dict(key='acc', color='crimson')]),
@@ -362,7 +367,6 @@ class QtomePlotter(BasePlotter):
             dict(title='F1 (weighted)', ylabel='F1', series=[dict(key='f1_weighted', color='teal')]),
             dict(title='Balanced Accuracy', ylabel='Bal. Acc', series=[dict(key='balanced_acc', color='darkorchid')]),
             dict(title="Cohen's Kappa", ylabel='Kappa', series=[dict(key='kappa', color='seagreen')]),
-            dict(title='Backbone Recon MSE', ylabel='MSE', series=[dict(key='recon_mse', color='darkorange')]),
         ]
         self.render(panels, filename, suptitle='Training Dashboard')
 

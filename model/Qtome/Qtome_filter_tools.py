@@ -1,4 +1,4 @@
-"""Task filter: a reconstruction that keeps only what classification heads use (task_filter.py; history in
+"""Task filter: a reconstruction that keeps only what classification heads use (analysis_pretrain.py task_filter_* panels; history in
 docs/reports/2026-10-14-task-filter.md).
 
 A trained all-atom head reads the Q-atom gains through spatial filters. Per Q-atom, its filters span a channel subspace;
@@ -232,7 +232,7 @@ def imputed_encoder(bb, ds, model, coords64):
 
 
 def build(bb, source, backbone, sources=SOURCES, seed=0, log=print):
-    """The filter of source ('multi' or a dataset name) as a dict saved by task_filter.py: filters {share: [S, 64, 64]},
+    """The filter of source ('multi' or a dataset name) as a dict saved by the task_filter panels: filters {share: [S, 64, 64]},
     importance [64, S], coords64 [64, 3]."""
     rng = np.random.default_rng(seed)
     if source == 'multi':

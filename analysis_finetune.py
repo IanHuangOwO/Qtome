@@ -44,7 +44,7 @@ def main():
     out_dir = args.out or os.path.join('output', 'analysis', '_'.join(groups))
     os.makedirs(out_dir, exist_ok=True)
 
-    ctx = PanelContext(stage='finetune', config={}, out_dir=out_dir, args=args, device=torch.device(args.device),
+    ctx = PanelContext(stage='finetune', config={}, out_dir=out_dir, fig_dir=out_dir, args=args, device=torch.device(args.device),
                        groups=groups, ref=args.ref, head=args.head)
     sys.exit(1 if run_panels(names, ctx) else 0)
 

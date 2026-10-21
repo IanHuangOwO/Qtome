@@ -1,5 +1,5 @@
 """snapshot: one real trial per target, original vs reconstruction (band-filtered grid) and the Q-atom
-gallery -> analysis/snapshot/. Targets: training_params.visualize_params.pretrain.targets (the same
+gallery -> analysis/pretrain/snapshot/. Targets: training_params.visualize_params.pretrain.targets (the same
 {dataset, subject, trial} list the periodic training visualisation uses), or --datasets (trial 0 of the
 first subject loaded). Only a few subjects per dataset are loaded (tools.analysis.cap_subjects)."""
 import copy
@@ -19,7 +19,7 @@ def run(ctx):
     targets = ([{'dataset': d, 'subject': None, 'trial': 0} for d in ctx.args.datasets] if ctx.args.datasets else
                ctx.config['training_params'].get('visualize_params', {}).get('pretrain', {}).get('targets')
                or [{'dataset': next(iter(ds_params)), 'subject': None, 'trial': 0}])
-    out_dir = os.path.join(ctx.out_dir, 'snapshot')
+    out_dir = os.path.join(ctx.fig_dir, 'snapshot')
     rng, built = random.Random(1), {}
     for t in targets:
         name = t['dataset']

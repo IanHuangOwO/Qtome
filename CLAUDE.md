@@ -38,24 +38,28 @@ python -m tools.misc.sweep configs/Qtome/sweeps/<sweep>.json > output/queue/<pla
 python -m tools.misc.run_queue output/queue/<plan>.plan --max-parallel 2 --threads 8
 
 # Analysis: one panel mechanism (tools/panels/, presets in tools/panels/__init__.py PRESETS), failures don't stop
-# the other panels. Pretrain = one backbone -> output/Qtome/<backbone>/pretrain/analysis/ (standard: backbone_eval,
-# attention_range, atom_usage, ridge_probe, atom_vs_raw, atom_templates, atom_duplicates, atom_distribution,
-# snapshot, codebook; quick: the first seven; on request: coord_robustness, atom_maps, probe_maps). Judge each
+# the other panels. Pretrain = one backbone -> numbers in output/Qtome/<backbone>/pretrain/analysis/, figures in
+# output/Qtome/<backbone>/analysis/pretrain/ (standard: backbone_eval, attention_range, atom_usage, ridge_probe,
+# atom_vs_raw, atom_templates, atom_duplicates, atom_distribution, snapshot, codebook, training_dashboard; quick: the first
+# seven; on request: coord_robustness, atom_maps, probe_maps). Judge each
 # change by its own mechanism metric, not finetuning (ADR 0020).
 python analysis_pretrain.py --run <backbone> [--preset quick] [--panel <name> ...]
 python analysis_pretrain.py --panel profile [--train]     # parameter counts + timing, no checkpoint
 # Finetune = several backbones under one head label -> output/analysis/<groups>/ (standard: summary, report,
-# time_weights; also seed_equivalence, class_snapshots --checkpoint <head.pth>). Run backbone_eval first.
+# time_weights; also seed_equivalence, class_snapshots --checkpoint <head.pth>, training_dashboard: one figure per fold ->
+# <backbone>/analysis/finetune/<head>/<cell>/). Run backbone_eval first.
 python analysis_finetune.py --group base=<backbone> --group X=<backbone> --ref base [--head frozen_learned]
 python -m tools.analysis.summarize_runs 'output/Qtome/<backbone>/finetune/<head>/*' [--ref <backbone>:<head>] [--rank N]
 
-# Task filter: a reconstruction keeping only what classification heads use (model/Qtome/Qtome_filter_tools.py). Source 'multi'
-# (multi-task filter: MI + P300 + SSVEP heads) or one dataset (single-task filter); needs loso cells <ds>_impute64_loso_seed1 (impute_missing_channels=true).
-# Tests on unseen datasets (mi / p300 / noise) and a panel -> output/Qtome/<backbone>/task_filter/<source>/
-python task_filter.py --run <backbone> --source multi build
-python task_filter.py --run <backbone> --source multi eval mi|p300|noise [--target <ds> ...]
-python task_filter.py --run <backbone> --source multi panel --target <ds> [--share 0.1]
-python task_filter.py --run <backbone> compare --target <ds> --single <source ds>   # both filters vs ASR / ICLabel
+# Task filter: a reconstruction keeping only what classification heads use (model/Qtome/Qtome_filter_tools.py). Panels of
+# analysis_pretrain.py, run on request (not in a preset). --filter-source 'multi' (multi-task filter: MI + P300 + SSVEP
+# heads) or one dataset (single-task filter); needs loso cells <ds>_impute64_loso_seed1 (impute_missing_channels=true).
+# Numbers: output/Qtome/<backbone>/pretrain/analysis/task_filter/<source>/ (filter.pt, eval_*) and .../compare/; figures
+# (panel_*, compare_*.png): output/Qtome/<backbone>/analysis/pretrain/task_filter/<source>/ and .../compare/
+python analysis_pretrain.py --run <backbone> --panel task_filter_build               # fit and save the filter (again)
+python analysis_pretrain.py --run <backbone> --panel task_filter_eval [--filter-test mi p300 noise] [--target <ds> ...]
+python analysis_pretrain.py --run <backbone> --panel task_filter_panel --target <ds> [--share 0.1]
+python analysis_pretrain.py --run <backbone> --panel task_filter_compare --target <ds> --single <source ds>   # both filters vs ASR / ICLabel
 ```
 
 No test suite: modules carry runnable self-checks (e.g. `Qtome_modules._selfcheck_head_modules()`), and
@@ -154,7 +158,7 @@ Key fields (templates show defaults):
 | Owner | Code | Configs |
 |---|---|---|
 | shared (every model) | `cache_dataset.py`, `datas/`, `IO/` (incl. `IO/splits.py`: protocol splits, `make_runs`), `train_pretrain.py` (dispatches through `model/factory.py`'s plugin registry), `model/base_*.py`, `model/factory.py`, `tools/misc/` | `compile.json`, `montages.json`, `finetune_protocols.json` |
-| Qtome | `model/Qtome/`, `train_finetune.py` (frozen backbone + head), `cache_feature.py` (atom cache), `analysis_pretrain.py`, `analysis_finetune.py`, `task_filter.py` (task filter), `tools/analysis/`, `tools/panels/`, `tools/viz/` | `configs/Qtome/` |
+| Qtome | `model/Qtome/`, `train_finetune.py` (frozen backbone + head), `cache_feature.py` (atom cache), `analysis_pretrain.py` (incl. the task filter panels), `analysis_finetune.py`, `tools/analysis/`, `tools/panels/`, `tools/viz/` | `configs/Qtome/` |
 | from-scratch baselines | `model/EEGNet/`, `train_baseline.py` | `configs/EEGNet/` |
 
 A new pretrained backbone follows `docs/agents/adding-a-model.md` (plugin); a new from-scratch baseline is
@@ -212,10 +216,17 @@ Each model has its own output folder: a run writes to `output/<model_type>/<trai
 (default `<model_name>/pretrain` for pretrain; `model_type` defaults to Qtome; `tools/analysis` QTOME_OUTPUT). EEGNet:
 `output/EEGNet/finetune/compass/<dataset>_<mode>_seed<k>/`.
 Per Qtome backbone: `output/Qtome/<backbone>/pretrain/` (`checkpoint/last.pth` -- prefer it over `best.pth`, which locks
-onto an easy epoch of the mask curriculum; `artifacts/config.json`; `visualization/`; `analysis/`;
-`feature_cache/` -- regenerable, keyed by checkpoint, build_config, code hash and data fingerprint) and
-`output/Qtome/<backbone>/finetune/<head>/<cell>/` (`artifacts/group_eval.json`: per-subject `tail` = mean of the last
-10 epochs' balanced accuracy, `last`, kappa). `output/analysis/` holds generated multi-backbone analysis (regenerable),
+onto an easy epoch of the mask curriculum; `artifacts/config.json`, `artifacts/history.json` (per-epoch curves + `epochs`: lr, seconds, phase, mask curriculum),
+`artifacts/run_info.json` (code version, host, GPU, sizes, status), `artifacts/epoch_snapshots.npz` (atom templates per epoch),
+`checkpoint/epoch_<n>.pth` every `training_params.pretrain.checkpoint_every` epochs (default 10);
+`analysis/` numbers and tables; `feature_cache/` -- regenerable, keyed by checkpoint, build_config, code hash and data
+fingerprint) and `output/Qtome/<backbone>/finetune/<head>/<cell>/` (`artifacts/group_eval.json`: per-subject `tail` = mean
+of the last 10 epochs' balanced accuracy, `last`, kappa; `finetune/run_<fold>/` = `head.pth`, `history.json` (curves, lr, per-subject bal. acc. and kappa every epoch), `predictions.npz`
+(eval trial indices, labels, last-epoch logits)). Runs store
+logs, numbers and checkpoints only: **every figure lives in `output/Qtome/<backbone>/analysis/`** (`pretrain/` = the
+pretrain panels, incl. `training_dashboard.png`, `snapshot/`, `task_filter/`; `finetune/<head>/<cell>/<fold>_training_dashboard.png`),
+drawn afterwards from the stored numbers by the analysis panels (`--panel training_dashboard`, `--panel snapshot`);
+training draws nothing. `output/analysis/` holds generated multi-backbone analysis (regenerable),
 `output/queue/` queue state, `output/Qtome/archive/<date>_<topic>/` superseded experiments. Once a result is final, write it up
 in `docs/reports/` (fixed format and index in `docs/reports/README.md`; copy the figures, tables and
 pipeline scripts it cites) and delete the generated `output/analysis/` and queue folders.

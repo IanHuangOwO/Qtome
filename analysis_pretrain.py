@@ -6,7 +6,14 @@
 
 The config is the run's own artifacts/config.json (next to the checkpoint), deep-merged with an optional
 --config overlay; the model is rebuilt from the checkpoint's build_config. Output:
-output/<output_path>/analysis/ (e.g. output/<backbone>/pretrain/analysis/). Presets: tools/panels PRESETS.
+output/<output_path>/analysis/ (e.g. output/<backbone>/pretrain/analysis/: numbers, logs, markdown) and every figure in
+output/<backbone>/analysis/pretrain/. Presets: tools/panels PRESETS.
+
+Task filter (panels task_filter_build / _eval / _panel / _compare, on request; the filter and the tables ->
+analysis/task_filter/<source>/ and .../compare/, its figures -> analysis/pretrain/task_filter/):
+    python analysis_pretrain.py --run <backbone> --panel task_filter_eval [--filter-source multi] [--filter-test mi p300 noise] [--target <ds> ...]
+    python analysis_pretrain.py --run <backbone> --panel task_filter_panel --target BNCI2014004 [--share 0.1]
+    python analysis_pretrain.py --run <backbone> --panel task_filter_compare --target BNCI2014008 --single BNCI2014009
 """
 import argparse
 import json
@@ -35,7 +42,16 @@ def main():
     ap.add_argument('--max-windows', type=int, default=512, help='backbone_eval: held-out windows')
     ap.add_argument('--dup-threshold', type=float, default=0.9, help='atom_duplicates: pair threshold')
     ap.add_argument('--train', action='store_true', help='profile: train-mode timing')
+    ap.add_argument('--threads', type=int, help='torch CPU threads (default: torch\'s)')
+    ap.add_argument('--filter-source', default='multi', help="task_filter_*: 'multi' or a dataset name")
+    ap.add_argument('--filter-sources', nargs='+', help='task_filter_*: the datasets whose heads build the multi filter (default: Qtome_filter_tools SOURCES)')
+    ap.add_argument('--filter-test', nargs='+', choices=['mi', 'p300', 'noise'], help='task_filter_eval: tests (default all)')
+    ap.add_argument('--target', nargs='+', help='task_filter_*: unseen datasets (eval: default per test)')
+    ap.add_argument('--share', type=float, default=0.1, choices=[0.5, 0.25, 0.1], help='task_filter_panel: share of cells kept')
+    ap.add_argument('--single', help='task_filter_compare: source dataset of the single-task filter (not a target)')
     args = ap.parse_args()
+    if args.threads:
+        torch.set_num_threads(args.threads)
 
     names = resolve_panels('pretrain', args.preset, args.panel)
     checkpoint = args.checkpoint or (f'{QTOME_OUTPUT}/{args.run}/pretrain/checkpoint/last.pth' if args.run else None)
@@ -49,8 +65,11 @@ def main():
         config = _deep_merge(config, json.load(open(args.config)))
     out_dir = resolve_output_dir(config, 'analysis') if checkpoint else 'output/tools-profile'
     os.makedirs(out_dir, exist_ok=True)
+    # numbers in <backbone>/pretrain/analysis, figures in <backbone>/analysis/pretrain (the same two levels above out_dir)
+    fig_dir = os.path.join(os.path.dirname(os.path.dirname(out_dir)), 'analysis', 'pretrain') if checkpoint else out_dir
+    os.makedirs(fig_dir, exist_ok=True)
 
-    ctx = PanelContext(stage='pretrain', config=config, out_dir=out_dir, args=args,
+    ctx = PanelContext(stage='pretrain', config=config, out_dir=out_dir, fig_dir=fig_dir, args=args,
                        device=torch.device(args.device), checkpoint=checkpoint)
     sys.exit(1 if run_panels(names, ctx) else 0)
 

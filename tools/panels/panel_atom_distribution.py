@@ -1,5 +1,5 @@
 """atom_distribution: per-atom a / b / amplitude / phase violins over real trials, one plot per
-dataset (tools/analysis/atom_dist.py) -> analysis/atom_distribution/<dataset>.png.
+dataset (tools/analysis/atom_dist.py) -> analysis/pretrain/atom_distribution/<dataset>.png.
 Options: --datasets (default: every pretrain dataset), --max-trials (per dataset)."""
 import copy
 import os
@@ -15,7 +15,7 @@ STAGES = frozenset({'pretrain'})
 
 def run(ctx):
     ds_params = ctx.config['dataset_params']['pretrain']
-    out_dir = os.path.join(ctx.out_dir, 'atom_distribution')
+    out_dir = os.path.join(ctx.fig_dir, 'atom_distribution')
     os.makedirs(out_dir, exist_ok=True)
     rng = random.Random(0)
     for name in ctx.args.datasets or list(ds_params):

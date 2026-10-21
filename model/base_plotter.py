@@ -27,22 +27,14 @@ class BasePlotter:
       train_only: bool — skip the val line even if present,
       val_only: bool — skip the train line even if present,
       override_train / override_val: explicit value list, bypasses history lookup
-                                      (e.g. a flat zero line when freeze_backbone=True),
     }
     A panel with no plottable series is left blank (axis off) instead of an empty frame.
     """
 
-    def __init__(self, output_dir='output/visualization/training_curves'):
+    def __init__(self, output_dir='output/visualization/training_curves', history=None):
         self.output_dir = output_dir
         os.makedirs(self.output_dir, exist_ok=True)
-        self.history = {'train': {}, 'val': {}}
-
-    def update(self, train_metrics, val_metrics=None):
-        for k, v in train_metrics.items():
-            self.history['train'].setdefault(k, []).append(v)
-        if val_metrics:
-            for k, v in val_metrics.items():
-                self.history['val'].setdefault(k, []).append(v)
+        self.history = history if history is not None else {'train': {}, 'val': {}}
 
     # -- helpers for building panel specs --------------------------------------
 
@@ -181,5 +173,5 @@ class BasePlotter:
     def plot_pretrain(self, filename='training_dashboard.png'):
         raise NotImplementedError
 
-    def plot_finetune(self, filename='training_dashboard.png', freeze_backbone=False):
+    def plot_finetune(self, filename='training_dashboard.png'):
         raise NotImplementedError

@@ -1,6 +1,6 @@
 """atom_duplicates: are Q-atoms copies of each other up to phase (tools.analysis.atom_dist.
 atom_similarity)? Prints pairs above --dup-threshold (default 0.9) and each Q-atom's nearest neighbour
--> analysis/atom_duplicates.png."""
+-> analysis/pretrain/atom_duplicates.png."""
 import os
 
 import numpy as np
@@ -21,7 +21,7 @@ def run(ctx):
         print(f"  {s:.3f}  #{label[i]} <-> #{label[j]}")
     nn = np.nanargmax(sim, axis=1)
     print("nearest neighbour: " + ', '.join(f"#{label[k]}->#{label[j]} {sim[k, j]:.2f}" for k, j in enumerate(nn)))
-    out = os.path.join(ctx.out_dir, 'atom_duplicates.png')
+    out = os.path.join(ctx.fig_dir, 'atom_duplicates.png')
     plot_similarity_matrix(out, sim, label, f'Phase-invariant atom similarity sqrt(<Di,Dj>^2+<Di,Hj>^2)\n'
                                             f'{len(pairs)} pair(s) >= {thr}')
     print(f"  -> {out}")
