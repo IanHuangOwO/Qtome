@@ -1,6 +1,6 @@
 {
     "data_metadata": {
-        "dataset_name": "TUH",
+        "dataset_name": "TUEG",
         "dataset_info": {
             "source_url": "https://isip.piconepress.com/projects/nedc/html/tuh_eeg/",
             "source_version": "TUH EEG Corpus v2.0.1",
@@ -117,7 +117,7 @@
                 "original_label": "A2"
             }
         },
-        "cohort": "TUH"
+        "cohort": "TUEG"
     },
     "data_structure": {
         "1": {

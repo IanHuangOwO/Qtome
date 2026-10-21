@@ -1,4 +1,8 @@
-# TUEV -- gated, not fetched (2026-09-24)
+# TUEV -- fetched 2026-10-21, loader scaffolded (was gated, not fetched 2026-09-24)
+
+Data on the 5090 (F:\tuh_data\tuh_eeg_events\v2.0.1), not yet copied here. Loader: one 5 s window per distinct annotated event, centred;
+check against EEG-FM-Bench / BIOT before reporting numbers.
+
 
 Temple University EEG Events Corpus, EEG-FM-Bench member. 6-class event
 classification: spike and sharp wave (SPSW), generalized periodic

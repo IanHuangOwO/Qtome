@@ -1,5 +1,5 @@
 """
-TUH EEG Corpus v2.0.1 (the local subset under raw/tuh_eeg/v2.0.1/edf) -- metadata.json generator.
+TUH EEG Corpus (TUEG) v2.0.1 (the local subset under raw/tuh_eeg/v2.0.1/edf) -- metadata.json generator.
 Pretraining only: compiled as continuous windows (compile_params.continuous_seconds), no labels. Clinical routine EEG,
 sampling rates 250 / 256 / 400 / 512 Hz (resampled), referential (REF) or linked-ears (LE) montage files.
 """
@@ -33,13 +33,13 @@ def main():
         subs.setdefault(f.split(os.sep)[-4], []).append(os.path.relpath(f, ROOT))
     meta = {
         "data_metadata": {
-            "dataset_name": "TUH", "dataset_info": DATASET_INFO,
+            "dataset_name": "TUEG", "dataset_info": DATASET_INFO,
             "bids": {"task": None},
             "acquisition": {"sample_frequency": 250, "window_size_seconds": None, "num_subjects": len(subs)},
             "targets": {"count": 1, "type": "pretrain_dummy", "0": {"label": "dummy (continuous window, no task label)"}},
             "channels": {"count": len(SITES), "system": "10-20 International System",
                          **{str(i + 1): {"label": c, "original_label": c.upper()} for i, c in enumerate(SITES)}},
-            "cohort": "TUH",
+            "cohort": "TUEG",
         },
         "data_structure": {str(i + 1): {"patient": p, "runs": [{"file": f} for f in fs]}
                            for i, (p, fs) in enumerate(sorted(subs.items()))},
@@ -47,7 +47,7 @@ def main():
     with open(os.path.join(ROOT, "metadata.json"), "w") as f:
         json.dump(meta, f, indent=4)
         f.write("\n")
-    print(f"wrote TUH/metadata.json: {len(subs)} subjects, {sum(len(v) for v in subs.values())} recordings, {len(SITES)} channels")
+    print(f"wrote TUEG/metadata.json: {len(subs)} subjects, {sum(len(v) for v in subs.values())} recordings, {len(SITES)} channels")
 
 
 if __name__ == "__main__":

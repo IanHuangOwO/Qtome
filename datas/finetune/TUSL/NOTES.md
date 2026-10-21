@@ -1,4 +1,8 @@
-# TUSL -- gated, not fetched (2026-09-24)
+# TUSL -- fetched 2026-10-21, loader scaffolded (was gated, not fetched 2026-09-24)
+
+Data on the 5090 (F:\tuh_data\tuh_eeg_slowing\v2.0.1), not yet copied here. Loader reads the .tse_agg annotations; verify the label strings
+(seiz / slow / bckg / cplx) on the real files.
+
 
 Temple University EEG Slowing Corpus (von Weltin et al., 2017), EEG-FM-Bench
 member. 3-class: seizure / slowing / background.
