@@ -309,11 +309,17 @@ class EEGDataset(Dataset):
             # dataset_params.pretrain.<ds>.window_fraction multiplies in: the corpus builder balances
             # paradigms by capping windows per subject, never by dropping subjects -- the product
             # keeps the nesting across corpus sizes.
+            # dataset_params.pretrain.<ds>.max_windows_per_subject (the corpus builder's per-subject time cap) first restricts the
+            # subject to the first that many windows of the same permutation; the fractions then thin what is left.
             frac = self.assembly_params.get('window_fraction', 1.0) * ds_config['dataset_params'].get('window_fraction', 1.0)
-            if frac < 1.0 and len(padded):
+            max_windows = ds_config['dataset_params'].get('max_windows_per_subject')
+            if (frac < 1.0 or max_windows) and len(padded):
                 seed = zlib.crc32(f"{self.assembly_params.get('window_fraction_seed', 0)}/{ds_name}/{subject_id}".encode())
-                n_keep = max(1, int(round(frac * len(padded))))
-                keep = torch.from_numpy(np.sort(np.random.default_rng(seed).permutation(len(padded))[:n_keep]))
+                order = np.random.default_rng(seed).permutation(len(padded))
+                if max_windows:
+                    order = order[:max_windows]
+                n_keep = max(1, int(round(frac * len(order))))
+                keep = torch.from_numpy(np.sort(order[:n_keep]))
                 padded, labels = padded[keep], labels[keep]
                 row_valid_start, row_valid_end = row_valid_start[keep], row_valid_end[keep]
         else:

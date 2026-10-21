@@ -49,6 +49,7 @@ def build_inputs(config, max_per_length=96):
     cfg['preprocess_params']['window_fraction'] = 1.0
     for v in cfg['dataset_params']['pretrain'].values():
         v.pop('window_fraction', None)
+        v.pop('max_windows_per_subject', None)
     bd = build_dataset_from_config(cfg, mode='pretrain').base_dataset
     suffix = 'fs200_bp0.5-100.0_cont5.npz'
     out = {k: [] for k in LENGTHS}

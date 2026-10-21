@@ -11,7 +11,7 @@ Benchmark: B = EEG-FM-Bench (arXiv 2508.17742), C = EEG-FM-Compass (arXiv 2601.1
 Event: where the event (cue / flash / stimulus) sits inside each compiled trial, seconds from the
 trial start -- the line time-axis plots draw. — = no event (windows cut from continuous recordings).
 
-## finetune (23 datasets, 2037.2 h compiled)
+## finetune (24 datasets, 2037.2 h compiled)
 
 | Dataset | Paradigm | Benchmark | Subjects | Ch | Native Hz | Classes | Event | Hours | Status |
 |---|---|---|---|---|---|---|---|---|---|
@@ -34,9 +34,10 @@ trial start -- the line time-axis plots draw. — = no event (windows cut from c
 | SEED_VII | Emotion (7-class) | B |  |  |  |  |  |  | gated, not fetched (2026-09-24) |
 | Siena | Seizure detection (adult) | B | 14 | 29 | 512 | none | — | 140.1 | compiled |
 | Sleep_EDFx | Sleep staging | C | 78 | 2 | 100 | 5 | — | 1628.8 | compiled |
-| TUAB | Abnormal EEG (clinical) | B, C |  |  |  |  |  |  | gated, not fetched (2026-09-22) |
-| TUEV | Event classification (clinical) | B |  |  |  |  |  |  | gated, not fetched (2026-09-24) |
-| TUSL | Slowing classification (clinical) | B |  |  |  |  |  |  | gated, not fetched (2026-09-24) |
+| TUAB | Abnormal EEG (clinical) | B, C |  |  |  |  |  |  | fetched 2026-10-21, loader scaffolded (was gated, not fetched 2026-09-22) |
+| TUAR | Artifact detection (clinical) |  |  |  |  |  |  |  | no metadata |
+| TUEV | Event classification (clinical) | B |  |  |  |  |  |  | fetched 2026-10-21, loader scaffolded (was gated, not fetched 2026-09-24) |
+| TUSL | Slowing classification (clinical) | B |  |  |  |  |  |  | fetched 2026-10-21, loader scaffolded (was gated, not fetched 2026-09-24) |
 | Wang2016_dev | SSVEP (40-class, phase-locked; DEV, raw shared with pretrain Wang2016) |  | 34 | 64 | 250 | 40 | -0.5 s | 9.1 | compiled (MOABB) |
 | Mimul-11 | Motor imagery (upper limb, 3-class) | B |  |  |  |  |  |  | open (GigaDB, Jeong 2020), not fetched |
 | HMC | Sleep staging | B |  |  |  |  |  |  | open (PhysioNet hmc-sleep-staging), not fetched |
@@ -96,20 +97,19 @@ trial start -- the line time-axis plots draw. — = no event (windows cut from c
 
 ## pretrain candidates
 
-### Downloaded, not compiled (11 folders in `datas/pretrain/`, not in the corpus)
+### Downloaded, not compiled (10 folders in `datas/pretrain/`, not in the corpus)
 
 | Dataset | Paradigm | Subjects | Ch | Native Hz | Classes | Status | Why not compiled |
 |---|---|---|---|---|---|---|---|
-| GoNoGo_Delorme(inhouse) | Go / No-go (in-house hold) |  |  |  |  | in-house hold: downloaded, not compiled (2026-09-30) | in-house hold |
 | GuttmannFlury2025 | raw only (read by the GuttmannFlury2025_<task> folders) |  |  |  |  | raw only: shared download read by the GuttmannFlury2025_<task> folders | raw > 100 GB, left out of corpus v2 for disk space (2026-10-05) |
 | GuttmannFlury2025_ME | Motor execution | 31 | 64 | 1000 | 2 | not compiled (MOABB) | raw > 100 GB, left out of corpus v2 for disk space (2026-10-05) |
 | GuttmannFlury2025_MI | Motor imagery | 31 | 64 | 1000 | 2 | not compiled (MOABB) | raw > 100 GB, left out of corpus v2 for disk space (2026-10-05) |
 | GuttmannFlury2025_P300 | P300 speller | 31 | 64 | 1000 | 2 | not compiled (MOABB) | raw > 100 GB, left out of corpus v2 for disk space (2026-10-05) |
 | GuttmannFlury2025_SSVEP | SSVEP | 30 | 64 | 1000 | 4 | not compiled (MOABB) | raw > 100 GB, left out of corpus v2 for disk space (2026-10-05) |
-| Lane_Keeping(inhouse) | Lane keeping (in-house hold) |  |  |  |  | no metadata | in-house hold |
 | LEMON | Resting state | 215 | 61 | 2500 | none | not compiled | raw > 100 GB, left out of corpus v2 for disk space (2026-10-05) |
 | Nieuwland2018_N400 | ERP (N400, sentence reading) | 356 | 74 | 500 | none | not compiled | raw > 100 GB, left out of corpus v2 for disk space (2026-10-05) |
 | Stieger2021 | Motor imagery (cursor control) | 62 | 60 | 1000 | 4 | not compiled (MOABB) | raw > 100 GB, left out of corpus v2 for disk space (2026-10-05) |
+| TUEG | Clinical resting EEG | 605 | 22 | 250 | none | not compiled |  |
 | Yang2025 | Motor imagery (multi-day) | 51 | 59 | 1000 | 2 | not compiled (MOABB) | raw > 100 GB, left out of corpus v2 for disk space (2026-10-05) |
 
 ### On hold, not downloaded (TB scale or gated)

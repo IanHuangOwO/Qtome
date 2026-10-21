@@ -29,12 +29,10 @@ PARADIGM = {
     'SEED_VIG': 'Vigilance (PERCLOS regression)', 'Siena': 'Seizure detection (adult)',
     'Sleep_EDFx': 'Sleep staging', 'Things_EEG2': 'Visual decoding (images)',
     'TUAB': 'Abnormal EEG (clinical)', 'TUEV': 'Event classification (clinical)',
-    'TUSL': 'Slowing classification (clinical)', 'ADFTD': "Clinical: Alzheimer's / FTD / healthy (rest)",
+    'TUSL': 'Slowing classification (clinical)', 'TUAR': 'Artifact detection (clinical)', 'ADFTD': "Clinical: Alzheimer's / FTD / healthy (rest)",
     'Lee2019_ERP': 'P300 speller (continuous)',
     'ErpCore2021': 'raw only (read by the ErpCore2021_<task> folders)',
     'GuttmannFlury2025': 'raw only (read by the GuttmannFlury2025_<task> folders)',
-    'GoNoGo_Delorme(inhouse)': 'Go / No-go (in-house hold)',
-    'Lane_Keeping(inhouse)': 'Lane keeping (in-house hold)',
     'BI2014a': 'P300 (Brain Invaders)',
     'BI2014b': 'P300 (Brain Invaders)',
     'BI2015a': 'P300 (Brain Invaders)',
@@ -116,12 +114,11 @@ ON_HOLD = [
 
 RAW_SHARED_IN_CORPUS = {'ErpCore2021'}   # raw/ read by the compiled ErpCore2021_<task> folders
 
-# Why a downloaded pretrain dataset is not compiled (it is listed under the candidates, not the corpus table)
+# Why a downloaded pretrain dataset is not compiled, or compiled but not in the corpus (listed under the candidates, not the corpus table)
 NOT_COMPILED = {
     **{d: 'raw > 100 GB, left out of corpus v2 for disk space (2026-10-05)' for d in (
         'Stieger2021', 'Yang2025', 'LEMON', 'Nieuwland2018_N400', 'GuttmannFlury2025', 'GuttmannFlury2025_ME',
         'GuttmannFlury2025_MI', 'GuttmannFlury2025_P300', 'GuttmannFlury2025_SSVEP')},
-    'GoNoGo_Delorme(inhouse)': 'in-house hold', 'Lane_Keeping(inhouse)': 'in-house hold',
 }
 
 # Why each datas/archive/ dataset was dropped from pretraining (2026-09-24 rebalance).
@@ -212,6 +209,8 @@ for split in ('finetune', 'pretrain'):
         if split == 'pretrain' and not h and os.path.basename(p.rstrip('/')) not in RAW_SHARED_IN_CORPUS:
             candidates.append(r)
             continue
+        if split == 'pretrain' and r[0] in NOT_COMPILED:                      # compiled, but cut from the corpus
+            r = r[:-1] + [(r[-1] + '; ' if r[-1] else '') + NOT_COMPILED[r[0]]]
         rows.append(r)
         total += h
     lines += [f'## {split} ({len(rows)} datasets, {total:.1f} h compiled)', '',
