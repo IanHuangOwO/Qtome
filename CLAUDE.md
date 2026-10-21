@@ -19,7 +19,8 @@ cap threads (`--threads`, `training_params.<mode>.num_threads`). Parallel jobs: 
 # --dataset NAME narrows it, --verify-only / --deep for checks). See docs/agents/adding-a-dataset.md.
 python cache_dataset.py --config configs/compile.json
 
-# Pretrain: one run, tokenizer phase then masked phase (docs/adr/0013)
+# Pretrain: one run, masked phase only since 2026-10-21 (tokenizer_epochs 0; the unmasked tokenizer phase of docs/adr/0013
+# is still available with tokenizer_epochs > 0)
 python train_pretrain.py --config configs/runs/<backbone>/pretrain.json
 
 # Finetune a head on the frozen backbone (atom-code cache built on first use by cache_feature.py)
@@ -129,7 +130,8 @@ Key fields (templates show defaults):
   channels (floor(ratio x C) >= 2). Mode
   `montage` (MontageMask, not in the template, never evaluated, card closed 2026-10-18): channels outside a sparse
   montage hidden as targets, replacing the padding subsampling (docs/cards/2026-10-15-sparse-montage-mask.md).
-- `training_params.pretrain`: `model_name`, `output_path`, `epochs`, `tokenizer_epochs`, `freeze_atoms`,
+- `training_params.pretrain`: `model_name`, `output_path`, `epochs`, `tokenizer_epochs` (0 = one phase, adopted 2026-10-21 on 3 small seeds: masked MSE
+  level, finetune level, 30-45 Hz coding worse, docs/cards/2026-10-19-one-phase.md; the mask ramp is 20 epochs, subsampling from epoch 21), `freeze_atoms`,
   `warmup_epochs`, `batch_size`, LR fields, `train_val_split`, `seed`.
 - `model_params.Qtome.finetune` (the head, validated at build): `features` = a list of `{"type": <entry>,
   <per-entry keys>}`; entries are classes in `Qtome_modules.py`'s `ENTRY_TYPES` (`atom_power`, `signed_ab`,
@@ -185,7 +187,7 @@ datas/<split>/<Name>/loader.py  compile time only; MOABB datasets use IO/loader.
  └ IO/dataset.py       EEGDataset maps channels onto the 64 slots (non-canonical channels in free slots; missing -> zero
  │                     padding, valid_channels marks real ones), normalises per trial; PretrainDataset cuts
  │                     windows -> patches and draws masks; MontageBatchSampler makes one-montage batches
- └ train_pretrain.py   tokenizer phase (every block, temporal attention only, unmasked) -> masked phase
+ └ train_pretrain.py   masked phase from epoch 1 (tokenizer_epochs > 0 first adds the old unmasked, temporal-only phase)
                        (spatial attention + coordinate embedding on, mask curriculum starts)
 ```
 
