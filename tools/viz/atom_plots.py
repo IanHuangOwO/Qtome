@@ -1,6 +1,6 @@
 """
 Plotting functions for the atom_by_patch/atom_gallery panels (tools/panels/) and the
-event_atom_dynamics codebook diagnostic (model/Qtome/plugin.py's QtomeCodebookChecker).
+event_atom_dynamics codebook diagnostic (model/Qtome/Qtome_codebook_checker.py's QtomeCodebookChecker).
 Pure rendering only -- calculation lives in tools/analysis/ and tools/viz/extract.py.
 """
 
