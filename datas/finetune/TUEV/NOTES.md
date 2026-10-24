@@ -1,7 +1,15 @@
 # TUEV -- fetched 2026-10-21, loader scaffolded (was gated, not fetched 2026-09-24)
 
-Data on the 5090 (F:\tuh_data\tuh_eeg_events\v2.0.1), not yet copied here. Loader: one 5 s window per distinct annotated event, centred;
-check against EEG-FM-Bench / BIOT before reporting numbers.
+Data on the Expansion drive (`raw` symlink), compiled: 370 subjects, 12,726 windows. Loader: one 5 s window per distinct annotated event, centred.
+
+## Decision 2026-10-24: distinct events only (not comparable with EEG-FM-Bench's counts)
+
+EEG-FM-Bench's 113,353 samples (87,834 / 12,473 / 13,046) equal the number of rows in all `.rec` files (checked: 518 files, 113,353
+rows). A row is one (channel, event) annotation, so one event appears about 21 times; Bench makes a window per row and splits
+randomly, so copies of the same window land in train and test. We keep one window per distinct (start, stop, code) event (12,726).
+Our TUEV numbers are therefore not comparable with Bench's and are not inflated by duplicate windows. Class counts, ours against the
+raw rows: code 6 (bckg) 4,115 / 73,372; 2: 3,173 / 15,931; 5: 2,582 / 13,257.
+If a Bench-matching run is wanted later, drop the `set` in `Loader._events` (keep every row) and recompile.
 
 
 Temple University EEG Events Corpus, EEG-FM-Bench member. 6-class event

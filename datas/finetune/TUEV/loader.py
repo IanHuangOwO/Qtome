@@ -11,7 +11,7 @@ class Loader(BaseSubjectLoader):
     """TUEV: every recording of the subject, whole recording read at the metadata rate and filtered (continuous_transform); one
     standard_window (5 s) window centred on each distinct annotated event of its .rec file (channel,start,stop,code; the
     channel is ignored, an event is distinct by (start, stop, code)), labelled code - 1. Events whose window leaves the
-    recording are dropped. SCAFFOLDING: EEG-FM-Bench / BIOT may cut the windows differently."""
+    recording are dropped. Deliberately not one window per row as EEG-FM-Bench does (see NOTES.md)."""
     def __init__(self, config: Dict, subject_id: int, desired_channel_indices: List[int]):
         super().__init__(config, subject_id, desired_channel_indices)
         entry = self._require_subject(subject_id)
