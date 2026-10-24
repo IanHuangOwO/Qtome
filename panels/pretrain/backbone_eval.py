@@ -350,7 +350,7 @@ def evaluate(model, config, out_path, max_windows=512, name='', device='cpu'):
               ' '.join(f'{d["closeness_spearman"]:+.2f}/{d["mean_abs"]:.2f}' for d in struct['spatial_bias_per_block']))
 
 
-PRESETS = {'standard', 'quick'}
+PRESETS = {'standard'}
 
 
 def add_args(flags):

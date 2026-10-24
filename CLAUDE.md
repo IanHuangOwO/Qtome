@@ -42,7 +42,7 @@ python -m tools.misc.run_queue output/queue/<plan>.plan --max-parallel 2 --threa
 # other panels; presets are tagged in each panel's PRESETS). Pretrain = one backbone -> numbers in
 # output/Qtome/<backbone>/pretrain/analysis/, figures in output/Qtome/<backbone>/analysis/pretrain/ (standard: backbone_eval,
 # attention_range, atom_usage, ridge_probe, atom_vs_raw, atom_templates, atom_duplicates, snapshot,
-# training_dashboard; quick: the first seven; on request: atom_distribution, codebook (each loads every pretrain dataset: ~20-30 min),
+# training_dashboard; quick: attention_range, atom_usage, ridge_probe, atom_vs_raw, atom_templates, atom_duplicates; on request: atom_distribution, codebook (each loads every pretrain dataset: ~20-30 min),
 # coord_robustness, long_context, profile, task_filter_*; finetune: atom_maps,
 # probe_maps, class_snapshots, seed_equivalence, training_dashboard). Judge each change by its own mechanism metric, not finetuning
 # (ADR 0020). `--redraw` draws again from the saved numbers; `--panel <name> --help` shows a panel's own options. Writing a panel:

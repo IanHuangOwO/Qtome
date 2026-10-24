@@ -1,6 +1,7 @@
 """The held-out pretrain windows and the fixed test masks that the backbone checks share (backbone_eval, atom_usage, attention_range,
 long_context): every backbone sees the same windows and the same masks."""
 import copy
+import json
 import zlib
 
 import torch
@@ -20,9 +21,17 @@ def val_config(config):
     return cfg
 
 
+_DATASETS = {}   # per process: the panels of one run load the held-out dataset once
+
+
 def eval_windows(config, max_windows):
-    """Held-out windows, fixed order. Masks/subsampling of the dataset itself are unused."""
-    ds = build_dataset_from_config(val_config(config), mode='pretrain')
+    """Held-out windows, fixed order (a seeded permutation: a smaller max_windows is a prefix of a larger one). Masks/subsampling
+    of the dataset itself are unused. The dataset is built once per process for the same data and preprocessing settings."""
+    key = json.dumps([config['dataset_params'], config['preprocess_params'],
+                      config['training_params']['pretrain'].get('train_val_split', 0.9)], sort_keys=True, default=str)
+    if key not in _DATASETS:
+        _DATASETS[key] = build_dataset_from_config(val_config(config), mode='pretrain')
+    ds = _DATASETS[key]
     idx = torch.randperm(len(ds.base_dataset), generator=torch.Generator().manual_seed(0))[:max_windows].tolist()
     return ds, idx
 

@@ -67,11 +67,13 @@ def add_args(flags):
 
 def compute(ctx):
     if not ctx.ref:
-        raise RuntimeError('seed_equivalence needs --ref')
+        print('seed_equivalence: skipped, it needs --ref')
+        return
     text = ''.join(compare(ctx.groups[ctx.ref], bb, ctx.head, ctx.args.margin, ctx.args.metric)
                    for g, bb in ctx.groups.items() if g != ctx.ref)
     if not text:
-        raise RuntimeError(f"no seeded runs (output/<backbone>/finetune/{ctx.head}_seed*/) for these groups")
+        print(f"seed_equivalence: skipped, no seeded runs (output/<backbone>/finetune/{ctx.head}_seed*/) for these groups")
+        return
     out = ctx.figure('seed_equivalence.md')
     with open(out, 'w') as f:
         f.write(text + '\n')

@@ -301,7 +301,8 @@ def compare(ctxs, dst, seed=0, log=print):
 TESTS = {'mi': mi, 'p300': p300, 'noise': noise}
 
 
-DEFAULT_TARGETS = {'mi': ['BNCI2014001', 'BNCI2014004'], 'p300': ['BNCI2014008'], 'noise': ['BNCI2014004']}
+# BNCI2014001 (9 subjects x 22 channels) took ~19 of the ~38 min of the smoke run's tests: opt-in with --target BNCI2014001
+DEFAULT_TARGETS = {'mi': ['BNCI2014004'], 'p300': ['BNCI2014008'], 'noise': ['BNCI2014004']}
 
 
 def _selfcheck():
