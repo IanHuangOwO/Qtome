@@ -78,25 +78,6 @@ def build_normalizer_from_config(config: dict) -> Normalizer:
     return Normalizer()
 
 
-def build_bandpass_resample_from_config(config: dict, fs_orig: Optional[float] = None) -> BandpassResample:
-    signal_params = config.get('preprocess_params', {
-        'sample_freq': 200, 'bandpass_filter': {'l_freq': 0.1, 'h_freq': 80.0}
-    })
-    bandpass = signal_params['bandpass_filter']
-
-    if fs_orig is None:
-        if 'data_metadata' not in config or 'Sample_Frequency' not in config['data_metadata']:
-            raise ValueError("Config must contain 'data_metadata.Sample_Frequency' when fs_orig is not provided.")
-        fs_orig = config['data_metadata']['Sample_Frequency']
-
-    return BandpassResample(
-        original_freq=fs_orig,
-        sample_freq=signal_params['sample_freq'],
-        l_freq=bandpass['l_freq'],
-        h_freq=bandpass['h_freq'],
-    )
-
-
 def cache_suffix(sample_freq, bandpass_filter: dict, pre_event_seconds: float = 0.0,
                   post_event_seconds: float = 0.0, continuous_seconds: float = 0.0) -> str:
     """Derives the compiled-cache filename suffix from the params baked into it —

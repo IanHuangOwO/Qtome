@@ -89,65 +89,6 @@ def resolve_output_dir(config: dict, *sub_dirs: str, mode: str = 'pretrain') -> 
     return path
 
 
-def resolve_finetune_analysis_dir(config: dict, dataset_name: str) -> str:
-    """Return analysis_finetune.py's output dir for one dataset and create it.
-
-    For a baseline-matrix run (training_params.finetune.output_path ==
-    '<backbone>/finetune/<head>/<dataset>_<mode>') this is
-    output/<backbone>/finetune/analysis/<head>/<dataset>_<mode>/<dataset_name>/ -- one
-    shared analysis/ root directly under finetune/ (sibling to every head's own run dirs),
-    instead of nested inside each individual run, so every run's snapshots land in one
-    place. Falls back to resolve_output_dir's plain output/<output_path>/analysis/
-    <dataset_name>/ for any output_path that isn't shaped like a baseline-matrix run (no
-    literal '/finetune/' marker -- e.g. an ad-hoc one-off run)."""
-    output_path = resolve_output_path(config, mode='finetune')
-    marker = '/finetune/'
-    if marker in output_path:
-        backbone, rest = output_path.split(marker, 1)   # rest = '<head>/<dataset>_<mode>'
-        path = os.path.join(model_output_root(config, 'finetune'), backbone, 'finetune', 'analysis', rest, dataset_name)
-    else:
-        path = os.path.join(model_output_root(config, 'finetune'), output_path, 'analysis', dataset_name)
-    os.makedirs(path, exist_ok=True)
-    return path
-
-
-def select_subject_dataset(config: dict, subject=None, dataset_name: str = None, mode: str = 'pretrain'):
-    """
-    Resolve (dataset_name, subject_id) using:
-      1. CLI arguments (highest priority)
-      2. The dataset_params entry that has trial_to_use set
-      3. First key of dataset_params as last resort
-    """
-    ds_params = config['dataset_params'][mode]
-    if dataset_name is None:
-        for ds, ds_cfg in ds_params.items():
-            if 'trial_to_use' in ds_cfg:
-                dataset_name = ds
-                break
-        if dataset_name is None:
-            dataset_name = next(iter(ds_params))
-    if subject is None:
-        ds_cfg = ds_params[dataset_name]
-        subs = ds_cfg.get('subject_to_use', [])
-        subject = subs[0] if subs and subs[0] != 'all' else None
-    if subject is None:
-        meta_path = os.path.join(ds_params[dataset_name]['dataset_path'], 'metadata.json')
-        with open(meta_path, 'r') as f:
-            all_subs = list(json.load(f).get('data_structure', {}).keys())
-        subject = int(all_subs[0]) if str(all_subs[0]).isdigit() else random.choice(all_subs)
-    return dataset_name, subject
-
-
-def filter_config_to_subject(config: dict, dataset_name: str, subject, mode: str = 'pretrain') -> dict:
-    """Return config copy with dataset_params[mode] reduced to one dataset + subject."""
-    cfg = copy.deepcopy(config)
-    orig = cfg['dataset_params'][mode][dataset_name]
-    cfg['dataset_params'][mode] = {
-        dataset_name: {**orig, 'subject_to_use': [subject]}
-    }
-    return cfg
-
-
 def load_model(config: dict, checkpoint: str, device: torch.device, mode: str = 'pretrain'):
     """Pretrain: the backbone rebuilt from the checkpoint's own build_config (random weights from config if the file is missing), eval.
     mode='finetune' rebuilds the full FinetuneModel (frozen backbone + head) from the head
@@ -195,45 +136,6 @@ def pick_trial(dataset, subject_id, trial: int = None, dataset_name: str = None)
     idx = indices[trial % len(indices)].item() if trial is not None else random.choice(indices).item()
     actual_subject = dataset.base_dataset.subject_data[idx].item()
     return idx, actual_subject
-
-
-def setup_mne_info(dataset, fs=200.0):
-    """Build MNE Info from dataset electrode coordinates."""
-    import mne
-
-    base   = dataset.base_dataset if hasattr(dataset, 'base_dataset') else dataset
-    coords = np.array(base.coords, dtype=float).copy()
-    names  = base.channel_names
-
-    radii = np.sqrt(np.sum(coords[:, :2] ** 2, axis=1))
-    max_r = radii.max()
-    if max_r > 0:
-        coords *= 0.06 / max_r
-
-    try:
-        std = mne.channels.make_standard_montage('standard_1020')
-        std_pos = std.get_positions()['ch_pos']
-        std_keys = {k.upper(): k for k in std_pos}
-    except Exception:
-        std_pos, std_keys = {}, {}
-
-    montage_pos, valid_names = {}, []
-    for i, name in enumerate(names):
-        upper = name.upper()
-        if upper in std_keys:
-            montage_pos[name] = std_pos[std_keys[upper]]
-            valid_names.append(name)
-        elif np.any(coords[i] != 0):
-            montage_pos[name] = coords[i]
-            valid_names.append(name)
-
-    info = mne.create_info(ch_names=valid_names, sfreq=fs, ch_types='eeg')
-    try:
-        dig = mne.channels.make_dig_montage(ch_pos=montage_pos, coord_frame='head')
-        info.set_montage(dig)
-    except Exception as e:
-        print(f"[setup_mne_info] montage warning: {e}")
-    return info
 
 
 def cap_subjects(config: dict, ds_args: dict, max_trials: int, rng, min_subjects: int = 20, with_total: bool = False):
