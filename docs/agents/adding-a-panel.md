@@ -9,7 +9,8 @@ analyze.py                 python analyze.py list | pretrain ... | finetune ...
 panels/core/               registry (discovery by filename), context (Ctx), flags, numbers (save_json / save_npz), runner
 panels/pretrain/<name>.py  one analysis of one backbone (a folder <name>/ with __init__.py when it outgrows ~250 lines)
 panels/finetune/<name>.py  one analysis across backbones' finetune runs (--group NAME=BACKBONE ...)
-panels/shared/<topic>.py   code used by two or more panels (rule of two; until then it stays in its panel)
+panels/shared/<topic>.py   code used by two or more panels (rule of two; until then it stays in its panel); a topic that grows
+                           several files becomes a folder (shared/task_filter/: cells, backbone, fit, context, tests)
 panels/kit/                generic drawing primitives (topomap, timeseries, channel order); no analysis logic
 IO/config.py              config loading, --set overrides, run output paths (the training scripts use these too)
 tools/misc/                pipeline utilities run directly (sweep, run_queue, corpus and inventory builders), not analysis
@@ -39,6 +40,12 @@ def draw(ctx): ...                   # optional: reads those numbers, writes fig
 - `--redraw` skips `compute`: a heavy panel saves the arrays its figures read (snapshots save the trial and the Q-atom readout, the codebook its
   usage arrays, ...), never a live model.
 - A failing panel prints its traceback and the rest still run; the exit code is 1 if any failed.
+
+## Where analysis code lives
+
+Code that only analysis uses belongs under `panels/`, never in `model/`. A panel may import from `model/` and `IO/`; `model/`,
+`IO/` and the training scripts never import from `panels/`. (The task-filter tools sat in `model/Qtome/` until 2026-10-24 for lack of
+this rule; they are now `panels/shared/task_filter/`.)
 
 ## Procedure
 
