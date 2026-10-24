@@ -2,7 +2,7 @@
 analysis/task_filter/<source>/filter_<target>_<share>.npz, figure -> analysis/pretrain/task_filter/<source>/filter_<target>_<share>.png (drawn
 from the saved numbers). Builds the filter first if it is not saved.
 
-A task filter (model/Qtome/Qtome_filter_tools.py) applied to one dataset it
+A task filter (panels/shared/task_filter/fit.py) applied to one dataset it
 never saw (no label, head or trial of it is used). Left: the share of power kept per Q-atom and, per Q-atom, where the
 filter reads from to make the dataset's real channels (squared weight of each input channel into them). The filter
 alone (importance maps, power kept of white input, effective rank) is draw_filter's figure. Right: the dataset before and after
@@ -25,7 +25,9 @@ import numpy as np
 import torch
 
 from IO.loader import get_standard_coords
-from model.Qtome.Qtome_filter_tools import CHANNELS, FS, gains, imputed_encoder, names as channel_names, r2
+from panels.shared.task_filter.backbone import imputed_encoder
+from panels.shared.task_filter.cells import CHANNELS, FS, gains, names as channel_names
+from panels.shared.task_filter.fit import r2
 from panels.kit.topomap import draw_topomap, project_coords_2d
 from panels.shared.task_filter.context import filter_context
 
@@ -34,7 +36,7 @@ PRESETS = set()
 
 def add_args(flags):
     flags.add('--filter-source', default='multi', help="'multi' or a dataset name")
-    flags.add('--filter-sources', nargs='+', help='the datasets whose heads build the multi filter (default: Qtome_filter_tools SOURCES)')
+    flags.add('--filter-sources', nargs='+', help='the datasets whose heads build the multi filter (default: task_filter/fit.py SOURCES)')
     flags.add('--target', nargs='+', help='unseen datasets (required)')
     flags.add('--share', type=float, default=0.1, choices=[0.5, 0.25, 0.1], help='share of cells kept')
 

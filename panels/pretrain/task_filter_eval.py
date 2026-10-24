@@ -8,7 +8,7 @@ PRESETS = set()
 
 def add_args(flags):
     flags.add('--filter-source', default='multi', help="'multi' or a dataset name")
-    flags.add('--filter-sources', nargs='+', help='the datasets whose heads build the multi filter (default: Qtome_filter_tools SOURCES)')
+    flags.add('--filter-sources', nargs='+', help='the datasets whose heads build the multi filter (default: task_filter/fit.py SOURCES)')
     flags.add('--filter-test', nargs='+', choices=['mi', 'p300', 'noise'], help='tests (default all)')
     flags.add('--target', nargs='+', help='unseen datasets (default per test)')
 

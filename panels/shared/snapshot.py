@@ -13,7 +13,7 @@ import torch.nn as nn
 
 from IO.event_onset import lookup_event_onset_sample
 from IO.preprocessing import slice_patches
-from model.Qtome.Qtome_modules import overlap_add_patches
+from model.Qtome.patches import overlap_add_patches
 from model.Qtome.plugin import QtomeTrainer
 from panels.kit.timeseries import visualize_reconstruction
 from panels.kit.topomap import project_coords_2d

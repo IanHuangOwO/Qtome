@@ -1,16 +1,15 @@
-import math
 from types import SimpleNamespace
 
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
 
-from model.Qtome.Qtome_modules import (SpatialTemporalEmbeddings, TSAEncoder, AtomBank, RelativeSpatialBias,
-                                         fold_sum,
-                                         spatial_mix, FlatTimePool, LearnedTimePool,
-                                         AtomExtractor, FeatureHead,
-                                         resolve_head_config, make_head_checkpoint,
-                                         needs_atom, needs_raw, needs_latent, feature_names)
+from model.Qtome.atom_bank import AtomBank
+from model.Qtome.embeddings import RelativeSpatialBias, SpatialTemporalEmbeddings
+from model.Qtome.encoder import TSAEncoder
+from model.Qtome.head.config import (make_head_checkpoint, resolve_head_config, needs_atom, needs_raw, needs_latent)
+from model.Qtome.head.extractor import AtomExtractor
+from model.Qtome.head.feature_head import FeatureHead
+from model.Qtome.patches import fold_sum
 
 
 def _ema_update(buf, val, decay=0.99):
@@ -156,7 +155,7 @@ class QtomePretrain(nn.Module):
 
     @torch.no_grad()
     def update_ffn_router_metrics(self, ffn_router_entropy, ffn_router_load_std, ffn_gate_entropy):
-        """EMA smoothing of the FFN MoE router health — see TSAEncoder.forward (Qtome_modules.py) for where these three
+        """EMA smoothing of the FFN MoE router health — see TSAEncoder.forward (encoder.py) for where these three
         already-averaged-across-blocks values come from. Called from
         QtomeTrainer.update_diagnostics with out.ffn_router_entropy/out.ffn_router_load_std/
         out.ffn_gate_entropy, same call site as update_head_metrics."""
@@ -166,7 +165,7 @@ class QtomePretrain(nn.Module):
 
     def stage_features(self, x, coords, time_idx=None, bool_masked_pos=None, valid_channels=None):
         """Returns (z [B, C, N, D], ffn_lb_loss scalar) — ffn_lb_loss is the summed
-        load-balance loss of every TSABlock's MoEFFN (see Qtome_modules.TSAEncoder)."""
+        load-balance loss of every TSABlock's MoEFFN (see encoder.TSAEncoder)."""
         z = self.embed(x, coords=coords, bool_masked_pos=bool_masked_pos,
                        mask_token=self.mask_token)  # [B, C, N, D]
         bias = self.spatial_bias(coords) if self.spatial_bias is not None and coords is not None else None
@@ -426,7 +425,7 @@ class QtomePretrain(nn.Module):
 
 
 class FinetuneModel(nn.Module):
-    """Frozen Qtome backbone + one FeatureHead (Qtome_modules finetune section). Call signature
+    """Frozen Qtome backbone + one FeatureHead (model/Qtome/head/). Call signature
     matches the old finetune classes so train_finetune.py is unchanged: forward -> (logits, None, None)."""
     def __init__(self, backbone, head_cfg, channel_idx):
         super().__init__()

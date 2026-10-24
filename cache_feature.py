@@ -20,7 +20,7 @@ from IO.dataset import build_dataset_from_config
 from IO.loader import get_standard_coords
 from IO.preprocessing import cache_suffix, slice_patches
 from model.factory import build_from_checkpoint
-from model.Qtome.Qtome_modules import AtomExtractor
+from model.Qtome.head.extractor import AtomExtractor
 
 
 def _fingerprint(path):
@@ -39,7 +39,8 @@ def _mne_version():
         return 'none'   # coordinates fall back to the flat metadata polar values
 
 
-_CODE_FILES = ('model/Qtome/Qtome.py', 'model/Qtome/Qtome_modules.py', 'cache_feature.py')
+_CODE_FILES = ('model/Qtome/Qtome.py', 'model/Qtome/patches.py', 'model/Qtome/embeddings.py', 'model/Qtome/ffn.py',
+               'model/Qtome/encoder.py', 'model/Qtome/atom_bank.py', 'model/Qtome/head/extractor.py', 'cache_feature.py')
 
 
 def _code_hash():

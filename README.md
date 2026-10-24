@@ -133,7 +133,7 @@ output/Qtome/archive/<date>_<topic>/     # superseded experiments, grouped by to
 | `train_pretrain.py`, `train_finetune.py` | Training entry points |
 | `cache_dataset.py`, `cache_feature.py` | Dataset compilation and frozen-backbone feature caching |
 | `analyze.py`, `panels/` | Analysis entry point and its panels: one file per analysis (`panels/pretrain/`, `panels/finetune/`, `shared/`, `kit/`) |
-| `model/Qtome/` | `Qtome_modules.py` (embeddings, `TSABlock`, `TSAEncoder`, `AtomBank`, finetune `FeatureHead`), `Qtome.py` (`QtomePretrain`, losses, `FinetuneModel`), `plugin.py` (registry glue, trainer) |
+| `model/Qtome/` | `embeddings.py`, `ffn.py`, `encoder.py` (`TSABlock`, `TSAEncoder`), `atom_bank.py`, `patches.py`, `head/` (finetune `FeatureHead`, entries, config, `AtomExtractor`), `Qtome.py` (`QtomePretrain`, losses, `FinetuneModel`), `plugin.py` (registry glue, trainer) |
 | `model/` | Plugin base classes and `factory.py` (`MODEL_REGISTRY`, `build_from_checkpoint`) |
 | `IO/` | Loading, preprocessing (windowing, patching, normalization), masking |
 | `datas/pretrain/`, `datas/finetune/` | One folder per dataset: `loader.py`, `metadata.json`, git-ignored `raw/` and `cache/` |

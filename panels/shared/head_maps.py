@@ -20,7 +20,7 @@ import torch
 
 from IO.event_onset import lookup_event_onset_sample
 
-from model.Qtome.Qtome_modules import _entry_dim, feature_names
+from model.Qtome.head.config import _entry_dim, feature_names
 
 
 def readout(ckpt, entry):

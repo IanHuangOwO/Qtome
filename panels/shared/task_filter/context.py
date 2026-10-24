@@ -5,7 +5,8 @@ from types import SimpleNamespace
 
 import torch
 
-from model.Qtome.Qtome_filter_tools import SOURCES, Backbone, build
+from panels.shared.task_filter.backbone import Backbone
+from panels.shared.task_filter.fit import SOURCES, build
 
 
 def filter_context(ctx, source, rebuild=False):

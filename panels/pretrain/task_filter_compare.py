@@ -23,7 +23,7 @@ PRESETS = set()
 
 
 def add_args(flags):
-    flags.add('--filter-sources', nargs='+', help='the datasets whose heads build the multi filter (default: Qtome_filter_tools SOURCES)')
+    flags.add('--filter-sources', nargs='+', help='the datasets whose heads build the multi filter (default: task_filter/fit.py SOURCES)')
     flags.add('--target', nargs='+', help='unseen datasets (required)')
     flags.add('--single', help='optional: source dataset of a single-task filter to add (not a target); default: the multi-task filter only')
 

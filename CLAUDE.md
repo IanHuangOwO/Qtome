@@ -55,7 +55,7 @@ python analyze.py pretrain --panel profile [--train]                    # parame
 python analyze.py finetune --group base=<backbone> --group X=<backbone> --ref base [--head frozen_learned] [--panel <name> ...]
 python -m panels.finetune.summary 'output/Qtome/<backbone>/finetune/<head>/*' [--ref <backbone>:<head>] [--rank N]   # standalone table
 
-# Task filter: a reconstruction keeping only what classification heads use (model/Qtome/Qtome_filter_tools.py). Panels of
+# Task filter: a reconstruction keeping only what classification heads use (panels/shared/task_filter/fit.py). Panels of
 # analyze.py pretrain, run on request (not in a preset). --filter-source 'multi' (multi-task filter: MI + P300 + SSVEP
 # heads) or one dataset (single-task filter); needs loso cells <ds>_impute64_loso_seed1 (impute_missing_channels=true).
 # Numbers: output/Qtome/<backbone>/pretrain/analysis/task_filter/<source>/ (filter.pt, eval_*) and .../compare/; figures
@@ -67,7 +67,7 @@ python analyze.py pretrain --run <backbone> --panel task_filter_panel --target <
 python analyze.py pretrain --run <backbone> --panel task_filter_compare --target <ds> [--single <source ds>]   # multi-task filter vs ASR / ICLabel (single-task filter only with --single: it lost)
 ```
 
-No test suite: modules carry runnable self-checks (e.g. `Qtome_modules._selfcheck_head_modules()`), and
+No test suite: modules carry runnable self-checks (e.g. `head.feature_head._selfcheck_head_modules()`), and
 validation runs during training. Refactors here are verified by reproducing recorded results bit-identically.
 
 ### Long-running jobs: always monitor exit and errors
@@ -140,7 +140,7 @@ Key fields (templates show defaults):
   level, finetune level, 30-45 Hz coding worse, docs/cards/2026-10-19-one-phase.md; the mask ramp is 20 epochs, subsampling from epoch 21), `freeze_atoms`,
   `warmup_epochs`, `batch_size`, LR fields, `train_val_split`, `seed`.
 - `model_params.Qtome.finetune` (the head, validated at build): `features` = a list of `{"type": <entry>,
-  <per-entry keys>}`; entries are classes in `Qtome_modules.py`'s `ENTRY_TYPES` (`atom_power`, `signed_ab`,
+  <per-entry keys>}`; entries are classes in `model/Qtome/head/entries.py`'s `ENTRY_TYPES` (`atom_power`, `signed_ab`,
   `latent_signed`, and the raw-input baseline `raw_band` / `raw_signal`; `atom_band` / `evoked` / `phase_advance` /
   `latent_power` removed 2026-10-07) -- a new
   head feature is one class + one registry line. Every entry has its own spatial filter. Per-entry keys
@@ -152,7 +152,7 @@ Key fields (templates show defaults):
   `loso`, `subject_kfold` (`n_folds`), `eval_subjects`, `kfold`, `blocked_kfold`, `fewshot` (`train_fraction`,
   EEG-FM-Compass calibration); all take `sessions` and `seed`, per-subject types also `purge` (P300 overlap);
   unknown keys are rejected. Plus LR fields, `epochs`, `class_weight` (`balanced`), `batch_size`, `seed`.
-  `fit`: `sgd` (default) or `closed_form` (`model/Qtome/Qtome_closed_form.py`, no SGD). Few-shot always uses the closed-form
+  `fit`: `sgd` (default) or `closed_form` (`model/Qtome/head/closed_form.py`, no SGD). Few-shot always uses the closed-form
   structured head: the all-atom head's own factors (spatial filter x Q-atom weights x time course) set in closed
   form, one head for every paradigm, signed half at full time resolution (the protocols set it;
   docs/reports/2026-10-06-structured-fewshot-head.md); since 2026-10-15 both halves use the Fisher score and full time
@@ -197,10 +197,12 @@ datas/<split>/<Name>/loader.py  compile time only; MOABB datasets have none (met
                        (spatial attention + coordinate embedding on, mask curriculum starts)
 ```
 
-- `Qtome_modules.py`: `SpatialTemporalEmbeddings`, `RelativeSpatialBias`, `TSABlock` (temporal attention ->
-  spatial attention -> MoE FFN, LayerScale), `TSAEncoder` (8 blocks at full patch resolution, no pooling; padded channels and padded tail patches are masked out of
-  attention), `AtomBank`, and the finetune side: `AtomExtractor` (Q-atom codes and optionally z from the
-  frozen backbone) and `FeatureHead` (the `ENTRY_TYPES` registry).
+- Backbone, one file each in `model/Qtome/`: `embeddings.py` (`SpatialTemporalEmbeddings`, `RelativeSpatialBias`, FoPE), `ffn.py` (MoE FFN),
+  `encoder.py` (`TSABlock`: temporal attention -> spatial attention -> MoE FFN, LayerScale; `TSAEncoder`: 8 blocks at full patch
+  resolution, no pooling; padded channels and padded tail patches are masked out of attention), `atom_bank.py` (`AtomBank`),
+  `patches.py` (overlap-add, fold). Finetune side in `model/Qtome/head/`: `extractor.py` (`AtomExtractor`: Q-atom codes and optionally z
+  from the frozen backbone), `entries.py` (the `ENTRY_TYPES` registry), `config.py` (defaults, validation, widths), `pooling.py`,
+  `feature_head.py` (`FeatureHead`).
 - `Qtome.py`: `QtomePretrain` (phases, per-sample masked loss: a sample counts as masked only if every patch
   covering it is masked), `FinetuneModel`.
 - `model/EEGNet/EEGNet.py`: the EEGNet baseline (Compass's architecture), trained from scratch by `train_baseline.py`;

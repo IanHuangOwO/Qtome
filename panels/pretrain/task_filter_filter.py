@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 from IO.loader import get_standard_coords
-from model.Qtome.Qtome_filter_tools import CHANNELS
+from panels.shared.task_filter.cells import CHANNELS
 from panels.kit.topomap import draw_topomap, project_coords_2d
 from panels.shared.task_filter.context import filter_context
 
@@ -17,7 +17,7 @@ PRESETS = set()
 
 def add_args(flags):
     flags.add('--filter-source', default='multi', help="'multi' or a dataset name")
-    flags.add('--filter-sources', nargs='+', help='the datasets whose heads build the multi filter (default: Qtome_filter_tools SOURCES)')
+    flags.add('--filter-sources', nargs='+', help='the datasets whose heads build the multi filter (default: task_filter/fit.py SOURCES)')
     flags.add('--share', type=float, default=0.1, choices=[0.5, 0.25, 0.1], help='share of cells kept')
 
 

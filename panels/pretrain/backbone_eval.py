@@ -46,7 +46,8 @@ from IO.dataset import load_montage_channels
 from IO.loader import get_standard_coords
 from cache_feature import transform_coords
 from panels.shared.eval_windows import batches, eval_windows, make_mask
-from model.Qtome.Qtome_modules import fourier_features, overlap_add_patches
+from model.Qtome.embeddings import fourier_features
+from model.Qtome.patches import overlap_add_patches
 
 
 SPEC_BANDS = {'delta': (0.5, 4), 'theta': (4, 8), 'alpha': (8, 13), 'beta': (13, 30), 'gamma': (30, 45),

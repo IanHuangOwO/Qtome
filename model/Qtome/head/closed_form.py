@@ -1,7 +1,7 @@
 """Closed-form finetune head (2026-10-04/05): fit without SGD on the frozen Q-atom code (a, b), for few-shot.
 
 training_params.finetune.fit = "closed_form", closed_form = {"spatial_k", "atom_rank", "time_rank", "signed_time_rank"}:
-the loso all-atom head (atom_power + signed_ab, Qtome_modules.FeatureHead) with every factor set in closed form instead
+the loso all-atom head (atom_power + signed_ab, head/feature_head.FeatureHead) with every factor set in closed form instead
 of by SGD, same ranks (user: few-shot keeps the head's structure so its factors read as Q-atom events, not a generic
 probe):
   atom_power: spatial filter C -> spatial_k shared over Q-atoms and a/b (CSP on the trial covariance of the code,

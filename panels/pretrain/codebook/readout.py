@@ -9,7 +9,7 @@ import torch
 
 from IO.event_onset import lookup_event_onset_sample
 from IO.preprocessing import slice_patches
-from model.Qtome.Qtome_modules import overlap_add_patches
+from model.Qtome.patches import overlap_add_patches
 from panels.shared.atom_readout import extract_atom_psd_by_patch
 
 

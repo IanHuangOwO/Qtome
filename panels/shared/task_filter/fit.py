@@ -27,43 +27,15 @@ Importance (for the panel): the class information less chance of every channel c
 folds [64, S] (multi: per source as a share of its total, the maximum over sources)."""
 import glob
 import json
-import os
 
 import numpy as np
 import torch
 
-from IO.dataset import build_dataset_from_config
-from IO.loader import get_standard_coords
-from IO.preprocessing import slice_patches
-from model.factory import build_from_checkpoint
-from model.Qtome.Qtome_modules import AtomBank, AtomExtractor, FeatureHead, overlap_add_patches
+from panels.shared.task_filter.cells import cell_dir, gains, layout64, load_head
 
-MONT = json.load(open('configs/montages.json'))['10-10']['channels']
-CHANNELS = [m['label'] for m in MONT]                                     # the 64 slots, in slot order
-FS, SHARES = 200, (0.5, 0.25, 0.1)                                        # sample rate; shares of cells the filter keeps
+SHARES = (0.5, 0.25, 0.1)                                                 # shares of cells the filter keeps
 SOURCES = ('BNCI2014001', 'BNCI2014009', 'Nakanishi2015')                 # the multi-task filter's paradigms: MI, P300, SSVEP
 POWER_ONLY_HZ, N_PER, N_SINGLE = 45, 1000, 3000                           # multi: power-only above; training trials per source and fold; single-task filter
-
-
-def cell_dir(bb, ds):                                                     # bb = output/Qtome/<backbone>
-    return f'{bb}/finetune/allatom/{ds}_impute64_loso_seed1'
-
-
-def gains(bb, ds, C, N):
-    """{subject: (amp [T, N, C, S, 2], labels)} from the newest feature cache folder with C channels (and N patches)."""
-    for d in sorted(glob.glob(f'{bb}/pretrain/feature_cache/{ds}/*'), key=os.path.getmtime, reverse=True):
-        fs = sorted(glob.glob(d + '/*.npz'))
-        if np.load(fs[0])['amp'].shape[1:3] in ((N, C), (np.load(fs[0])['amp'].shape[1], C) if N is None else ()):   # N None: any patch count
-            return {os.path.basename(f)[:-4]: (lambda z: (torch.from_numpy(z['amp'].astype(np.float32)), z['labels']))(np.load(f)) for f in fs}
-    raise FileNotFoundError(f'no feature cache of {ds} with N {N}, C {C} under {bb}: run a finetune cell of it first')
-
-
-def names(ds):
-    """A dataset's channel labels in recording order and in gain order (slot order)."""
-    lab = [v['label'] for v in json.load(open(f'datas/finetune/{ds}/metadata.json'))['data_metadata']['channels'].values() if isinstance(v, dict)]
-    free = iter(i for i, m in enumerate(CHANNELS) if m not in lab)        # as IO/dataset.py: a channel outside
-    slot = {n: CHANNELS.index(n) if n in CHANNELS else next(free) for n in lab}   # the montage takes the next free slot
-    return lab, sorted(lab, key=slot.get)
 
 
 def components(W, amp, shrink=0.05, eps=1e-4):
@@ -105,13 +77,6 @@ def class_info(u, y, chance=True, power_only=None):
 
 def hard(R, q):                                                           # 1 for the top share q of cells, 0 for the rest
     return (R >= torch.quantile(R.flatten(), 1 - q).clamp_min(1e-12)).float()   # a score with many exact zeros would keep them all
-
-
-def load_head(cell, fold):
-    hk = torch.load(f'{cell}/finetune/run_{fold}/head.pth', map_location='cpu', weights_only=False)
-    hc = hk['head_config']; head = FeatureHead(hc); head.load_state_dict(hk['model_state_dict']); head.eval()
-    assert hc['num_channels'] == 64, f'{cell}: head on {hc["num_channels"]} channels, not the imputed 64'
-    return hc, torch.cat([head.spatials[b].weight for b in head.entries]).detach()   # stacked filters [2K, 64]
 
 
 def single_task_filter(bb, ds, rng, shares=SHARES):
@@ -165,70 +130,6 @@ def multi_filter(bb, sources, freqs, rng, shares=SHARES, log=print):
         log(f'  multi-task filter, fold index {i}: {unmix.shape[1]} components; kept share of cells ' +
             ', '.join(f'{q:g}: {keep[q].float().mean():.2f}' for q in shares))
     return {q: torch.stack(v).mean(0) for q, v in ops.items()}, torch.stack(imp).mean(0)
-
-
-class Backbone:
-    """The frozen backbone of output/Qtome/<backbone>: the model, its Q-atom templates D and quadrature partners H,
-    their dominant frequencies, and decoding of gains [B, N, C, S, 2] to waveforms [B, C, T]."""
-
-    def __init__(self, bb):
-        ck = torch.load(f'{bb}/pretrain/checkpoint/last.pth', map_location='cpu', weights_only=False)
-        self.model = build_from_checkpoint(ck).eval()
-        D = ck['model_state_dict']['atoms.D']; P = np.abs(np.fft.rfft((D - D.mean(1, keepdim=True)).numpy(), axis=1)) ** 2
-        self.freqs = np.fft.rfftfreq(D.shape[1], 1 / FS)[P.argmax(1)]    # [S] peak of each template's spectrum
-        D = torch.nn.functional.normalize(D, dim=-1); self.D, self.H = D.numpy(), AtomBank._quadrature(D).numpy()
-
-    def patches(self, g):                                                 # gains [B, N, C, S, 2] -> patches [B, C, N, L]
-        g = g.numpy() if torch.is_tensor(g) else g
-        return np.einsum('tncs,sl->tcnl', g[..., 0], self.D) + np.einsum('tncs,sl->tcnl', g[..., 1], self.H)
-
-    def decode(self, g):                                                  # -> [B, C, T], overlap-add at the 50% patch stride
-        return overlap_add_patches(torch.from_numpy(self.patches(g)), self.D.shape[1] // 2).numpy()
-
-
-def layout(bb, ds):
-    """Valid slots, coordinates and preprocessing of a dataset, from the config of its loso cell (or, for a dataset
-    without one, a P300 cell's with only the dataset swapped); missing slots at their template position if the cell
-    imputes them."""
-    path = f'{bb}/finetune/allatom/{ds}_loso_seed1/artifacts/config.json'
-    if os.path.exists(path):
-        cfg = json.load(open(path))
-    else:
-        cfg = json.load(open(f'{bb}/finetune/allatom/BNCI2014009_loso_seed1/artifacts/config.json'))
-        cfg['dataset_params']['finetune'] = {ds: {'dataset_path': f'datas/finetune/{ds}', 'subject_to_use': ['1'], 'channels_to_use': ['all']}}
-    return _layout(cfg, ds)
-
-
-def layout64(bb, ds):                                                     # the 64 imputed slots of an imputed cell
-    return _layout(json.load(open(f'{cell_dir(bb, ds)}/artifacts/config.json')), ds)
-
-
-def _layout(cfg, ds):
-    d = cfg['dataset_params']['finetune'][ds]
-    d['subject_to_use'] = [d['subject_to_use'][0] if d['subject_to_use'] != ['all'] else '1']
-    base = build_dataset_from_config(cfg, mode='finetune').base_dataset; valid, coords = base.all_valid_channels[0].clone(), base.all_coords[0].clone()
-    if d.get('impute_missing_channels'):                                  # as cache_feature.py: missing slots at their standard position
-        for i in torch.nonzero(~valid).flatten().tolist(): coords[i] = torch.as_tensor(get_standard_coords(base.channel_names[i]), dtype=coords.dtype)
-        valid[:] = True
-    return valid, coords, cfg['preprocess_params']
-
-
-def imputed_encoder(bb, ds, model, coords64):
-    """encode(w [B, C, T] of ds's real channels in gain order, impute) -> gains in trial units [B, N, C or 64, S, 2]: of
-    the real channels only, or (impute) of all 64 slots, the missing ones as mask tokens at their template coordinates."""
-    valid, coords, pp = layout(bb, ds); idx = torch.nonzero(valid).flatten()
-    assert [CHANNELS[i] for i in idx.tolist()] == names(ds)[1] and torch.allclose(coords[idx], coords64[idx], atol=1e-5)
-    ext, ext64 = AtomExtractor(model, idx.tolist()).eval(), AtomExtractor(model, list(range(64))).eval()
-
-    def encode(w, impute):
-        w = torch.from_numpy(w).float(); mu, s_ = w.mean((1, 2), keepdim=True), w.std((1, 2), keepdim=True)
-        x = torch.zeros(len(w), len(valid), w.shape[-1]); x[:, idx] = (w - mu) / s_; out = []
-        with torch.no_grad():
-            for i in range(0, len(w), 64):
-                xp, _ = slice_patches(x[i:i + 64], pp['patch_length'], pp['patch_stride']); b, P = xp.shape[0], xp.shape[2]
-                out.append((ext64 if impute else ext)(xp, coords64[None].expand(b, -1, -1), torch.arange(P)[None].expand(b, P), valid[None].expand(b, -1), impute_missing=impute))
-        return torch.cat(out) * s_[:, :, :, None, None]
-    return encode
 
 
 def build(bb, source, backbone, sources=SOURCES, seed=0, log=print):

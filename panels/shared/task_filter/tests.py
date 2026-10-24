@@ -1,4 +1,4 @@
-"""Tests of a task filter (model/Qtome/Qtome_filter_tools.py) on a dataset it never saw, run by the task_filter_eval and task_filter_compare panels. The target
+"""Tests of a task filter (panels/shared/task_filter/fit.py) on a dataset it never saw, run by the task_filter_eval and task_filter_compare panels. The target
 is encoded with its missing channels imputed, the whole 64-channel filter is applied and the target's real channels
 are read out. Every test compares the filter with 'matched q': the 64-channel reconstruction filtered (zero phase) to
 the filter output's mean power spectrum, so the same frequencies are removed with no channel or Q-atom choice.
@@ -28,7 +28,8 @@ from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
 from sklearn.metrics import balanced_accuracy_score, roc_auc_score
 from sklearn.model_selection import StratifiedKFold, cross_val_predict
 
-from model.Qtome.Qtome_filter_tools import CHANNELS, FS, MONT, gains, imputed_encoder, names
+from panels.shared.task_filter.backbone import imputed_encoder
+from panels.shared.task_filter.cells import CHANNELS, FS, MONT, gains, names
 
 POWER = 0.5                                                               # noise: artifact power as a share of the trial's
 KINDS = ('noisy channel', 'blink', 'muscle')
