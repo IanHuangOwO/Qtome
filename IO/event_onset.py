@@ -1,5 +1,4 @@
-"""Event onset of a dataset, from its own metadata.json. A leaf module (os and json only) so that model/ can use it without importing
-tools.analysis, which imports model.factory (-> the plugins) inside its loading helpers: model/ -> tools/analysis -> model/factory was a cycle."""
+"""Event onset of a dataset, from its own metadata.json. A leaf module (os and json only) so that model/ and panels/ can both use it without a cycle."""
 import json
 import os
 

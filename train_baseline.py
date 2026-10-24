@@ -19,7 +19,7 @@ from sklearn.metrics import balanced_accuracy_score, cohen_kappa_score
 
 from model.EEGNet.EEGNet import EEGNet
 from IO.splits import make_runs, protocol_split
-from tools.analysis import apply_overrides
+from IO.config import apply_overrides
 
 BASELINES = {'EEGNet': EEGNet}
 # deterministic cuDNN: without it two runs of one seed differ (EEGNet's convolutions picked non-deterministic

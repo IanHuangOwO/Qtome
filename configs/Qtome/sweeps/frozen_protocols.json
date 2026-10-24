@@ -1,5 +1,5 @@
 {
- "_comment": "The frozen finetune protocols (configs/finetune_protocols.json: mi_loso / mi_fewshot / p300_loso / p300_fewshot, each with the combined head) on the 6 reported cells for every backbone of a comparison, finetune seed 1 (add seeds 2-3 by repeating with training_params.finetune.seed). Report: python analysis_finetune.py --group base=<backbone> --group X=<backbone> --ref base (after analysis_pretrain.py --panel backbone_eval per backbone).",
+ "_comment": "The frozen finetune protocols (configs/finetune_protocols.json: mi_loso / mi_fewshot / p300_loso / p300_fewshot, each with the combined head) on the 6 reported cells for every backbone of a comparison, finetune seed 1 (add seeds 2-3 by repeating with training_params.finetune.seed). Report: python analyze.py finetune --group base=<backbone> --group X=<backbone> --ref base (after analyze.py pretrain --panel backbone_eval per backbone).",
  "script": "train_finetune.py",
  "config": "configs/runs/{backbone}/finetune/combined/BNCI2014001_loso_seed1.json",
  "backbones": [

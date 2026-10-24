@@ -1,5 +1,5 @@
 """History: the per-epoch numbers of a training run, kept by the trainers and stored as history.json. No plotting here:
-training imports this module only; the dashboard is drawn afterwards from the file (model/base_plotter.py, the
+training imports this module only; the dashboard is drawn afterwards from the file (panels/shared/dashboard.py, the
 training_dashboard panel)."""
 import json
 import os
@@ -7,7 +7,7 @@ import os
 
 class History:
     """Per-epoch training / validation metrics, kept by the trainers and stored as history.json (the numbers; the
-    dashboard is drawn from them afterwards by the training_dashboard panel -- a BasePlotter built with history=)."""
+    dashboard is drawn from them afterwards by the training_dashboard panel -- a QtomeDashboard built with history=)."""
 
     def __init__(self):
         self.history = {'train': {}, 'val': {}}

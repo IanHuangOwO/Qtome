@@ -4,11 +4,9 @@ registers in model/factory.py's MODEL_REGISTRY.
 """
 
 from dataclasses import dataclass
-from typing import Callable, Optional, Type
+from typing import Callable, Type
 
 from model.base_trainer import BaseTrainer
-from model.base_codebook_checker import BaseCodebookChecker
-from model.base_plotter import BasePlotter
 
 
 @dataclass(frozen=True)
@@ -19,7 +17,3 @@ class BasePlugin:
     build: Callable            # (bp: dict, num_channels: int) -> nn.Module, the pretrain backbone
     finetune_cls: Callable     # (backbone, num_channels, num_classes, **finetune params) -> classifier
     trainer_cls: Type[BaseTrainer]
-    plotter_cls: Type[BasePlotter]
-    # cross-dataset codebook/vocab diagnostics (analysis_pretrain.py --analysis codebook only, see
-    # model/base_codebook_checker.py) — optional, None until a model implements it.
-    codebook_checker_cls: Optional[Type[BaseCodebookChecker]] = None

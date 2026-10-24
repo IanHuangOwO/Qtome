@@ -228,7 +228,7 @@ def main():
     ap.add_argument('--config', default='configs/Qtome/finetune.template.json')
     ap.add_argument('--batch-size', type=int, default=64)
     args = ap.parse_args()
-    from tools.analysis import load_config  # merges a finetune overlay onto its base_config
+    from IO.config import load_config  # merges a finetune overlay onto its base_config
     config = load_config(args.config)
     for name, ds_args in config['dataset_params']['finetune'].items():
         folder = get_atom_cache(config, name, _subjects(ds_args), batch_size=args.batch_size)

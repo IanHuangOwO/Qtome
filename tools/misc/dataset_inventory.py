@@ -167,7 +167,7 @@ def row(split, path, suffix):
             else z['data'].shape[0] * z['data'].shape[2]
     hours = samples / SAMPLE_FREQ / 3600
     # event position inside each compiled trial (what time-axis plots draw as the event line,
-    # tools.analysis.lookup_event_onset_sample): seconds from trial start, or '—' = no event
+    # IO.event_onset.lookup_event_onset_sample): seconds from trial start, or '—' = no event
     if d.get('event_onset_seconds') is not None:
         event = f"{d['event_onset_seconds']:g} s"
     elif d.get('event_onset_sample') is not None:

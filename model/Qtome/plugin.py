@@ -1,13 +1,10 @@
 """Qtome's implementation of the shared model-plugin contract (model/base_trainer.py,
-model/base_checker.py, model/base_plotter.py)."""
+model/base_plugin.py)."""
 
-import matplotlib
 import torch
 
 from model.Qtome.Qtome import QtomePretrain, build_finetune
-from model.Qtome.Qtome_codebook_checker import QtomeCodebookChecker
 from model.base_trainer import BaseTrainer
-from model.base_plotter import BasePlotter
 from model.base_plugin import BasePlugin
 
 
@@ -66,69 +63,8 @@ class QtomeTrainer(BaseTrainer):
         return metrics
 
 
-class QtomePlotter(BasePlotter):
-    def plot_pretrain(self, filename='training_dashboard.png'):
-        # Grouped: loss/reconstruction -> FFN routing -> architecture diagnostics. Order is the only grouping lever
-        # `render`'s flat ncols grid gives us — no row breaks/section labels, so panels of a
-        # group may still straddle a row edge.
-        recon = ('masked', 'crimson'), ('unmasked', 'steelblue'), ('mse_patch', 'darkorchid')
-        loss_panels = [
-            dict(title="Total Loss (the training objective)\n(weighted sum of this run's loss terms: not comparable "
-                       "across loss configs)", ylabel='Loss', series=[dict(key='loss', color='b')]),
-            # Val is the comparable number (no dropout). masked is a 1.0 placeholder in the tokenizer
-            # phase; mse_patch mixes masked and visible.
-            dict(title='Recon MSE, train (solid) and val (dashed): compare runs on val\n(masked = 1.0 placeholder in '
-                       'tokenizer phase; dropout puts train above val)',
-                 ylabel='MSE', series=[dict(key=k, color=c) for k, c in recon]),
-        ]
-        nested = sorted((k for k in self.history['val'] if k.startswith('mse_nested_')), key=lambda k: int(k.rsplit('_', 1)[1]))
-        for i, k in enumerate(nested):   # nested loss: error from the strongest k Q-atoms per patch
-            loss_panels[1]['series'].append(dict(key=k, color=matplotlib.colormaps['cividis'](i / max(len(nested) - 1, 1)),
-                                                 label=f"strongest {k.rsplit('_', 1)[1]}"))
-        bands = [k for k in ('delta', 'theta', 'alpha', 'beta', 'gamma', 'high') if self.has_signal(f'mse_band_{k}')]
-        if bands:   # Qtome._band_errors: error power / target power per band, all valid positions
-            cmap = matplotlib.colormaps['viridis']
-            loss_panels.append(dict(title='Recon error per band, train (solid) and val (dashed)\n(error power / target '
-                                          'power; 0.5-4 / 4-8 / 8-13 / 13-30 / 30-45 / 45-90 Hz)',
-                                    ylabel='relative error (log)', logy=True,
-                                    series=[dict(key=f'mse_band_{k}', color=cmap(i / max(len(bands) - 1, 1)), label=k)
-                                            for i, k in enumerate(bands)]))
-
-        # FFN Router Health — the MoEFFN routers inside every TSABlock (averaged across blocks),
-        # see Qtome.update_ffn_router_metrics.
-        ffn_router_series, ffn_twin_series = self.router_health_series(
-            'ffn', entropy_label='Router entropy (load balance)')
-
-        routing_panels = [
-            dict(title='FFN Router Health\n(entropy rising = healthy spread; falling = collapse)',
-                 ylabel='Entropy (higher=balanced)', series=ffn_router_series,
-                 twin=dict(ylabel='Load std / LB loss', series=ffn_twin_series) if ffn_twin_series else None),
-        ]
-
-        architecture_panels = [
-            dict(title='Per-Block Contribution Norm\n(flat near-zero = block not used)',
-                 ylabel='Mean |delta| per block', series=self.indexed_series('block_norm_', cmap_name='viridis')),
-        ]
-
-        panels = loss_panels + routing_panels + architecture_panels
-        self.render(panels, filename, suptitle='Tokenizer (Atom) Training Dashboard', ncols=4)
-
-    def plot_finetune(self, filename='training_dashboard.png'):
-        panels = [
-            dict(title='Total Loss', ylabel='Loss', series=[dict(key='loss', color='b')]),
-            dict(title='Accuracy', ylabel='Acc', series=[dict(key='acc', color='crimson')]),
-            dict(title='F1 (macro)', ylabel='F1', series=[dict(key='f1', color='steelblue')]),
-            dict(title='F1 (weighted)', ylabel='F1', series=[dict(key='f1_weighted', color='teal')]),
-            dict(title='Balanced Accuracy', ylabel='Bal. Acc', series=[dict(key='balanced_acc', color='darkorchid')]),
-            dict(title="Cohen's Kappa", ylabel='Kappa', series=[dict(key='kappa', color='seagreen')]),
-        ]
-        self.render(panels, filename, suptitle='Training Dashboard')
-
-
 PLUGIN = BasePlugin(
     build=build_model,
     finetune_cls=build_finetune,
     trainer_cls=QtomeTrainer,
-    plotter_cls=QtomePlotter,
-    codebook_checker_cls=QtomeCodebookChecker,
 )

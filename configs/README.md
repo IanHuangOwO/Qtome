@@ -32,7 +32,7 @@ cp configs/Qtome/finetune.template.json configs/runs/<backbone>/finetune/<head>/
 # overlay: "base_config": "configs/runs/<backbone>/pretrain.json", pretrained_checkpoint, output_path, protocol
 ```
 
-A finetune overlay holds only finetune keys; `load_config` (`tools/analysis/__init__.py`) deep-merges it onto
+A finetune overlay holds only finetune keys; `load_config` (`IO/config.py`) deep-merges it onto
 its `base_config`. `model_name` is an identity string; `output_path` is where the run writes under `output/<model_type>/` (Qtome: `output/Qtome/`)
 (pretrain default `<model_name>/pretrain`; finetune e.g. `<backbone>/finetune/<head>/<cell>`). A trained
 backbone is always rebuilt from its checkpoint's own `build_config`, so editing `pretrain.json` afterwards

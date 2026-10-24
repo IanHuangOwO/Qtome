@@ -1,4 +1,4 @@
-"""Task filter: a reconstruction that keeps only what classification heads use (analysis_pretrain.py task_filter_* panels; history in
+"""Task filter: a reconstruction that keeps only what classification heads use (analyze.py pretrain task_filter_* panels; history in
 docs/reports/2026-10-14-task-filter.md).
 
 A trained all-atom head reads the Q-atom gains through spatial filters. Per Q-atom, its filters span a channel subspace;

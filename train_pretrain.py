@@ -20,7 +20,7 @@ from IO.masking import build_masking_strategy_from_config
 from model.base_trainer import nonfinite_step_report
 from model.factory import build_pretrain_from_config, checkpoint_build_config, optimizer_param_groups, MODEL_REGISTRY
 from model.history import History
-from tools.analysis import apply_overrides, resolve_output_path, model_output_root
+from IO.config import apply_overrides, resolve_output_path, model_output_root
 
 torch.set_float32_matmul_precision('high')
 

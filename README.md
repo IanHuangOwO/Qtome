@@ -88,10 +88,11 @@ python -m tools.misc.sweep configs/Qtome/sweeps/<sweep>.json > output/queue/<pla
 python -m tools.misc.run_queue output/queue/<plan>.plan --max-parallel 2 --threads 8
 
 # Analysis
-python analysis_pretrain.py --run <backbone> [--preset quick] [--panel <name> ...]
-python analysis_pretrain.py --panel profile [--train]            # parameter counts + timing
-python analysis_finetune.py --group base=<backbone> --group X=<backbone> --ref base
-python -m tools.analysis.summarize_runs 'output/Qtome/<backbone>/finetune/<head>/*'
+python analyze.py list                                            # every panel
+python analyze.py pretrain --run <backbone> [--preset quick] [--panel <name> ...] [--redraw]
+python analyze.py pretrain --panel profile [--train]              # parameter counts + timing
+python analyze.py finetune --group base=<backbone> --group X=<backbone> --ref base
+python -m panels.finetune.summary 'output/Qtome/<backbone>/finetune/<head>/*'
 ```
 
 The files in `configs/*.template.json` are starting points and are never run directly. Real run
@@ -116,7 +117,7 @@ output/Qtome/<backbone>/          # every Qtome run; archive/ beside the backbon
     checkpoint/{best,last}.pth    # prefer last.pth: best.pth locks onto easy curriculum epochs
     artifacts/config.json
     visualization/                # training dashboard, reconstruction snapshots
-    analysis/                     # analysis_pretrain.py panels
+    analysis/                     # analyze.py pretrain panels (numbers)
     feature_cache/                # regenerable features for finetuning
   finetune/<head>/<dataset>_<split>/
     artifacts/group_eval.json     # per-subject balanced accuracy (tail = mean of the last 10 epochs)
@@ -131,8 +132,8 @@ output/Qtome/archive/<date>_<topic>/     # superseded experiments, grouped by to
 |---|---|
 | `train_pretrain.py`, `train_finetune.py` | Training entry points |
 | `cache_dataset.py`, `cache_feature.py` | Dataset compilation and frozen-backbone feature caching |
-| `analysis_pretrain.py`, `analysis_finetune.py` | Analysis entry points (panels in `tools/panels/`) |
-| `model/Qtome/` | `Qtome_modules.py` (embeddings, `TSABlock`, `TSAEncoder`, `AtomBank`, finetune `FeatureHead`), `Qtome.py` (`QtomePretrain`, losses, `FinetuneModel`), `plugin.py` (registry glue, trainer, plotter), `Qtome_codebook_checker.py` |
+| `analyze.py`, `panels/` | Analysis entry point and its panels: one file per analysis (`panels/pretrain/`, `panels/finetune/`, `shared/`, `kit/`) |
+| `model/Qtome/` | `Qtome_modules.py` (embeddings, `TSABlock`, `TSAEncoder`, `AtomBank`, finetune `FeatureHead`), `Qtome.py` (`QtomePretrain`, losses, `FinetuneModel`), `plugin.py` (registry glue, trainer) |
 | `model/` | Plugin base classes and `factory.py` (`MODEL_REGISTRY`, `build_from_checkpoint`) |
 | `IO/` | Loading, preprocessing (windowing, patching, normalization), masking |
 | `datas/pretrain/`, `datas/finetune/` | One folder per dataset: `loader.py`, `metadata.json`, git-ignored `raw/` and `cache/` |

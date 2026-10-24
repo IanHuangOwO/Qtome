@@ -19,7 +19,7 @@ from cache_feature import CachedAtomDataset, get_atom_cache
 from model.history import History
 from model.Qtome.Qtome_modules import (FeatureHead, make_head_checkpoint,
                                        resolve_head_config, needs_atom, needs_raw, needs_latent, feature_names)
-from tools.analysis import apply_overrides, load_config, model_output_root
+from IO.config import apply_overrides, load_config, model_output_root
 from IO.splits import SPLITS, all_subjects, load_sessions, make_runs, protocol_split, resolve_subjects
 
 QTOME_HEADS = 'configs/Qtome/protocol_heads.json'

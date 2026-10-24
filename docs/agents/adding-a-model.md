@@ -21,8 +21,7 @@ mechanical checklist that ADR's design implies.
 
 **The rule**: a new model touches only files under `model/<Name>/` plus one line in
 `model/factory.py`. If you find yourself editing `train_tokenizer.py`, `train_pretrain.py`,
-`train_finetune.py`, `model/base_trainer.py`, or
-`model/base_plotter.py`, stop — either the new model needs a real base-class contract
+`train_finetune.py`, or `model/base_trainer.py`, stop — either the new model needs a real base-class contract
 change (rare, discuss first) or you're solving it the wrong way.
 
 Pretraining runs as two sequential scripts/checkpoints, not two phases of one run: see
@@ -40,7 +39,7 @@ Answer these — they shape steps 2-3 below:
   training (Qtome: the AtomBank, `freeze_atoms`)? If not, `on_pretrain_start` can be a
   no-op.
 - What per-Expert/Atom/Unit **health metrics** does it need on the dashboard? List them
-  now — they become `MeXXXPlotter`'s panel specs in step 3.
+  now — the trainer returns them from `epoch_metrics`, and a dashboard panel draws them (step 2b).
 - What per-step **loss hyperparameters** does it need beyond `masked_mse_weight`/
   `unmasked_mse_weight` (which every model gets for free)? These become keys under
   `model_params.MeXXX.pretrain.loss` and land in `**hparams` in `compute_loss`.
@@ -77,7 +76,7 @@ def get_metrics(self, *detached_tensors):
     summarize (already .detach()'d by the caller)."""
 
 def enable_spatial(self):
-    """Turns on cross-channel mixing. Called at construction-time load (tools/analysis/__init__.py
+    """Turns on cross-channel mixing. Called at construction-time load (panels/core/context.py
     load_model), at the start of train_tokenizer.py (BaseTrainer.on_tokenizer_start), and
     again at the start of train_pretrain.py (same hook, re-enabling after checkpoint load
     since this is a plain flag, not persisted in the state dict)."""
@@ -99,7 +98,7 @@ def freeze_<whatever_is_tokenizer_only>(self):
 def __init__(self, backbone, num_channels, num_classes, hidden=128,
              freeze_backbone=False, dropout=0.1):
     """Wraps a pretrained+loaded backbone (unmodified) with a classification head.
-    Store the backbone as self.backbone — tools/analysis/snapshot.py's
+    Store the backbone as self.backbone — panels/shared/snapshot.py's
     build_finetune_bundle reads it."""
 
 def forward(self, x, coords, time_idx=None, pad_mask=None):
@@ -113,8 +112,9 @@ def forward(self, x, coords, time_idx=None, pad_mask=None):
 
 ## 2. Plugin: `model/MeXXX/plugin.py`
 
-One file, three things: a `build_model` function, and two classes subclassing the
-bases in `model/base_trainer.py` / `model/base_plotter.py`.
+One file, two things: a `build_model` function and a class subclassing the base in
+`model/base_trainer.py`. Analysis and figures are not part of the plugin: they are panels
+(`docs/agents/adding-a-panel.md`).
 Qtome's `plugin.py` is the reference example — copy the shape, not
 necessarily the content.
 
@@ -125,10 +125,7 @@ import torch
 
 from model.MeXXX.MeXXX import MeXXXPretrain, MeXXXFinetune
 from model.base_trainer import BaseTrainer
-from model.base_plotter import BasePlotter
 from model.base_plugin import BasePlugin
-from tools.viz.extract import extract_head_psd, extract_head_spectra  # or write MeXXX-specific ones,
-                                                                  # returning PsdResult/SpectraResult
 
 
 def build_model(bp, num_channels):
@@ -162,43 +159,22 @@ class MeXXXTrainer(BaseTrainer):
             logger.info("  [Pretrain] ...")
 ```
 
-## 2b. Snapshot rendering: nothing to write per-model
+## 2b. Analysis and figures: panels, not plugin hooks
 
-Snapshot rendering (recon_signal/atom_by_patch/atom_gallery) is no
-longer part of the plugin contract. `tools/analysis/snapshot.py`'s
-`build_pretrain_bundle`/`build_finetune_bundle` call `model(...)`
-generically (forward, coords, time_idx, valid_channels — the same
-contract every MeXXXPretrain/MeXXXFinetune already implements per this
-doc's step 1) and build a `SnapshotBundle`; the three panels in
-`tools/panels/` render it. A new model needs no Checker class and no
-`extract_psd`/`extract_spectra` overrides — it works automatically as
-long as step 1's forward contract and `model.backbone` (finetune) hold.
+Snapshots, the codebook figures and the training dashboard are panels under `panels/`
+(`analyze.py`), not plugin hooks (the `plotter_cls` / `codebook_checker_cls` hooks were
+removed 2026-10-24). `panels/shared/snapshot.py`'s `build_pretrain_bundle` /
+`build_finetune_bundle` call `model(...)` generically (forward, coords, time_idx,
+valid_channels, the contract step 1 already has) and need `model.backbone` for finetune, so
+the snapshot panels work for a new model as they are. The codebook and the dashboard layouts
+read Qtome's `encode_atoms` and history keys: a model with a different readout adds its own
+panel files next to them.
 
 ```python
-class MeXXXPlotter(BasePlotter):
-    def plot_pretrain(self, filename='training_dashboard.png'):
-        panels = [
-            dict(title='Total Loss', ylabel='Loss', series=[dict(key='loss', color='b')]),
-            # ... one dict per panel, from your step-0 metrics list. Use
-            # self.indexed_series(...) for unbounded-family metrics.
-        ]
-        self.render(panels, filename, suptitle='Training Dashboard')
-
-    def plot_finetune(self, filename='training_dashboard.png', freeze_backbone=False):
-        panels = [
-            dict(title='Total Loss', ylabel='Loss', series=[dict(key='loss', color='b')]),
-            dict(title='Accuracy', ylabel='Acc', series=[dict(key='acc', color='crimson')]),
-            dict(title='F1 (macro)', ylabel='F1', series=[dict(key='f1', color='steelblue')]),
-            # + any of your pretrain-side health panels that still make sense post-freeze
-        ]
-        self.render(panels, filename, suptitle='Training Dashboard')
-
-
 PLUGIN = BasePlugin(
     build=build_model,
     finetune_cls=MeXXXFinetune,
     trainer_cls=MeXXXTrainer,
-    plotter_cls=MeXXXPlotter,
 )
 ```
 
@@ -240,20 +216,10 @@ m = build_pretrain_from_config(cfg)
 print(type(m).__name__, sum(p.numel() for p in m.parameters()))
 "
 
-# 2. Plotter renders from synthetic history (catches panel-spec typos without a real run)
-python -c "
-import tempfile
-from model.MeXXX.plugin import MeXXXPlotter
-p = MeXXXPlotter(output_dir=tempfile.mkdtemp())
-for i in range(3):
-    p.update(dict(loss=1.0-i*0.1, ...), dict(loss=1.1-i*0.1, ...))
-p.plot_pretrain()
-p.plot_finetune(freeze_backbone=True)
-"
+# 2. (step 2b) the dashboard panel draws the history a short run writes: python analyze.py pretrain --run <run> --panel training_dashboard
 
 # 3. A short real Tokenizer run exercises Trainer.compute_loss, epoch_metrics,
-#    on_tokenizer_start, and tools/analysis/snapshot.py's build_pretrain_bundle (via
-#    train_pretrain.py's periodic viz call) end to end.
+#    on_tokenizer_start end to end.
 python train_tokenizer.py --config <a config with model_type=MeXXX>
 
 # 4. A short real Pretrain run (pointed at the checkpoint from step 3, via

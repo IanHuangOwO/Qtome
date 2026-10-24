@@ -13,7 +13,7 @@ batches (val-style subjects of one pretrain dataset, masks at masked epoch 40). 
     alternate the modes, so load from other GPU jobs hits each mode alike,
   - peak GPU memory of a train step,
   - eval masked MSE from the checkpoint's weights per mode, and its largest per-batch relative difference to fp32.
-Unlike the profile panel (tools/analysis/profile.py: a fresh model, dummy input, forward only), this uses a
+Unlike the profile panel (panels/pretrain/profile.py: a fresh model, dummy input, forward only), this uses a
 trained checkpoint, real batches and the train step.
 """
 import argparse
@@ -31,7 +31,7 @@ from IO.dataset import build_dataset_from_config, MontageBatchSampler
 from IO.masking import build_masking_strategy_from_config
 from model.factory import build_from_checkpoint, MODEL_REGISTRY, optimizer_param_groups
 from train_pretrain import _unpack_batch
-from tools.analysis import QTOME_OUTPUT
+from IO.config import QTOME_OUTPUT
 
 MODES = ('fp16-amp', 'fp32+tf32', 'fp32')
 
