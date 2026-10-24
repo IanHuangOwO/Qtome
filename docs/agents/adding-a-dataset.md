@@ -381,7 +381,8 @@ try/excepts around each task and just skips it with a printed warning.
 If MOABB (`moabb` in the `qtome` env, 1.5.0) has the dataset, skip Steps 3-6's hand-written
 parsing and use `IO/loader.py` (MoabbLoader, write_moabb_metadata):
 
-- `loader.py` is just `class Loader(MoabbLoader): pass`.
+- No `loader.py`: `resolve_dataset_loader` returns `MoabbLoader` for a dataset whose `metadata.json` has the
+  `data_metadata.moabb` block that `write_moabb_metadata` writes (add a `loader.py` only to override something).
 - `gen_metadata.py` calls `write_moabb_metadata(root, name, "<MoabbClass>", dataset_info,
   target_labels, kwargs)`. It reads channels and sample rate from the first subject and
   writes the usual `metadata.json`, plus a `moabb` block (class + constructor kwargs) and one

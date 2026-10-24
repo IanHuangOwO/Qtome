@@ -194,10 +194,17 @@ def resolve_dataset_loader(dataset_path: str):
     """Dynamically imports datas/<Name>/loader.py's `Loader` class — used only
     by cache_dataset.py; train-time reads the compiled cache directly in
     IO/dataset.py, no loader class involved. Directory presence of loader.py
-    IS the registration; there is no separate registry to keep in sync."""
+    IS the registration; there is no separate registry to keep in sync. A MOABB
+    dataset needs no loader.py: its metadata.json has the data_metadata.moabb
+    block, which selects MoabbLoader itself."""
     import importlib.util
     mod_path = os.path.join(dataset_path, 'loader.py')
     if not os.path.exists(mod_path):
+        meta_path = os.path.join(dataset_path, 'metadata.json')
+        if os.path.exists(meta_path):
+            with open(meta_path) as f:
+                if 'moabb' in json.load(f).get('data_metadata', {}):
+                    return MoabbLoader
         raise FileNotFoundError(f"No {mod_path} — see docs/agents/adding-a-dataset.md Step 6.")
     spec = importlib.util.spec_from_file_location(f'dataset_loader_{os.path.basename(dataset_path)}', mod_path)
     mod = importlib.util.module_from_spec(spec)
@@ -208,8 +215,8 @@ def resolve_dataset_loader(dataset_path: str):
 # --- MOABB-backed loading ------------------------------------------------------------
 # MOABB-backed dataset loading (compile-time only, like every datas/<Name>/loader.py).
 #
-# For a dataset MOABB covers, datas/<Name>/loader.py is just `class Loader(MoabbLoader): pass`
-# and gen_metadata.py calls write_moabb_metadata(). MOABB does the download and the file
+# For a dataset MOABB covers there is no datas/<Name>/loader.py (resolve_dataset_loader picks MoabbLoader from the
+# metadata's moabb block) and gen_metadata.py calls write_moabb_metadata(). MOABB does the download and the file
 # parsing (events, sessions, runs); everything after -- trial cutting with the global
 # pre/post_event_seconds, bandpass/resample, channel unification -- stays ours
 # (cache_dataset.py). MOABB's paradigm/evaluation layers are deliberately not used.

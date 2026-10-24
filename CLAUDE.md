@@ -181,7 +181,7 @@ output z (`latent_signed`, PCA): level on loso, better on MI few-shot (BNCI20140
 `MODEL_REGISTRY`, docs/adr/0004).
 
 ```
-datas/<split>/<Name>/loader.py  compile time only; MOABB datasets use IO/loader.py's MoabbLoader
+datas/<split>/<Name>/loader.py  compile time only; MOABB datasets have none (metadata's moabb block -> IO/loader.py's MoabbLoader)
  └ cache_dataset.py    bandpass + resample each CONTINUOUS recording (BaseSubjectLoader._filter_run),
  │                     then cut epochs (event-anchored [event-1 s, event+4 s) for pretraining; the reported finetune
  │                     sets use EEG-FM-Compass post-event windows via metadata moabb.onset_window/window, or fixed windows); drops
