@@ -24,7 +24,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import torch
 
-from IO.loader import get_standard_coords
+from IO.channels import get_standard_coords
 from panels.shared.task_filter.backbone import imputed_encoder
 from panels.shared.task_filter.cells import CHANNELS, FS, gains, names as channel_names
 from panels.shared.task_filter.fit import r2

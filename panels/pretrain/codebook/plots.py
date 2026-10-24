@@ -241,7 +241,7 @@ def plot_patch_position_consistency(out_path, trial_records, unit_label='Atom',
         for i, s in enumerate(unique_subjects):
             ax.plot(x, np.nanmean(grid[subjects == s], axis=0), color=cmap(i % 10), linewidth=0.8, alpha=0.6,
                     label=f'S{s}')
-    if event_patch is not None:  # IO.event_onset.event_onset_patch
+    if event_patch is not None:  # panels.shared.event_onset.event_onset_patch
         ax.axvline(event_patch, color='k', ls='--', lw=1.0, alpha=0.8, label='event onset')
     ax.set_xlabel('Patch (time within trial)', fontsize=9)
     ax.set_ylabel('Weighted Jaccard', fontsize=9)

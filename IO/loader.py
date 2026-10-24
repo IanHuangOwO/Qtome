@@ -6,7 +6,8 @@ import numpy as np
 from abc import ABC, abstractmethod
 from typing import List, Dict, Optional, Tuple, Any
 
-from IO.preprocessing import cut_event_window
+from IO.channels import get_standard_coords
+from IO.preprocessing import cut_event_window, cut_windows
 
 
 class BaseSubjectLoader(ABC):
@@ -102,17 +103,6 @@ class BaseSubjectLoader(ABC):
         self.prefiltered = True
         return tf(data).numpy(), tf.sample_freq
 
-    def _get_standard_coords(self, ch_name: str) -> Optional[np.ndarray]:
-        return get_standard_coords(ch_name)
-
-    def _load_coords_from_metadata(self) -> np.ndarray:
-        """Default coord loader — see module-level load_coords_from_metadata()."""
-        return load_coords_from_metadata(self.data_metadata, self.channel_indices)
-
-    def _load_coords(self) -> np.ndarray:
-        """Default coord source. Override only when the loader has real digitized coords."""
-        return self._load_coords_from_metadata()
-
     @abstractmethod
     def _load_data(self) -> Tuple[np.ndarray, np.ndarray]:
         pass
@@ -128,7 +118,6 @@ class BaseSubjectLoader(ABC):
         return {
             'data': data.astype(np.float32),
             'labels': labels.astype(np.int64),
-            'coords': self._load_coords().astype(np.float32),
             'subject_id': self.subject_id,
             # NATIVE-rate (self.sample_freq) sample indices -- cache_dataset.py rescales
             # to the compiled rate before saving (see BandpassResample changing sample
@@ -140,54 +129,6 @@ class BaseSubjectLoader(ABC):
             'session': np.asarray(self._last_sessions if self._last_sessions is not None else [0] * n,
                                   dtype=np.int64),
         }
-
-
-def get_standard_coords(ch_name: str) -> Optional[np.ndarray]:
-    try:
-        import mne
-        if not hasattr(get_standard_coords, '_positions'):
-            montage = mne.channels.make_standard_montage('standard_1020')
-            get_standard_coords._positions = montage.get_positions()['ch_pos']
-        positions = get_standard_coords._positions
-        keys = {k.upper(): k for k in positions.keys()}
-        if ch_name.upper() in keys:
-            return positions[keys[ch_name.upper()]]
-    except Exception:
-        pass
-    return None
-
-
-def load_coords_from_metadata(data_metadata: Dict, channel_indices: List[int]) -> np.ndarray:
-    """
-    Default coord loader — tries MNE standard_1020 first, then falls back to
-    polar coords from metadata. Returns zeros for unknown channels. Shared by
-    BaseSubjectLoader (compile-time per-dataset loaders) and IO/dataset.py's
-    cache-read path (train time) — same channel-coordinate contract either way.
-    """
-    channel_config = data_metadata.get('channels', {})
-    sorted_keys = sorted(
-        [k for k in channel_config.keys() if isinstance(k, str) and k.isdigit()],
-        key=lambda k: int(k)
-    )
-    coords_list = []
-    for idx in channel_indices:
-        ch_info = channel_config.get(sorted_keys[idx]) if idx < len(sorted_keys) else None
-        label = ch_info.get('label', 'Unknown') if isinstance(ch_info, dict) else 'Unknown'
-
-        mne_coords = get_standard_coords(label)
-        if mne_coords is not None:
-            coords_list.append(mne_coords)
-            continue
-
-        if isinstance(ch_info, dict) and 'coordinates' in ch_info:
-            v = ch_info['coordinates']
-            theta = np.deg2rad(v.get('polar_angle_deg', 0))
-            r = v.get('polar_radius', 0)
-            coords_list.append([r * np.sin(theta), r * np.cos(theta), 0.0])
-        else:
-            coords_list.append([0.0, 0.0, 0.0])
-
-    return np.array(coords_list, dtype=np.float32)
 
 
 def resolve_dataset_loader(dataset_path: str):
@@ -216,7 +157,7 @@ def resolve_dataset_loader(dataset_path: str):
 # MOABB-backed dataset loading (compile-time only, like every datas/<Name>/loader.py).
 #
 # For a dataset MOABB covers there is no datas/<Name>/loader.py (resolve_dataset_loader picks MoabbLoader from the
-# metadata's moabb block) and gen_metadata.py calls write_moabb_metadata(). MOABB does the download and the file
+# metadata's moabb block) and gen_metadata.py calls write_moabb_metadata() (IO/metadata.py). MOABB does the download and the file
 # parsing (events, sessions, runs); everything after -- trial cutting with the global
 # pre/post_event_seconds, bandpass/resample, channel unification -- stays ours
 # (cache_dataset.py). MOABB's paradigm/evaluation layers are deliberately not used.
@@ -309,8 +250,8 @@ class MoabbLoader(BaseSubjectLoader):
                     if tf is not None:
                         piece, sf_p = tf(piece).numpy(), tf.sample_freq
                     win = int(round((self.continuous_seconds or self.standard_window) * sf_p))
-                    for w, (vs, ve) in _windows_with_tail(piece, win):
-                        trials.append(w); labels.append(0); ranges.append((vs, ve)); sessions.append(session_idx[session])
+                    for w, ve in cut_windows(piece, win, keep_short=True):
+                        trials.append(w); labels.append(0); ranges.append((0, ve)); sessions.append(session_idx[session])
                 continue
             scale = 1.0
             if tf is not None:     # bandpass + resample the whole run, then cut at the compiled rate
@@ -319,12 +260,8 @@ class MoabbLoader(BaseSubjectLoader):
             sf = raw.info['sfreq'] * scale
             if self.continuous or self.continuous_seconds:
                 win = int(round((self.continuous_seconds or self.standard_window) * sf))
-                n = data.shape[1] // win
-                if n:
-                    trials += list(data[:, :n * win].reshape(data.shape[0], n, win).transpose(1, 0, 2))
-                    labels += [0] * n
-                    ranges += [(0, win)] * n
-                    sessions += [session_idx[session]] * n
+                for w, ve in cut_windows(data, win, min_real=1.0):       # whole windows only: the leftover is dropped
+                    trials.append(w); labels.append(0); ranges.append((0, ve)); sessions.append(session_idx[session])
                 continue
             if self.window:
                 shift, pre, post = 0, int(round(-self.window[0] * sf)), int(round(self.window[1] * sf))
@@ -369,115 +306,8 @@ def _zero_gap_segments(data, sfreq, min_gap_s=0.1, min_seg_s=1.0):
     return [(a, b) for a, b in zip(cuts[::2], cuts[1::2]) if b - a >= min_seg_s * sfreq]
 
 
-def _windows_with_tail(piece, win, min_real=0.5):
-    """Non-overlapping win-sample windows of piece [C, T] -> [(window [C, win], (valid_start, valid_end))]; the tail
-    is kept zero-padded when it is the whole piece (a trial shorter than a window) or at least min_real of a window."""
-    n, out = piece.shape[1] // win, []
-    for i in range(n):
-        out.append((piece[:, i * win:(i + 1) * win], (0, win)))
-    tail = piece.shape[1] - n * win
-    if tail and (n == 0 or tail >= min_real * win):
-        w = np.zeros((piece.shape[0], win), dtype=piece.dtype)
-        w[:, :tail] = piece[:, n * win:]
-        out.append((w, (0, tail)))
-    return out
-
-
-def write_moabb_metadata(root: str, name: str, class_name: str, dataset_info: Dict,
-                         target_labels: Dict[str, str], kwargs: Dict = None,
-                         window: List[float] = None, continuous_seconds: float = None,
-                         onset_window: List[float] = None, cohort: str = None, postprocess=None,
-                         raw_root: str = None) -> Dict:
-    """
-    Writes <root>/metadata.json from MOABB: EEG channel names and sample rate from the
-    first subject's first run (downloads it if needed), subjects from ds.subject_list,
-    targets = MOABB event names. target_labels maps event name -> readable label; its key
-    order sets the label indices (so a migrated dataset can keep its old label order),
-    events it leaves out follow in sorted order. postprocess(meta) may add to the dict before
-    it is written (e.g. the dataset's own electrode coordinates).
-    """
-    import mne
-    kwargs = kwargs or {}
-    ds = moabb_dataset(class_name, root, raw_root, **kwargs)
-    raw = subject_runs(ds, ds.subject_list[0])[0][2]
-    eeg = [raw.ch_names[i] for i in mne.pick_types(raw.info, eeg=True)]
-    events = [e for e in target_labels if e in ds.event_id] + sorted(set(ds.event_id) - set(target_labels))
-    lo, hi = ds.interval
-    # Where the MOABB event sits inside each compiled trial, in seconds from trial start --
-    # read by IO.event_onset.lookup_event_onset_sample for the event line on time-axis
-    # plots. window=[t0, t1] is relative to the raw event (-> -t0); the default window is
-    # centred on event + interval[0] (the MI/stimulus onset MOABB defines) with the global
-    # pre_event_seconds before it; onset_window=[t0, t1] is relative to that onset (-> -t0);
-    # continuous windows have no event.
-    if continuous_seconds:
-        onset = None
-    elif window or onset_window:
-        onset = 0.0 - (window or onset_window)[0]  # 0.0 - x, not -x: no '-0.0' in metadata
-    else:
-        with open(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
-                               'configs', 'compile.json')) as f:
-            onset = json.load(f)['compile_params'].get('pre_event_seconds', 0.0)
-    meta = {
-        "data_metadata": {
-            "dataset_name": name,
-            "dataset_info": dataset_info,
-            **({"event_onset_seconds": onset} if onset is not None else {}),
-            "moabb": {"class": class_name, "kwargs": kwargs, "code": ds.code,
-                      **({"raw_root": raw_root} if raw_root else {}),
-                      **({"window": window} if window else {}),
-                      **({"onset_window": onset_window} if onset_window else {}),
-                      **({"continuous": True} if continuous_seconds else {})},
-            "acquisition": {
-                "sample_frequency": raw.info['sfreq'],
-                "window_size_seconds": continuous_seconds or ((w := window or onset_window)[1] - w[0] if (window or onset_window) else hi - lo),
-                "num_subjects": len(ds.subject_list),
-            },
-            "targets": {"count": 1, "type": "pretrain_dummy",
-                        "0": {"label": "dummy (continuous window, no task label)", "moabb_event": None}}
-            if continuous_seconds else {"count": len(events), "type": ds.paradigm,
-                        **{str(i): {"label": target_labels.get(e, e), "moabb_event": e}
-                           for i, e in enumerate(events)}},
-            "channels": {"count": len(eeg), **{str(i + 1): {"label": n, "original_label": n}
-                                               for i, n in enumerate(eeg)}},
-            **({"cohort": cohort} if cohort else {}),   # same people as another dataset (split_pretrain_subjects)
-        },
-        "data_structure": {str(s): {"moabb_subject": s} for s in ds.subject_list},
-    }
-    if postprocess:
-        postprocess(meta)
-    with open(os.path.join(root, "metadata.json"), "w") as f:
-        json.dump(meta, f, indent=4)
-        f.write("\n")
-    print(f"wrote {name}/metadata.json: {len(ds.subject_list)} subjects, {len(eeg)} EEG channels, "
-          f"{raw.info['sfreq']} Hz, events {events}")
-    return meta
-
-
-def fetch_moabb(dataset_path: str, retries: int = 10) -> None:
-    """Downloads every subject of a MOABB-backed dataset (metadata.json already written)
-    into <dataset_path>/raw/. Resumable: complete files are skipped. Retries on the
-    connection drops the big mirrors (wasabi, figshare) throw."""
-    import time
-    meta = json.load(open(os.path.join(dataset_path, 'metadata.json')))
-    m = meta['data_metadata']['moabb']
-    ds = moabb_dataset(m['class'], dataset_path, m.get('raw_root'), **m.get('kwargs', {}))
-    raw_dir = os.path.abspath(os.path.join(dataset_path, m.get('raw_root') or '', 'raw'))
-    for s in ds.subject_list:
-        for attempt in range(retries):
-            try:
-                ds.data_path(s, path=raw_dir)
-                break
-            except Exception as e:
-                print(f"subject {s} attempt {attempt} failed: {e}", flush=True)
-                time.sleep(30)
-        else:
-            print(f"subject {s} FAILED after {retries} attempts", flush=True)
-            continue
-        print(f"subject {s} ok", flush=True)
-
-
 # --- BIDS-backed loading (NEMAR / OpenNeuro pretraining sets) ---------------------------------
-# datas/<Name>/loader.py is `class Loader(BidsLoader)` and gen_metadata.py calls write_bids_metadata(). Raw files stay in
+# datas/<Name>/loader.py is `class Loader(BidsLoader)` and gen_metadata.py calls write_bids_metadata() (IO/metadata.py). Raw files stay in
 # datas/<Name>/raw/ in BIDS layout (sub-*/[ses-*/]eeg/*_eeg.<edf|bdf|set|vhdr>). Pretraining only: every recording is
 # cut into continuous windows, events ignored (labels 0).
 
@@ -511,44 +341,6 @@ def _eeg_names(raw):
     import mne
     return [raw.ch_names[i] for i in mne.pick_types(raw.info, eeg=True)
             if not _NON_EEG.search(raw.ch_names[i]) and get_standard_coords(raw.ch_names[i]) is not None]
-
-
-def write_bids_metadata(root: str, name: str, dataset_info: Dict, task: str = None, cohort: str = None) -> Dict:
-    """Writes <root>/metadata.json for a BIDS raw tree: channels = union of every subject's scalp EEG channels,
-    matched case-insensitively (first-seen order; a subject missing one gets a zero row there, which IO/dataset.py
-    treats as padding), sample rate = the most common one (others are resampled), subjects numbered by their BIDS
-    label when every label is an integer (so datasets of one cohort share ids), else 1..N in sorted order (the label
-    is kept as bids_subject)."""
-    from collections import Counter
-    runs = _bids_runs(root, task)
-    channels, rates = [], Counter()
-    for sub, files in runs.items():
-        raw = _read_raw(os.path.join(root, files[0]))
-        rates[raw.info['sfreq']] += 1
-        seen = {c.upper() for c in channels}
-        channels += [c for c in _eeg_names(raw) if c.upper() not in seen]     # labs differ in case (Pz / PZ)
-    numeric = all(s.isdigit() for s in runs)
-    ids = {s: (int(s) if numeric else i + 1) for i, s in enumerate(sorted(runs, key=lambda s: (len(s), s)))}
-    meta = {
-        "data_metadata": {
-            "dataset_name": name, "dataset_info": dataset_info,
-            "bids": {"task": task},
-            "acquisition": {"sample_frequency": rates.most_common(1)[0][0], "window_size_seconds": None,
-                            "num_subjects": len(runs)},
-            "targets": {"count": 1, "type": "pretrain_dummy", "0": {"label": "dummy (continuous window, no task label)"}},
-            "channels": {"count": len(channels), **{str(i + 1): {"label": c, "original_label": c}
-                                                   for i, c in enumerate(channels)}},
-            **({"cohort": cohort} if cohort else {}),
-        },
-        "data_structure": {str(ids[s]): {"bids_subject": s, "runs": [{"file": f} for f in files]}
-                           for s, files in sorted(runs.items(), key=lambda kv: ids[kv[0]])},
-    }
-    with open(os.path.join(root, "metadata.json"), "w") as f:
-        json.dump(meta, f, indent=4)
-        f.write("\n")
-    print(f"wrote {name}/metadata.json: {len(runs)} subjects, {sum(map(len, runs.values()))} recordings, "
-          f"{len(channels)} EEG channels, rates {dict(rates)}")
-    return meta
 
 
 class BidsLoader(BaseSubjectLoader):
@@ -590,9 +382,62 @@ class BidsLoader(BaseSubjectLoader):
             for a, b in zip(cuts[:-1], cuts[1:]):
                 for g0, g1 in _zero_gap_segments(data[:, a:b], raw.info['sfreq']):
                     piece, sf = self._filter_run(data[:, a + g0:a + g1])
-                    for w, (vs, ve) in _windows_with_tail(piece, int(round(self.continuous_seconds * sf))):
-                        trials.append(w); ranges.append((vs, ve)); sessions.append(si)
+                    for w, ve in cut_windows(piece, int(round(self.continuous_seconds * sf)), keep_short=True):
+                        trials.append(w); ranges.append((0, ve)); sessions.append(si)
         if not trials:
             return None, None
         self._last_valid_ranges, self._last_sessions = ranges, sessions
         return np.stack(trials), np.zeros(len(trials), dtype=np.int64)
+
+
+# ---------------------------------------------------------------------------------------------------------------------
+# TUH EEG corpus and its annotated subsets (datas/pretrain/TUEG, datas/finetune/TUAB, TUEV, TUSL, TUAR). The recordings are
+# clinical EDF files whose channel names carry a prefix and a reference suffix that vary by montage file ('EEG FP1-REF',
+# 'EEG FP1-LE'), at 250 / 256 / 400 / 512 Hz.
+# ---------------------------------------------------------------------------------------------------------------------
+TUH_NAME = re.compile(r'^EEG\s+([A-Z0-9]+)-(REF|LE|AR\w*|AVG\w*)$', re.I)
+# the 21 scalp sites of the 10-20 system every TUH montage has (TUAB's 21 channels; old names T3/T4/T5/T6 resolve to
+# T7/T8/P7/P8 in IO/dataset.py)
+SITES21 = ['Fp1', 'Fp2', 'F7', 'F3', 'Fz', 'F4', 'F8', 'T3', 'C3', 'Cz', 'C4', 'T4', 'T5', 'P3', 'Pz', 'P4', 'T6', 'O1', 'O2',
+           'A1', 'A2']
+
+
+def rename_channels(raw):
+    """'EEG FP1-REF' -> 'FP1' (first occurrence of a site wins); everything else keeps its name."""
+    new = {}
+    for c in raw.ch_names:
+        m = TUH_NAME.match(c)
+        if m and m.group(1).upper() not in {v.upper() for v in new.values()}:
+            new[c] = m.group(1)
+    raw.rename_channels(new)
+    return raw
+
+
+def read_sites(path, sites, sample_freq, tmax=None):
+    """One EDF recording -> float32 [len(sites), T] in volts at sample_freq (rows of sites the file lacks are zero), None when
+    the file is unreadable. tmax: seconds kept from the start."""
+    import mne
+    try:
+        with warnings.catch_warnings():
+            warnings.simplefilter('ignore')
+            raw = mne.io.read_raw_edf(path, preload=False, verbose=False)
+            if tmax is not None:
+                raw.crop(0, min(tmax, raw.times[-1]), include_tmax=False)
+            raw.load_data(verbose=False)
+    except Exception as e:
+        print(f"  [Warning] {path}: {e}")
+        return None
+    rename_channels(raw)
+    if raw.info['sfreq'] != sample_freq:
+        raw.resample(sample_freq, verbose=False)
+    names = {c.upper(): c for c in raw.ch_names}
+    rows = [i for i, s in enumerate(sites) if s.upper() in names]
+    out = np.zeros((len(sites), raw.n_times), dtype=np.float32)
+    if rows:
+        out[rows] = np.nan_to_num(raw.get_data(picks=[names[sites[i].upper()] for i in rows]))
+    return out
+
+
+def patient_of(path):
+    """TUH file name 'aaaaamye_s001_t000.edf' -> the patient id 'aaaaamye'."""
+    return os.path.basename(path).split('_')[0]

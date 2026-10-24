@@ -18,7 +18,7 @@ import json
 import numpy as np
 import torch
 
-from IO.event_onset import lookup_event_onset_sample
+from panels.shared.event_onset import lookup_event_onset_sample
 
 from model.Qtome.head.config import _entry_dim, feature_names
 

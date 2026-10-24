@@ -42,8 +42,8 @@ import numpy as np
 import torch
 from scipy.stats import spearmanr
 
-from IO.dataset import load_montage_channels
-from IO.loader import get_standard_coords
+from IO.channels import load_montage_channels
+from IO.channels import get_standard_coords
 from cache_feature import transform_coords
 from panels.shared.eval_windows import batches, eval_windows, make_mask
 from model.Qtome.embeddings import fourier_features

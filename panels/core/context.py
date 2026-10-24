@@ -8,7 +8,15 @@ from typing import Optional
 
 import torch
 
-from IO.config import QTOME_OUTPUT, deep_merge, resolve_output_dir
+from IO.config import QTOME_OUTPUT, resolve_output_dir
+
+
+def deep_merge(base: dict, override: dict) -> dict:
+    """The panels' --config option: a partial config merged over the run's own config."""
+    result = dict(base)
+    for k, v in override.items():
+        result[k] = deep_merge(result[k], v) if isinstance(result.get(k), dict) and isinstance(v, dict) else v
+    return result
 
 
 def load_model(config, checkpoint, device, mode='pretrain'):

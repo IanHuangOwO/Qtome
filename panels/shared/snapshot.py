@@ -11,7 +11,7 @@ import numpy as np
 import torch
 import torch.nn as nn
 
-from IO.event_onset import lookup_event_onset_sample
+from panels.shared.event_onset import lookup_event_onset_sample
 from IO.preprocessing import slice_patches
 from model.Qtome.patches import overlap_add_patches
 from model.Qtome.plugin import QtomeTrainer
@@ -54,7 +54,7 @@ class SnapshotBundle:
 
 def _lookup_event_onset(config, dataset, trial_idx):
     """This trial's dataset's own metadata.json event_onset_sample (see
-    IO.event_onset.lookup_event_onset_sample) -> seconds, or None. Only meaningful for a
+    panels.shared.event_onset.lookup_event_onset_sample) -> seconds, or None. Only meaningful for a
     genuine single real trial: an assembled continuous window (assemble_trials=True)
     mixes multiple real trials together with no one event to mark, so this deliberately
     returns None whenever base_dataset.assemble_trials is True rather than draw a

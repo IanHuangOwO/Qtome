@@ -1,6 +1,6 @@
 """
 Cho2017, loaded through MOABB's Cho2017 (1.5.0) -- metadata.json generator (downloads subject 1).
-Then `python datas/pretrain/Cho2017/fetch.py` downloads the rest (resumable).
+Then `python -m tools.misc.fetch_datasets moabb Cho2017 datas/pretrain/Cho2017` downloads the rest (resumable).
 
 Motor imagery L/R hand (GigaDB 100295): 52 subjects, 64 EEG ch (+4 EMG dropped) at 512 Hz, 200-240 trials. Window: global pre/post around the cue (MOABB interval [0, 3]).
 """
@@ -8,7 +8,7 @@ import os
 import sys
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", ".."))
-from IO.loader import write_moabb_metadata
+from IO.metadata import write_moabb_metadata
 
 ROOT = os.path.dirname(os.path.abspath(__file__))
 

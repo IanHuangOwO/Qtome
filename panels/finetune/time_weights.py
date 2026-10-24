@@ -9,7 +9,7 @@ import numpy as np
 import torch
 
 from IO.config import QTOME_OUTPUT
-from IO.event_onset import event_onset_patch
+from panels.shared.event_onset import event_onset_patch
 from panels.core.numbers import load_npz, save_npz
 
 PRESETS = {'standard'}

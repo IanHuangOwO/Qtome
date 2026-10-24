@@ -7,7 +7,7 @@ import os
 import sys
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", ".."))
-from IO.loader import write_moabb_metadata
+from IO.metadata import write_moabb_metadata
 
 write_moabb_metadata(
     os.path.dirname(os.path.abspath(__file__)), "Yang2025", "Yang2025",

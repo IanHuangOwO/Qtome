@@ -183,7 +183,7 @@ Two top-level keys: `data_metadata` (dataset description) and
 Notes:
 - `channels.<n>.coordinates` uses **polar** coordinates (angle in degrees,
   radius normalized ~0-1, standard EEG topomap convention), NOT 3D xyz.
-  `BaseSubjectLoader._load_coords_from_metadata()` converts to `[x, y, z]`.
+  `channel_xyz()` (`IO/channels.py`) converts to `[x, y, z]`.
   If `label` matches an MNE `standard_1020` montage channel name, MNE's real
   3D position is used instead and `coordinates` becomes a fallback used only
   when MNE lookup fails or MNE isn't installed (see `PhysionetMI`, which omits
@@ -191,7 +191,7 @@ Notes:
   always resolves). Filling in `coordinates` anyway is recommended for
   non-standard channel names, or if you want reproducible topomaps without
   depending on MNE being installed.
-- Any channel labelled inside `NON_EEG_CHANNELS` in `IO/dataset.py` (EOG, EMG,
+- Any channel labelled inside `NON_EEG_CHANNELS` in `IO/channels.py` (EOG, EMG,
   ECG, reference/mastoid, trigger/status channels) is auto-excluded when a
   downstream config uses `channels_to_use: ["all"]`. Set
   `include_non_eeg_channels: true` in that dataset's `dataset_params` entry to
@@ -263,7 +263,7 @@ edge transients (27% error on 1 s epochs). Only a source that ships pre-epoched 
 Create `datas/MyDataset/loader.py`, with a class named exactly `Loader`
 (that fixed name, plus this file's location, is the whole discovery
 contract — no registry to edit anywhere else) subclassing `BaseSubjectLoader`
-(`IO/loader.py`). Two abstract methods, `_load_coords` and `_load_data`.
+(`IO/loader.py`). One abstract method, `_load_data`.
 `datas/_template_loader.py` has the boilerplate already filled in — copy it,
 fill in `_load_data`.
 
@@ -284,8 +284,6 @@ class Loader(BaseSubjectLoader):
         # Split signal/label style (Nakanishi2015):  self._resolve(entry['signals']) / self._resolve(entry['labels'])
         # Multi-run style (PhysionetMI):       [self._resolve(os.path.join(entry['folder'], r)) for r in entry['runs']]
 
-    # _load_coords defaults to self._load_coords_from_metadata() (BaseSubjectLoader) —
-    # override only if you have real digitized coordinates (see BCICIV1_Train/loader.py).
 
     def _load_data(self):
         if not self._existing([self.file_path]):
@@ -390,8 +388,8 @@ parsing and use `IO/loader.py` (MoabbLoader, write_moabb_metadata):
 - `target_labels`' key order sets the label indices; pass the old order when migrating a
   dataset so its labels don't change.
 - Raw files download into `datas/<Name>/raw/` in MOABB's own layout (`MNE-<code>-data/...`);
-  `moabb_dataset()` redirects MOABB's storage-path lookup there. A resumable per-subject fetch is
-  `for s in ds.subject_list: ds.data_path(s, path=raw)` (see `datas/pretrain/Lee2019_MI/fetch.py`).
+  `moabb_dataset()` redirects MOABB's storage-path lookup there. Download with
+  `python -m tools.misc.fetch_datasets moabb <MOABB class> datas/<split>/<Name>` (resumable, retried on connection drops).
 - Trials: one per labelled event, anchored at event + `ds.interval[0]`, cut with the global
   `pre_event_seconds`/`post_event_seconds` like the other event-anchored loaders -- or, when
   that doesn't fit (P300 flashes, back-to-back trials), pass `window=[t0, t1]` (seconds
@@ -472,7 +470,7 @@ your config JSON:
   `build_dataset_from_config` ever runs, so subjects never leak across the
   split.
 - `channels_to_use: ["all"]` on the **first** dataset listed determines the
-  unified channel space (`_resolve_target_channels`, `IO/dataset.py`);
+  unified channel space (`resolve_target_channels`, `IO/channels.py`);
   other datasets get their channels remapped onto it by label
   (`_map_channels`), zero-padding anything they don't have. Alternatively set
   `preprocess_params.canonical_channels` to a fixed ordered list to pin the

@@ -4,7 +4,7 @@ from typing import Dict, List
 import numpy as np
 
 from IO.loader import BaseSubjectLoader
-from IO.tuh import read_sites
+from IO.loader import read_sites
 
 
 class Loader(BaseSubjectLoader):

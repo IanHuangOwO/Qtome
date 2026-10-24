@@ -18,9 +18,8 @@ applies an old-naming alias table), missing ones zero-padded.
 
 A montage is **not** the source of truth for per-dataset channel coordinates fed to the
 model (`coords [B, C, 3]`) — those are resolved per-dataset at load time in
-`IO/loader.py` (`BaseSubjectLoader._load_coords_from_metadata`): MNE's
-`make_standard_montage('standard_1020')` tried first, falling back to that dataset's own
-`metadata.json` `polar_angle_deg`/`polar_radius`. A montage's own coordinates are
+`IO/channels.py` (`channel_xyz`): MNE's `standard_1020` montage tried first, then `standard_1005`,
+then that dataset's own `metadata.json` `polar_angle_deg`/`polar_radius`. A montage's own coordinates are
 reference/documentation/QA data — useful for sanity-checking a dataset's reported
 positions against the standard, not required for the pipeline to run.
 

@@ -1,6 +1,6 @@
 """
 Weibo2014, loaded through MOABB's Weibo2014 (1.5.0) -- metadata.json generator (downloads subject 1).
-Then `python datas/pretrain/Weibo2014/fetch.py` downloads the rest (resumable).
+Then `python -m tools.misc.fetch_datasets moabb Weibo2014 datas/pretrain/Weibo2014` downloads the rest (resumable).
 
 Motor imagery, 7 classes (single/combined limbs + rest): 10 subjects, 60 EEG ch at 200 Hz, 560 trials. Window: global pre/post around MI onset (MOABB interval [3, 7]).
 """
@@ -8,7 +8,7 @@ import os
 import sys
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", ".."))
-from IO.loader import write_moabb_metadata
+from IO.metadata import write_moabb_metadata
 
 write_moabb_metadata(
     os.path.dirname(os.path.abspath(__file__)), "Weibo2014", "Weibo2014",

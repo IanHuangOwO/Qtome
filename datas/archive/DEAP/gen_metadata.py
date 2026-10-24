@@ -13,7 +13,7 @@ rate independently rather than trusting the paper alone.
 Only the first 32 (EEG) of the 40 channels are used; the last 8 are
 peripheral (hEOG, vEOG, zEMG, tEMG, GSR, respiration, plethysmograph,
 temperature) -- a different modality entirely, not an EEG montage channel,
-and this repo's IO/dataset.py NON_EEG_CHANNELS is an exact-match set that
+and this repo's IO/channels.py NON_EEG_CHANNELS is an exact-match set that
 would not catch labels like "zEMG"/"GSR" anyway. loader.py drops them at
 read time; they are never listed here.
 

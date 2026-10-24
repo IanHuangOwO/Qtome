@@ -17,7 +17,7 @@ import torch
 from torch.utils.data import Dataset
 
 from IO.dataset import build_dataset_from_config
-from IO.loader import get_standard_coords
+from IO.channels import get_standard_coords
 from IO.preprocessing import cache_suffix, slice_patches
 from model.factory import build_from_checkpoint
 from model.Qtome.head.extractor import AtomExtractor
@@ -229,7 +229,7 @@ def main():
     ap.add_argument('--config', default='configs/Qtome/finetune.template.json')
     ap.add_argument('--batch-size', type=int, default=64)
     args = ap.parse_args()
-    from IO.config import load_config  # merges a finetune overlay onto its base_config
+    from IO.config import load_config
     config = load_config(args.config)
     for name, ds_args in config['dataset_params']['finetune'].items():
         folder = get_atom_cache(config, name, _subjects(ds_args), batch_size=args.batch_size)

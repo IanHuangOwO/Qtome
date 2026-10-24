@@ -24,7 +24,7 @@ DATASET_INFO = {
 # channel axis. "label" should be a standard 10-20/10-10 name where possible
 # (see IO/dataset.py's _map_channels/_LABEL_ALIASES). "coordinates" is polar
 # (angle in degrees, radius ~0-1) — omit per-channel if the label resolves via
-# MNE's standard_1020 montage (see BaseSubjectLoader._get_standard_coords).
+# MNE's standard_1020 montage (see channel_xyz in IO/channels.py).
 CHANNELS = {
     "1": {"label": "Fp1", "coordinates": {"polar_angle_deg": -17.926, "polar_radius": 0.51499}},
 }

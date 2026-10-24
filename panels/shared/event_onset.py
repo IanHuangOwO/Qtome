@@ -1,4 +1,4 @@
-"""Event onset of a dataset, from its own metadata.json. A leaf module (os and json only) so that model/ and panels/ can both use it without a cycle."""
+"""Event onset of a dataset, from its own metadata.json: what the analysis panels mark with a vertical line on a time axis."""
 import json
 import os
 

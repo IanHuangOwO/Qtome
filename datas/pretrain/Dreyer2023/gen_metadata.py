@@ -1,6 +1,6 @@
 """
 Dreyer2023, loaded through MOABB's Dreyer2023 (1.5.0) -- metadata.json generator (downloads subject 1).
-Then `python datas/pretrain/Dreyer2023/fetch.py` downloads the rest (resumable).
+Then `python -m tools.misc.fetch_datasets moabb Dreyer2023 datas/pretrain/Dreyer2023` downloads the rest (resumable).
 
 Motor imagery L/R hand, 87 subjects (A/B/C subsets), 27 EEG ch at 512 Hz, 240 trials. Window: global pre/post around the MI onset (MOABB interval [0, 5]).
 """
@@ -8,7 +8,7 @@ import os
 import sys
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", ".."))
-from IO.loader import write_moabb_metadata
+from IO.metadata import write_moabb_metadata
 
 write_moabb_metadata(
     os.path.dirname(os.path.abspath(__file__)), "Dreyer2023", "Dreyer2023",

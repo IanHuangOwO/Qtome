@@ -3,7 +3,8 @@ from typing import Dict, List
 
 import numpy as np
 
-from IO.loader import BaseSubjectLoader, _windows_with_tail
+from IO.loader import BaseSubjectLoader
+from IO.preprocessing import cut_windows
 
 
 class Loader(BaseSubjectLoader):
@@ -38,8 +39,8 @@ class Loader(BaseSubjectLoader):
                     onsets = sorted(int(r['sample']) for r in rows) + [sig.shape[1]]
                     for a, b in zip(onsets[:-1], onsets[1:]):
                         piece, sf_p = self._filter_run(sig[:, a:b])
-                        for w, r in _windows_with_tail(piece, int(round(self.continuous_seconds * sf_p))):
-                            data.append(w); labels.append(0); ranges.append(r)
+                        for w, ve in cut_windows(piece, int(round(self.continuous_seconds * sf_p)), keep_short=True):
+                            data.append(w); labels.append(0); ranges.append((0, ve))
                     continue
                 sig, sf = self._filter_run(sig)                                  # whole run, before cutting
                 win, scale = int(round(self.standard_window * sf)), sf / self.sample_freq

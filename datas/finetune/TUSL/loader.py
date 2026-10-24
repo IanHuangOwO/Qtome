@@ -4,7 +4,7 @@ from typing import Dict, List
 import numpy as np
 
 from IO.loader import BaseSubjectLoader
-from IO.tuh import read_sites
+from IO.loader import read_sites
 
 LABELS = {'seiz': 0, 'slow': 1, 'bckg': 2, 'cplx': 2}       # complex background counts as background (EEG-FM-Bench: 3 classes)
 

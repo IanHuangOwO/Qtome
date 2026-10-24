@@ -1,30 +1,12 @@
-"""Config loading and run-output paths shared by every entrypoint (train_*.py, cache_feature.py, analyze.py): overlay merge
-(`base_config`), `--set` overrides, and where a run's folders live under output/."""
-import copy
+"""Config loading, `--set` overrides and run-output paths, shared by every entrypoint (train_*.py, cache_feature.py, analyze.py).
+A run config is one complete JSON file: copy a template and edit it."""
 import json
 import os
 
 
-def deep_merge(base: dict, override: dict) -> dict:
-    result = copy.deepcopy(base)
-    for k, v in override.items():
-        if k in result and isinstance(result[k], dict) and isinstance(v, dict):
-            result[k] = deep_merge(result[k], v)
-        else:
-            result[k] = copy.deepcopy(v)
-    return result
-
-
 def load_config(path: str) -> dict:
-    """Load config. If it contains 'base_config', deep-merge on top of it."""
     with open(path, 'r') as f:
-        cfg = json.load(f)
-    if 'base_config' in cfg:
-        base_path = cfg.pop('base_config')
-        with open(base_path, 'r') as f:
-            base = json.load(f)
-        cfg = deep_merge(base, cfg)
-    return cfg
+        return json.load(f)
 
 
 def apply_overrides(cfg: dict, sets) -> dict:

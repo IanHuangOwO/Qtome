@@ -59,7 +59,7 @@ has the canonical terms and `docs/adr/` the reasoning behind each choice.
 pip install -r requirements.txt   # plus a CUDA build of PyTorch
 ```
 
-Use an environment that has `mne` (and `moabb`) installed. Without `mne`, `IO/loader.py` silently
+Use an environment that has `mne` (and `moabb`) installed. Without `mne`, `IO/channels.py` silently
 falls back to flat polar channel coordinates from `metadata.json` instead of MNE 3-D positions,
 and finetune numbers are then not comparable.
 
@@ -77,7 +77,7 @@ python train_pretrain.py --config configs/runs/<backbone>/pretrain.json
 
 # 3. Finetune a head on the frozen backbone (the feature cache is built on first use)
 cp configs/Qtome/finetune.template.json configs/runs/<backbone>/finetune/<head>/<dataset>_<split>.json
-#    set base_config, pretrained_checkpoint, output_path, protocol / split in the copy
+#    set pretrained_checkpoint, output_path, protocol / split in the copy
 python train_finetune.py --config configs/runs/<backbone>/finetune/<head>/<dataset>_<split>.json
 
 # Any config value can be overridden on the command line (dotted path, JSON value)

@@ -17,8 +17,8 @@ import numpy as np
 import torch
 
 from IO.config import QTOME_OUTPUT
-from IO.dataset import resolve_canonical_channels
-from IO.loader import get_standard_coords
+from IO.channels import resolve_canonical_channels
+from IO.channels import get_standard_coords
 from model.factory import build_from_checkpoint
 from cache_feature import CachedAtomDataset, get_atom_cache
 from panels.core.numbers import load_npz, save_npz

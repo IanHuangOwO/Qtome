@@ -13,7 +13,7 @@ import os
 import sys
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", ".."))
-from IO.tuh import SITES21
+from IO.loader import SITES21
 
 ROOT = os.path.dirname(os.path.abspath(__file__))
 CLASSES = ['spsw', 'gped', 'pled', 'eyem', 'artf', 'bckg']

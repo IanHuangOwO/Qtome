@@ -161,6 +161,21 @@ def slice_patches(x: torch.Tensor, patch_len: int, patch_stride: Optional[int] =
     return x_patches, time_indices
 
 
+def cut_windows(piece, win: int, min_real: float = 0.5, keep_short: bool = False):
+    """Non-overlapping win-sample windows of piece [C, T] (numpy array or torch tensor) -> [(window [C, win], valid_end)];
+    window[:, :valid_end] is real, the rest zero. The leftover shorter than a window is kept, zero-padded, when it holds at
+    least min_real of a window (min_real 1.0: never) or, with keep_short, when it is the whole piece (a trial shorter than
+    one window). The one cutter of the compile-time loaders and of window_continuous_signal."""
+    n, rem = divmod(piece.shape[-1], win)
+    out = [(piece[:, i * win:(i + 1) * win], win) for i in range(n)]
+    if rem and (rem >= np.ceil(min_real * win) or (keep_short and n == 0)):
+        zeros = torch.zeros if torch.is_tensor(piece) else np.zeros
+        w = zeros((piece.shape[0], win), dtype=piece.dtype)
+        w[:, :rem] = piece[:, n * win:]
+        out.append((w, rem))
+    return out
+
+
 def window_continuous_signal(trials: torch.Tensor, target_L: int, ds_name: str, subject_id,
                               valid_ranges=None, min_real_fraction: float = 0.5,
                               ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
@@ -189,26 +204,17 @@ def window_continuous_signal(trials: torch.Tensor, target_L: int, ds_name: str, 
     N, C, T = trials.shape
     if valid_ranges is None:
         valid_ranges = [(0, T)] * N
-    min_real = int(np.ceil(min_real_fraction * target_L))
-
     windows, valid_ends, dropped = [], [], 0
     for i, (vs, ve) in enumerate(valid_ranges):
         real = trials[i, :, int(vs):int(ve)]
-        n_full, rem = divmod(real.shape[-1], target_L)
-        for w in range(n_full):
-            windows.append(real[:, w * target_L:(w + 1) * target_L])
-            valid_ends.append(target_L)
-        if rem >= max(min_real, 1):
-            last = torch.zeros((C, target_L), dtype=trials.dtype)
-            last[:, :rem] = real[:, n_full * target_L:]
-            windows.append(last)
-            valid_ends.append(rem)
-        elif rem:
-            dropped += rem
+        cut = cut_windows(real, target_L, min_real_fraction)
+        windows += [w for w, _ in cut]
+        valid_ends += [e for _, e in cut]
+        dropped += real.shape[-1] - sum(e for _, e in cut)
 
     if not windows:
         raise RuntimeError(f"No windows produced for {ds_name} subject {subject_id} "
-                           f"({N} trials x {T}pts, target_L={target_L}, min_real={min_real}).")
+                           f"({N} trials x {T}pts, target_L={target_L}, min_real_fraction={min_real_fraction}).")
     assembled = torch.stack(windows)
     n_pad = sum(v < target_L for v in valid_ends)
     print(f"  [{ds_name} S{subject_id}] {N} trials x {T}pts -> {len(assembled)} windows of {target_L}pts "

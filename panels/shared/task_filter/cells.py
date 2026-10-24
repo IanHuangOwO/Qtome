@@ -7,7 +7,7 @@ import numpy as np
 import torch
 
 from IO.dataset import build_dataset_from_config
-from IO.loader import get_standard_coords
+from IO.channels import get_standard_coords
 from model.Qtome.head.feature_head import FeatureHead
 
 MONT = json.load(open('configs/montages.json'))['10-10']['channels']

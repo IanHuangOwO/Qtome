@@ -11,7 +11,7 @@ import random
 import numpy as np
 
 from IO.dataset import build_dataset_from_config
-from IO.event_onset import event_onset_patch
+from panels.shared.event_onset import event_onset_patch
 from panels.core.numbers import load_npz, save_npz
 from panels.pretrain.codebook import plots
 from panels.pretrain.codebook import readout

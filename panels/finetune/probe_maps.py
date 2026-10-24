@@ -15,7 +15,7 @@ import numpy as np
 import torch
 
 from IO.config import QTOME_OUTPUT
-from IO.dataset import resolve_canonical_channels
+from IO.channels import resolve_canonical_channels
 from panels.core.numbers import load_npz, save_npz
 from panels.kit.channels import mirror_order
 from panels.shared.head_maps import summarise, time_axis

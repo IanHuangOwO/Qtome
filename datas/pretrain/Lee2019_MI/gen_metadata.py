@@ -1,6 +1,6 @@
 """
 OpenBMI motor imagery (Lee et al. 2019), loaded through MOABB's Lee2019_MI -- metadata.json
-generator. Download: `python datas/pretrain/Lee2019_MI/fetch.py` (resumable, into raw/ in
+generator. Download: `python -m tools.misc.fetch_datasets moabb Lee2019_MI datas/pretrain/Lee2019_MI` (resumable, into raw/ in
 MOABB's layout). Verified 2026-09-24 against MOABB 1.5.0 and subject 1's files: 54
 subjects x 2 sessions (different days), each with an offline train run and an online test
 run of 100 trials (50 left / 50 right hand), both labelled; 62 EEG + 4 EMG channels at
@@ -10,7 +10,7 @@ import os
 import sys
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", ".."))
-from IO.loader import write_moabb_metadata
+from IO.metadata import write_moabb_metadata
 
 write_moabb_metadata(
     os.path.dirname(os.path.abspath(__file__)), "Lee2019_MI", "Lee2019_MI",

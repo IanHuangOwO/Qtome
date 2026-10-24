@@ -1,6 +1,6 @@
 import torch
 from model.Qtome.plugin import PLUGIN as QTOME_PLUGIN
-from IO.dataset import resolve_canonical_channels
+from IO.channels import resolve_canonical_channels
 
 # Adding a model = implement model/<Name>/plugin.py (Trainer/Checker/Plotter + build_model,
 # bundled into a BasePlugin) and register the PLUGIN instance here. No other shared file

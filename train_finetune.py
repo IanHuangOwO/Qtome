@@ -356,7 +356,7 @@ def main():
     ap = argparse.ArgumentParser(description='Finetune a FeatureHead on a frozen Qtome backbone')
     ap.add_argument('--config', default='configs/Qtome/finetune.template.json')
     ap.add_argument('--set', action='append', default=[], metavar='KEY=VALUE',
-                    help='override a config value after base_config merging, dotted path, JSON value '
+                    help='override a config value, dotted path, JSON value '
                          '(repeatable), e.g. --set training_params.finetune.learning_rate=0.003')
     args = ap.parse_args()
     config = apply_overrides(load_config(args.config), args.set)

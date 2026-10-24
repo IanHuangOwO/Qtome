@@ -7,7 +7,7 @@ matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import numpy as np
 
-from IO.loader import get_standard_coords
+from IO.channels import get_standard_coords
 from panels.shared.task_filter.cells import CHANNELS
 from panels.kit.topomap import draw_topomap, project_coords_2d
 from panels.shared.task_filter.context import filter_context

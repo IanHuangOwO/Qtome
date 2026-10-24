@@ -7,7 +7,7 @@ from collections import defaultdict
 import numpy as np
 import torch
 
-from IO.event_onset import lookup_event_onset_sample
+from panels.shared.event_onset import lookup_event_onset_sample
 from IO.preprocessing import slice_patches
 from model.Qtome.patches import overlap_add_patches
 from panels.shared.atom_readout import extract_atom_psd_by_patch
@@ -187,7 +187,7 @@ def event_dynamics_numbers(ds_trials, ds_name, model, device, seed, config):
     trials x offsets -> per-time-bin Q-atom strength h and power. Trials are onset-aligned (assemble_trials=False in the analysis
     path), so a fixed time within the trial is comparable across trials.
 
-    Event onset per dataset: this dataset's own metadata.json event_onset_sample (IO.event_onset.lookup_event_onset_sample); absent
+    Event onset per dataset: this dataset's own metadata.json event_onset_sample (panels.shared.event_onset.lookup_event_onset_sample); absent
     -> trajectory + heatmap only, no pre/post split."""
     if not ds_trials:
         return None
