@@ -1,6 +1,7 @@
 """Runs analysis panels (panels/<stage>/<name>.py): each computes its numbers, then draws its figures from them.
 
     python analyze.py list                                              # every panel, its presets and description
+    python analyze.py check                                             # every panel imports and its flags are consistent (no data)
     python analyze.py pretrain --run <backbone> [--preset quick] [--panel snapshot ...] [panel options]
     python analyze.py pretrain --panel profile [--train]                # no checkpoint: the pretrain template
     python analyze.py finetune --group base=<bb> --group X=<bb> --ref base [--head frozen_learned] [--panel summary ...]
@@ -29,6 +30,11 @@ def main():
             for n, presets, doc in registry.describe(stage):
                 print(f'  {n:24} [{presets}]  {doc}')
         return 0
+    if argv[0] == 'check':
+        from panels.core.check import check
+        problems = check()
+        print('\n'.join(problems) or 'all panels ok')
+        return 1 if problems else 0
     stage, rest = argv[0], argv[1:]
     if stage not in registry.STAGES:
         print(f'unknown stage {stage!r}; use one of {registry.STAGES} or list', file=sys.stderr)

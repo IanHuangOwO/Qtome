@@ -46,7 +46,8 @@ def draw(ctx): ...                   # optional: reads those numbers, writes fig
 2. Write `compute` and `draw`; keep drawing functions pure (`plot_x(out_path, arrays...)`: no model, no dataset).
 3. Needs something a sibling panel has? Import it only if that is already in `panels/shared/`; if it sits inside the sibling, move it to
    `panels/shared/<topic>.py` in the same change (that is the second user), and keep the sibling working.
-4. Verify for real: `python analyze.py pretrain --run <backbone> --panel <name>` on outputs already on disk, look at the files, then
+4. `python analyze.py check` (no data): every panel imports, has `compute` / `draw` and a description, and all flags can be declared together.
+5. Verify for real: `python analyze.py pretrain --run <backbone> --panel <name>` on outputs already on disk, look at the files, then
    `--redraw` and check the figure is byte-identical.
-5. Presets: tag the panel in its own `PRESETS`; nothing else lists it. Add a line to the command block of `CLAUDE.md` only when the
+6. Presets: tag the panel in its own `PRESETS`; nothing else lists it. Add a line to the command block of `CLAUDE.md` only when the
    command differs from the plain `--panel <name>`.

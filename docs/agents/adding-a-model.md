@@ -137,7 +137,7 @@ def build_model(bp, num_channels):
 
 @torch.no_grad()
 def _run_reconstruction(model, dataset, trial_idx, device):
-    """One trial -> dict(raw, recon, coords, T, N, L, fs). See Qtome/plugin.py
+    """One trial -> dict(raw, recon, coords, T, N, L, fs). See panels/shared/snapshot.py
     for the full pattern (unsqueeze batch dim, forward unmasked, reshape
     back to [C, T])."""
     ...

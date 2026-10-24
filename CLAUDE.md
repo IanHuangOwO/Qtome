@@ -47,6 +47,7 @@ python -m tools.misc.run_queue output/queue/<plan>.plan --max-parallel 2 --threa
 # (ADR 0020). `--redraw` draws again from the saved numbers; `--panel <name> --help` shows a panel's own options. Writing a panel:
 # docs/agents/adding-a-panel.md.
 python analyze.py list                                                  # every panel, its presets and one-line description
+python analyze.py check                                                 # every panel imports, flags consistent (no data; run after editing a panel)
 python analyze.py pretrain --run <backbone> [--preset quick] [--panel <name> ...] [--redraw]
 python analyze.py pretrain --panel profile [--train]                    # parameter counts + timing, no checkpoint
 # Finetune = several backbones under one head label -> output/analysis/<groups>/ (standard: summary, report, time_weights; others

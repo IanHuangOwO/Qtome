@@ -1,17 +1,9 @@
-# TUSL -- fetched 2026-10-21, loader scaffolded (was gated, not fetched 2026-09-24)
+# TUSL -- compiled
 
-Data on the 5090 (F:\tuh_data\tuh_eeg_slowing\v2.0.1), not yet copied here. Loader reads the .tse_agg annotations; verify the label strings
-(seiz / slow / bckg / cplx) on the real files.
+Temple University EEG Slowing Corpus (von Weltin et al., 2017), `tuh_eeg_slowing` v2.0.1; EEG-FM-Bench member, 3 classes: seizure / slowing /
+background (`cplx` would count as background; it does not occur). Loader: every recording of a patient, one 10 s window per `.tse_agg`
+annotation (start, stop, label), label strings checked on the real files: `seiz`, `slow`, `bckg`.
 
-
-Temple University EEG Slowing Corpus (von Weltin et al., 2017), EEG-FM-Bench
-member. 3-class: seizure / slowing / background.
-
-EEG-FM-Bench Table 1: 21-22ch, 10s windows, 210 / 43 / 37 train/val/test
-(small). Split: stratified over ALL data at ~0.8 / 0.1 / 0.1 (not
-subject-disjoint), same as TUEV.
-
-Access: same TUH EEG form as TUAB (see ../TUAB/NOTES.md). Rsync path once
-approved: data/tuh_eeg/tuh_eeg_slowing/ (check the current version folder).
-
-No scaffolding written yet -- revisit once access is granted.
+Compiled counts: 38 patients, 299 windows (99 seizure / 100 slowing / 100 background). The raw files hold exactly 299 annotations (111 `.tse_agg`
+for 112 EDFs; one EDF has no annotation file and is skipped), so the corpus is just small; EEG-FM-Bench's 210 / 43 / 37 = 290 is 9 fewer
+(likely its own filtering, not checked). EEG-FM-Bench splits it stratified over all windows (not subject-disjoint), ~0.8 / 0.1 / 0.1.
