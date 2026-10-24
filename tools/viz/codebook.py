@@ -93,7 +93,7 @@ def plot_embedding_scatter_by_dataset(out_path, usage_by_dataset, unit_label='At
     # coloured by paradigm (the corpus builder's groups): ten colours cannot tell ~46 datasets apart; one dataset at a
     # time is in the per-dataset target plot
     from tools.misc.build_pretrain_corpus import GROUPS
-    group = {d: g for g, (_, ds_) in GROUPS.items() for d in ds_}
+    group = {d: g for g, (_, units) in GROUPS.items() for u in units for d in ([u] if isinstance(u, str) else u[2])}   # a unit is a dataset or (cohort, same_people, members)
     groups = [g for g in GROUPS if any(group.get(d) == g for d in dataset_names)] + \
              (['other'] if any(d not in group for d in dataset_names) else [])
     palette = dict(zip(list(GROUPS) + ['other'], ['#2a78d6', '#eb6834', '#1baf7a', '#eda100', '#e87ba4', '#8a8a8a']))
