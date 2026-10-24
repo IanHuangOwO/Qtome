@@ -12,7 +12,7 @@ import random
 import numpy as np
 import torch
 
-from tools.analysis import event_onset_patch
+from IO.event_onset import event_onset_patch
 from tools.viz.codebook import (
     plot_usage_and_activity, plot_embedding_scatter_by_dataset, plot_embedding_scatter_by_target,
     plot_patch_position_consistency, plot_dataset_relation,

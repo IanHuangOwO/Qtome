@@ -18,7 +18,7 @@ from tools.viz.extract import extract_atom_psd_by_patch
 from tools.viz.atom_plots import plot_event_atom_dynamics
 from tools.viz.codebook import (plot_atom_identity_consistency, plot_fingerprint_similarity,
                            plot_atom_phase_consistency, plot_topography_distance)
-from tools.analysis import lookup_event_onset_sample
+from IO.event_onset import lookup_event_onset_sample
 from IO.preprocessing import slice_patches
 
 
