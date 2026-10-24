@@ -11,7 +11,7 @@ from IO.dataset import build_dataset_from_config
 from panels.core.numbers import load_npz, save_npz
 from panels.shared.trials import cap_subjects
 
-PRESETS = {'standard'}
+PRESETS = set()
 
 
 def add_args(flags):

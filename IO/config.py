@@ -1,7 +1,10 @@
-"""Config loading, `--set` overrides and run-output paths, shared by every entrypoint (train_*.py, cache_feature.py, analyze.py).
+"""Config loading, `--set` overrides, run-output paths and the run log, shared by every entrypoint (train_*.py, cache_feature.py, analyze.py).
 A run config is one complete JSON file: copy a template and edit it."""
 import json
+import logging
 import os
+import sys
+from datetime import datetime
 
 
 def load_config(path: str) -> dict:
@@ -59,3 +62,18 @@ def resolve_output_dir(config: dict, *sub_dirs: str, mode: str = 'pretrain') -> 
     path = os.path.join(model_output_root(config, mode), resolve_output_path(config, mode=mode), *sub_dirs)
     os.makedirs(path, exist_ok=True)
     return path
+
+
+def setup_logger(output_dir):
+    """Log to <output_dir>/train_<timestamp>.log and stdout; returns (logger, timestamp)."""
+    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+    logger = logging.getLogger()
+    logger.setLevel(logging.INFO)
+    formatter = logging.Formatter('%(asctime)s - %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
+    file_handler = logging.FileHandler(os.path.join(output_dir, f'train_{timestamp}.log'))
+    file_handler.setFormatter(formatter)
+    logger.addHandler(file_handler)
+    stream_handler = logging.StreamHandler(sys.stdout)
+    stream_handler.setFormatter(formatter)
+    logger.addHandler(stream_handler)
+    return logger, timestamp

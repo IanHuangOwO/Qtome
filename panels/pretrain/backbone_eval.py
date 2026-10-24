@@ -1,5 +1,6 @@
 """
-Backbone evaluation on held-out pretrain windows, CPU only. Every backbone sees the SAME
+Backbone evaluation on held-out pretrain windows. The model runs on --device (GPU by default); the baselines, spectra and bookkeeping
+stay on the CPU. Every backbone sees the SAME
 windows and the SAME masks (seeded per window), so runs trained with different masking
 schemes are compared on one task.
 
@@ -18,7 +19,7 @@ schemes are compared on one task.
    patch covers (the per-patch score includes the edge halves a visible neighbour shows).
 2. Ablations under every test mask: coords shuffled across channels, all channels at the mean
    position, time position removed (time_off: every patch at position 0) or shuffled over the patches
-   (time_shuffle), and coordinate jitter (2 / 5 / 10 mm per channel) and left-right mirror (cache_feature.
+   (time_shuffle), and coordinate jitter (2 / 5 / 10 mm per channel) and left-right mirror (feature_cache.
    transform_coords). Masked MSE per mask type;
    ablation_masked_mse keeps the token_runs row for older readers.
 3. Structure: coordinate-embedding similarity vs electrode closeness (Spearman, 10-10
@@ -44,7 +45,7 @@ from scipy.stats import spearmanr
 
 from IO.channels import load_montage_channels
 from IO.channels import get_standard_coords
-from cache_feature import transform_coords
+from model.Qtome.finetune.feature_cache import transform_coords
 from panels.shared.eval_windows import batches, eval_windows, make_mask
 from model.Qtome.embeddings import fourier_features
 from model.Qtome.patches import overlap_add_patches
@@ -200,11 +201,19 @@ ABLATIONS = ['baseline', 'coords_shuffle', 'coords_mean', 'time_off', 'time_shuf
              'coords_jitter_2mm', 'coords_jitter_5mm', 'coords_jitter_10mm', 'coords_mirror']
 
 
+def run_model(model, device, x, coords, t, **kw):
+    """One forward on `device`; the output's recon comes back on the CPU, where the scoring runs."""
+    kw = {k: v.to(device) if torch.is_tensor(v) else v for k, v in kw.items()}
+    out = model(x.to(device), coords.to(device), None if t is None else t.to(device), **kw)
+    out.recon = out.recon.cpu()
+    return out
+
+
 @torch.no_grad()
-def evaluate(model, config, out_path, max_windows=512, name=''):
+def evaluate(model, config, out_path, max_windows=512, name='', device='cpu'):
     """Runs every test mask, ablation and structure check on the backbone's held-out windows, writes
     the summary JSON to out_path (compare-able across backbones: same windows, same masks), prints it."""
-    model = model.cpu().eval()
+    model = model.to(device).eval()
     stride = config['preprocess_params'].get('patch_stride', config['preprocess_params']['patch_length'])
     ds, idx = eval_windows(config, max_windows)
     bd = ds.base_dataset
@@ -229,7 +238,7 @@ def evaluate(model, config, out_path, max_windows=512, name=''):
     seam = [0.0, 0.0]                                     # disagreement sum, signal power sum
     for wids, x, coords, t, valid in batches(ds, idx):
         B, C, N, L = x.shape
-        r = model(x, coords, t, valid_channels=valid).recon.float()         # unmasked
+        r = run_model(model, device, x, coords, t, valid_channels=valid).recon.float()         # unmasked
         add_spectrum(spec['unmasked'], masked_spectrum(r, x, (x.abs().amax(-1) > 0) & valid[:, :, None], stride, fs))
         ov = L - stride
         real = (x[:, :, :-1].abs().amax(-1) > 0) & (x[:, :, 1:].abs().amax(-1) > 0) & valid[:, :, None]
@@ -246,7 +255,7 @@ def evaluate(model, config, out_path, max_windows=512, name=''):
             mp, sc = torch.stack(masks), torch.stack(scores)
             if not sc.any():
                 continue
-            out = model(x, coords, t, bool_masked_pos=mp, valid_channels=valid)
+            out = run_model(model, device, x, coords, t, bool_masked_pos=mp, valid_channels=valid)
             se_model = (out.recon.float() - x).pow(2)                    # [B, C, N, L]
             add_spectrum(spec[kind], masked_spectrum(out.recon, x, sc, stride, fs))
             ar_rec = x.clone()                                           # AR reference, time holes only
@@ -280,11 +289,12 @@ def evaluate(model, config, out_path, max_windows=512, name=''):
                 cc, tt = ablate(a, coords, t, valid)
                 torch.manual_seed(0)
                 with time_position(model, a):
-                    o = model(x, cc, tt, bool_masked_pos=mp, valid_channels=valid)
+                    o = run_model(model, device, x, cc, tt, bool_masked_pos=mp, valid_channels=valid)
                 e = (o.recon.float() - x).pow(2).mean(-1)
                 abl[kind][a][0] += float(e[sc].sum()); abl[kind][a][1] += int(sc.sum())
 
-    # structure
+    # structure (CPU: the positions are CPU tensors)
+    model = model.cpu()
     emb = model.embed
     labels = [n for n in load_montage_channels('10-10') if get_standard_coords(n) is not None]
     pos = torch.tensor(np.stack([get_standard_coords(n) for n in labels]), dtype=torch.float32)
@@ -349,5 +359,4 @@ def add_args(flags):
 
 def compute(ctx):
     evaluate(ctx.model, ctx.config, ctx.numbers('backbone_eval.json'),
-             max_windows=ctx.args.max_windows, name=ctx.config['training_params']['pretrain']['model_name'])
-    ctx.model.to(ctx.device)   # evaluate() runs on the CPU
+             max_windows=ctx.args.max_windows, name=ctx.config['training_params']['pretrain']['model_name'], device=ctx.device)

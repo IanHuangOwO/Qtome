@@ -20,10 +20,10 @@ from sklearn.linear_model import RidgeClassifier
 from sklearn.model_selection import GridSearchCV, LeaveOneGroupOut
 from sklearn.metrics import balanced_accuracy_score
 
-from cache_feature import CachedAtomDataset, get_atom_cache
+from model.Qtome.finetune.feature_cache import CachedAtomDataset, get_atom_cache
 from IO.splits import load_sessions, make_runs
 from panels.shared.ridge import ALPHAS, DATASETS, _features, _pca_axes
-from train_finetune import apply_protocol
+from model.Qtome.finetune.protocol import apply_protocol
 
 
 PRESETS = {'standard', 'quick'}
@@ -32,7 +32,7 @@ PRESETS = {'standard', 'quick'}
 def ridge_probe(config, checkpoint, out_path, n_pca=8, datasets=DATASETS, pool=1, feature='z'):
     """pool > 1: average `pool` adjacent z tokens first (train_finetune.pool_tokens). feature: 'z' or
     'atom_hidden' (the probe reads every Q-atom's MLP hidden instead of z; same PCA pipeline)."""
-    from train_finetune import pool_tokens
+    from model.Qtome.finetune.sources import pool_tokens
     res = {}
     for ds, proto in datasets:
         ds_args = {'dataset_path': f'datas/finetune/{ds}', 'subject_to_use': ['all'], 'channels_to_use': ['all']}

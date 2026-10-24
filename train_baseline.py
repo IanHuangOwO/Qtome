@@ -1,6 +1,6 @@
 """Train a from-scratch baseline (model/<Name>/, no pretrained backbone) on one finetune cell, through the same caches,
 splits (configs/finetune_protocols.json via IO/splits.py) and result format as train_finetune.py, so a baseline cell
-sits next to a Qtome cell in summarize_runs. Settings: configs/<Name>/settings.json (Compass's, per split mode, with
+sits next to a Qtome cell in the summary panel (analyze.py finetune). Settings: configs/<Name>/settings.json (Compass's, per split mode, with
 per-dataset overrides). One seed per run; scored every epoch on the evaluation trials (tail = mean of the last 10
 epochs, last = Compass's number).
 
@@ -8,7 +8,7 @@ epochs, last = Compass's number).
     -> output/EEGNet/finetune/compass/<dataset>_<loso|fewshot>_seed<k>/artifacts/{config.json, group_eval.json}
     --tag NAME writes to output/EEGNet/finetune/<NAME>/ instead (variants, e.g. --set settings.norm='"ztrial"')
 """
-import argparse, copy, glob, json, math, os
+import argparse, glob, json, math, os
 
 import mne
 import numpy as np

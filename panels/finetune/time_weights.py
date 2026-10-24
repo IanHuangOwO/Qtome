@@ -10,6 +10,7 @@ import torch
 
 from IO.config import QTOME_OUTPUT
 from panels.shared.event_onset import event_onset_patch
+from panels.shared.finetune_runs import cell_names
 from panels.core.numbers import load_npz, save_npz
 
 PRESETS = {'standard'}
@@ -40,13 +41,8 @@ def plot_time_weights(out_path, maps, title, event_patch=None):
     plt.close(fig)
 
 
-def _cells(ctx):
-    return sorted({os.path.basename(d) for bb in ctx.groups.values()
-                   for d in glob.glob(f'{QTOME_OUTPUT}/{bb}/finetune/{ctx.head}/*')})
-
-
 def compute(ctx):
-    for cell in _cells(ctx):
+    for cell in cell_names(ctx.groups.values(), ctx.head, strip_seed=False):
         maps, cfg = {}, None
         for g, bb in ctx.groups.items():
             run_dir = f'{QTOME_OUTPUT}/{bb}/finetune/{ctx.head}/{cell}'
@@ -65,7 +61,7 @@ def compute(ctx):
 
 
 def draw(ctx):
-    for cell in _cells(ctx):
+    for cell in cell_names(ctx.groups.values(), ctx.head, strip_seed=False):
         path = ctx.numbers(f'time_weights_{cell}.npz')
         if not os.path.exists(path):
             continue

@@ -8,10 +8,10 @@ from sklearn.linear_model import RidgeClassifier
 from sklearn.model_selection import GridSearchCV, LeaveOneGroupOut
 from sklearn.metrics import balanced_accuracy_score
 
-from cache_feature import CachedAtomDataset, get_atom_cache
+from model.Qtome.finetune.feature_cache import CachedAtomDataset, get_atom_cache
 from IO.splits import load_sessions
 from panels.shared.ridge import ALPHAS, _pca_axes
-from train_finetune import apply_protocol
+from model.Qtome.finetune.protocol import apply_protocol
 
 
 
@@ -22,7 +22,7 @@ def coord_robustness(config, checkpoint, out_path, n_pca=8, transforms=COORD_TRA
                      datasets=(('BNCI2014004', 'mi_loso'), ('BNCI2014001', 'mi_loso'))):
     """Coordinate robustness: the loso ridge probe (as ridge_probe) trained on the training
     subjects' normal-coordinate z, tested on the held-out subject's z extracted with transformed coordinates
-    (cache_feature.transform_coords, data untouched). Per transform: balanced accuracy, the fraction of held-out
+    (feature_cache.transform_coords, data untouched). Per transform: balanced accuracy, the fraction of held-out
     predictions that change vs normal coordinates, and the fraction of hand trials predicted as the other hand."""
     res = {}
     for ds, proto in datasets:

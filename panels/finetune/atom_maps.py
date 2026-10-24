@@ -7,7 +7,6 @@ cw_atom. One figure per group: Q-atoms are each backbone's own dictionary, not c
 import glob
 import json
 import os
-import re
 
 import matplotlib
 
@@ -16,13 +15,13 @@ import matplotlib.pyplot as plt
 import numpy as np
 import torch
 
-from IO.config import QTOME_OUTPUT
 from IO.channels import resolve_canonical_channels
 from IO.channels import get_standard_coords
 from model.factory import build_from_checkpoint
-from cache_feature import CachedAtomDataset, get_atom_cache
+from model.Qtome.finetune.feature_cache import CachedAtomDataset, get_atom_cache
 from panels.core.numbers import load_npz, save_npz
 from panels.kit.channels import mirror_order
+from panels.shared.finetune_runs import cell_names, cell_run_dirs, head_files
 from panels.shared.head_maps import summarise, summarise_atoms, summarise_signed_atoms, time_axis
 
 PRESETS = set()
@@ -139,10 +138,9 @@ def compute(ctx):
     for g, bb in ctx.groups.items():
         for old in glob.glob(ctx.numbers(f'atom_maps_*_{g}.npz')):
             os.remove(old)
-        cells = sorted({re.sub(r'_seed\d+$', '', os.path.basename(d)) for d in glob.glob(f'{QTOME_OUTPUT}/{bb}/finetune/{ctx.head}/*')})
-        for cell in cells:
-            dirs = sorted(glob.glob(f'{QTOME_OUTPUT}/{bb}/finetune/{ctx.head}/{cell}') + glob.glob(f'{QTOME_OUTPUT}/{bb}/finetune/{ctx.head}/{cell}_seed*'))
-            heads = [p for d in dirs for p in sorted(glob.glob(f'{d}/finetune/run_*/head.pth'))]
+        for cell in cell_names([bb], ctx.head):
+            dirs = cell_run_dirs(bb, ctx.head, cell)
+            heads = head_files(dirs)
             if not heads:
                 continue
             try:

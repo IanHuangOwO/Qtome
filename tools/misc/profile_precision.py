@@ -27,10 +27,11 @@ import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader
 
-from IO.dataset import build_dataset_from_config, MontageBatchSampler
+from IO.dataset import build_dataset_from_config
+from IO.wrappers import MontageBatchSampler
 from IO.masking import build_masking_strategy_from_config
 from model.factory import build_from_checkpoint, MODEL_REGISTRY, optimizer_param_groups
-from train_pretrain import _unpack_batch
+from model.pretrain_loop import unpack_batch
 from IO.config import QTOME_OUTPUT
 
 MODES = ('fp16-amp', 'fp32+tf32', 'fp32')
@@ -108,7 +109,7 @@ def main():
     ms = build_masking_strategy_from_config(cfg['preprocess_params'].get('mask', {}))
     ms.set_epoch(40)
     ds.set_masking(ms)
-    batches = [_unpack_batch(b, dev) for b in DataLoader(ds, batch_sampler=MontageBatchSampler(ds, a.batch_size, True))]
+    batches = [unpack_batch(b, dev) for b in DataLoader(ds, batch_sampler=MontageBatchSampler(ds, a.batch_size, True))]
     trainer = MODEL_REGISTRY[ckpt['build_config']['model_type']].trainer_cls()
     lh = dict(ckpt['build_config']['model_params'].get('loss', {}))
 

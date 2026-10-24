@@ -1,229 +1,93 @@
-> **Stale since `docs/adr/0013`:** `train_tokenizer.py`, `on_tokenizer_start` and
-> `on_pretrain_start` are gone. Training phases are now model methods
-> (`enter_tokenizer_phase` / `enter_masked_phase`) plus a persisted `masked_phase`
-> buffer, called directly by `train_pretrain.py`. Qtome is the only model; update this
-> protocol when a second one is actually added.
-
 # Adding a new model
 
-**Two kinds of model live under `model/`.** A *pretrained backbone* (Qtome) follows the plugin protocol below and is
-registered in `model/factory.py`. A *from-scratch baseline* (EEGNet) has no backbone and no plugin: put the
-architecture in `model/<Name>/<Name>.py` (citation at the top, an assert-based `_selfcheck()`), register the class in
-`train_baseline.py`'s `BASELINES`, and give it `configs/<Name>/settings.json` (training and preprocessing settings per
-split mode, per-dataset overrides marked published or ours). `train_baseline.py` runs it through the same caches,
-protocol splits (`train_finetune.make_runs`) and `group_eval.json` format as a Qtome cell. Feed it microvolts: the
-caches store volts.
+**Two kinds of model live under `model/`.** A *pretrained backbone* (Qtome) follows the plugin protocol below and is registered in
+`model/factory.py`. A *from-scratch baseline* (EEGNet) has no backbone and no plugin: put the architecture in `model/<Name>/<Name>.py`
+(citation at the top, an assert-based `_selfcheck()`), register the class in `train_baseline.py`'s `BASELINES`, and give it
+`configs/<Name>/settings.json` (training and preprocessing settings per split mode, per-dataset overrides marked published or ours).
+`train_baseline.py` runs it through the same caches, protocol splits (`IO/splits.py` `make_runs`) and `group_eval.json` format as a
+Qtome cell. Feed it microvolts: the caches store volts.
 
+## A pretrained backbone
 
-Protocol for wiring a third (or Nth) tokenizer model into the shared training/viz
-infrastructure. Read `docs/adr/0004-model-plugin-base-classes.md` first — this doc is the
-mechanical checklist that ADR's design implies.
+Read `docs/adr/0004-model-plugin-base-classes.md` first. **The rule:** a new backbone touches only files under `model/<Name>/`, one
+line in `model/factory.py`, and its own panels. If you find yourself editing `train_pretrain.py`, `model/pretrain_loop.py` or
+`model/base_trainer.py`, stop: either the model needs a real contract change (discuss first) or it is being solved the wrong way.
+Qtome is the only model today, so this protocol has been exercised once; correct it when a second backbone is added.
 
-**The rule**: a new model touches only files under `model/<Name>/` plus one line in
-`model/factory.py`. If you find yourself editing `train_tokenizer.py`, `train_pretrain.py`,
-`train_finetune.py`, or `model/base_trainer.py`, stop — either the new model needs a real base-class contract
-change (rare, discuss first) or you're solving it the wrong way.
+What the shared training loop (`train_pretrain.py` + `model/pretrain_loop.py`) needs from a model:
 
-Pretraining runs as two sequential scripts/checkpoints, not two phases of one run: see
-`CLAUDE.md`'s Architecture section. `train_tokenizer.py` builds the model and calls
-`trainer.on_tokenizer_start()` (generic — enables spatial/temporal, no per-model override
-needed), trains unmasked, saves a Tokenizer-stage checkpoint. `train_pretrain.py` loads
-that checkpoint and calls `trainer.on_pretrain_start()` to freeze whatever the Tokenizer
-stage owns, then trains masked.
-
-## 0. Before writing code
-
-Answer these — they shape steps 2-3 below:
-
-- Does the model need a **Tokenizer-stage-only component to freeze** before masked
-  training (Qtome: the AtomBank, `freeze_atoms`)? If not, `on_pretrain_start` can be a
-  no-op.
-- What per-Expert/Atom/Unit **health metrics** does it need on the dashboard? List them
-  now — the trainer returns them from `epoch_metrics`, and a dashboard panel draws them (step 2b).
-- What per-step **loss hyperparameters** does it need beyond `masked_mse_weight`/
-  `unmasked_mse_weight` (which every model gets for free)? These become keys under
-  `model_params.MeXXX.pretrain.loss` and land in `**hparams` in `compute_loss`.
-
-## 1. Architecture: `model/MeXXX/MeXXX.py`
-
-Two `nn.Module` classes. Match these contracts exactly — the shared checker/trainer loops
-call these methods/attributes without checking `model_type`.
-
-### `MeXXXPretrain`
+### 1. The backbone: `model/<Name>/<Name>.py`
 
 ```python
-def forward(self, x, coords, time_idx=None, bool_masked_pos=None, valid_channels=None):
-    """
-    x: [B, C, N, L], coords: [B, C, 3]
-    bool_masked_pos: [B, C, N] bool or None (None = unmasked, e.g. during stage 1)
-    valid_channels: [B, C] bool or None (True = real, not zero-padded, channel)
-    Returns a SimpleNamespace with at least:
-      recon: [B, C, N, L]
-      attn:  [B, N, Q, C] — each Unit's own channel-attention weights (rows sum to 1
-             per Unit) — read by the extraction hooks in step 2
-    Plus whatever extra fields get_loss/get_metrics/extract_psd need (Qtome's output carries
-    its atom gains and the FFN load-balance loss, model/Qtome/Qtome.py).
-    """
+class NamePretrain(nn.Module):
+    def forward(self, x, coords, time_idx=None, bool_masked_pos=None, valid_channels=None):
+        """x [B, C, N, L] patches, coords [B, C, 3], bool_masked_pos [B, C, N] (None = unmasked), valid_channels [B, C].
+        Returns a SimpleNamespace with at least `recon` [B, C, N, L]; plus whatever the trainer's loss and metrics read."""
 
-def get_loss(self, x, recon, bool_masked_pos, masked_mse_weight=1.0, unmasked_mse_weight=1.0, **extra):
-    """Returns (l_total, l_masked, l_unmasked). l_masked/l_unmasked may be a plain float
-    1.0/0.0 sentinel when that half genuinely doesn't apply (e.g. no masked half in an
-    unmasked tokenizer phase) — the training loop calls .item() defensively either way."""
-
-def get_metrics(self, *detached_tensors):
-    """Returns a flat dict merged into the epoch's logged/plotted metrics. Called once
-    per epoch (train and val) with whatever forward() output tensors this model wants to
-    summarize (already .detach()'d by the caller)."""
-
-def enable_spatial(self):
-    """Turns on cross-channel mixing. Called at construction-time load (panels/core/context.py
-    load_model), at the start of train_tokenizer.py (BaseTrainer.on_tokenizer_start), and
-    again at the start of train_pretrain.py (same hook, re-enabling after checkpoint load
-    since this is a plain flag, not persisted in the state dict)."""
-
-def enable_temporal(self):
-    """Optional — only if the model has a temporal-mixing gate to unlock separately from
-    spatial (Qtome has one). Checked via hasattr(model, 'enable_temporal')
-    at call sites, so omit entirely if not needed."""
-
-def freeze_<whatever_is_tokenizer_only>(self):
-    """Whatever your on_pretrain_start needs to call — name it for what it freezes
-    (freeze_vq_and_decoder, freeze_sae, ...). No fixed name/signature required, since only
-    your own MeXXXTrainer.on_pretrain_start calls it."""
+    def enter_tokenizer_phase(self): ...       # called once at the start of train_pretrain.py (unmasked phase)
+    def enter_masked_phase(self, freeze_atoms=True): ...   # at the first masked epoch (epoch 1 when tokenizer_epochs = 0)
 ```
 
-### `MeXXXFinetune`
+The phase is a persisted buffer (Qtome: `masked_phase`) restored by a `load_state_dict` hook, so a checkpoint loaded for analysis or
+finetuning comes back in the phase it was saved in. `time_idx` is passed but Qtome ignores it. Give the model `patch_len` and
+`patch_stride` attributes if the shared panels are to work on it.
+
+### 2. The plugin: `model/<Name>/plugin.py`
 
 ```python
-def __init__(self, backbone, num_channels, num_classes, hidden=128,
-             freeze_backbone=False, dropout=0.1):
-    """Wraps a pretrained+loaded backbone (unmodified) with a classification head.
-    Store the backbone as self.backbone — panels/shared/snapshot.py's
-    build_finetune_bundle reads it."""
-
-def forward(self, x, coords, time_idx=None, pad_mask=None):
-    """
-    x: [B, C, N, L] (already patchified — pad_mask: [B, C, N] bool, True=valid)
-    Returns (logits [B, num_classes], attn_h [B, C, Q], attn_n [B, C, Q, N], attn_c [B, C])
-    attn_h is the classifier head's own per-channel attention over Units,
-    separate from the backbone's own attn.
-    """
-```
-
-## 2. Plugin: `model/MeXXX/plugin.py`
-
-One file, two things: a `build_model` function and a class subclassing the base in
-`model/base_trainer.py`. Analysis and figures are not part of the plugin: they are panels
-(`docs/agents/adding-a-panel.md`).
-Qtome's `plugin.py` is the reference example — copy the shape, not
-necessarily the content.
-
-```python
-"""MeXXX's implementation of the shared model-plugin contract."""
-
-import torch
-
-from model.MeXXX.MeXXX import MeXXXPretrain, MeXXXFinetune
-from model.base_trainer import BaseTrainer
-from model.base_plugin import BasePlugin
-
-
 def build_model(bp, num_channels):
-    """bp: config['model_params']['MeXXX']['pretrain']. Reads bp.get(...) with defaults,
-    constructs and returns MeXXXPretrain(...)."""
-    ...
-    return MeXXXPretrain(..., num_channels=num_channels)
+    """bp = config['model_params'][<Name>]['pretrain'] (read with bp.get defaults) -> NamePretrain."""
 
+class NameTrainer(BaseTrainer):                      # model/base_trainer.py
+    def compute_loss(self, model, x, out, mp, **hparams): ...   # -> (l_total, l_masked, l_unmasked); hparams = the config's `loss` block
+    def epoch_metrics(self, model, out): ...                    # dict merged into the epoch's logged metrics
+    def update_diagnostics(self, model, out): ...               # optional: per-step EMA state (default no-op)
+    def epoch_snapshot(self, model): ...                        # optional: small arrays stacked over epochs into epoch_snapshots.npz
 
-@torch.no_grad()
-def _run_reconstruction(model, dataset, trial_idx, device):
-    """One trial -> dict(raw, recon, coords, T, N, L, fs). See panels/shared/snapshot.py
-    for the full pattern (unsqueeze batch dim, forward unmasked, reshape
-    back to [C, T])."""
-    ...
-
-
-class MeXXXTrainer(BaseTrainer):
-    def compute_loss(self, model, x, out, mp, masked_mse_weight, unmasked_mse_weight, warmup, **hparams):
-        return model.get_loss(x, out.recon, mp, masked_mse_weight=masked_mse_weight,
-                               unmasked_mse_weight=unmasked_mse_weight, **hparams)
-
-    def epoch_metrics(self, model, out):
-        return model.get_metrics(...)
-
-    def on_pretrain_start(self, model, logger=None):
-        # on_tokenizer_start (enable_spatial/enable_temporal) is generic — BaseTrainer
-        # already re-runs it before this is called. Only freezing goes here.
-        model.freeze_<whatever>()
-        if logger:
-            logger.info("  [Pretrain] ...")
+PLUGIN = BasePlugin(build=build_model, trainer_cls=NameTrainer)   # model/base_plugin.py
 ```
 
-## 2b. Analysis and figures: panels, not plugin hooks
+`model/Qtome/plugin.py` is the reference example.
 
-Snapshots, the codebook figures and the training dashboard are panels under `panels/`
-(`analyze.py`), not plugin hooks (the `plotter_cls` / `codebook_checker_cls` hooks were
-removed 2026-10-24). `panels/shared/snapshot.py`'s `build_pretrain_bundle` /
-`build_finetune_bundle` call `model(...)` generically (forward, coords, time_idx,
-valid_channels, the contract step 1 already has) and need `model.backbone` for finetune, so
-the snapshot panels work for a new model as they are. The codebook and the dashboard layouts
-read Qtome's `encode_atoms` and history keys: a model with a different readout adds its own
-panel files next to them.
+### 3. Register: `model/factory.py`
 
 ```python
-PLUGIN = BasePlugin(
-    build=build_model,
-    finetune_cls=MeXXXFinetune,
-    trainer_cls=MeXXXTrainer,
-)
+from model.Name.plugin import PLUGIN as NAME_PLUGIN
+MODEL_REGISTRY = {'Qtome': QTOME_PLUGIN, 'Name': NAME_PLUGIN}
 ```
 
-## 3. Register: `model/factory.py`
+A pretrain checkpoint stores its `build_config` (`checkpoint_build_config`); `build_from_checkpoint` rebuilds the backbone from it, never from
+an editable config, so an architecture change does not break old checkpoints as long as `build_model` still reads their keys.
 
-Two lines:
+### 4. Config
 
-```python
-from model.MeXXX.plugin import PLUGIN as MEXXX_PLUGIN
-# ...
-MODEL_REGISTRY = {
-    'Qtome': QTOME_PLUGIN,
-    'MeXXX': MEXXX_PLUGIN,
-}
-```
+Add `model_params.<Name>.pretrain` (architecture, and a `loss` block whose keys reach `compute_loss` as `**hparams`) and set
+`training_params.pretrain.model_type` to `"<Name>"`. Copy `configs/Qtome/pretrain.template.json` for the rest (corpus, masking, optimiser).
 
-## 4. Config
+### 5. Finetuning and analysis
 
-Add `model_params.MeXXX.pretrain` (architecture hyperparams + a `loss` sub-object with
-`masked_mse_weight`/`unmasked_mse_weight` and any extra hyperparams `compute_loss` reads
-via `**hparams`) and
-`model_params.MeXXX.finetune` (`hidden`, `freeze_backbone`, `dropout`). Set
-`training_params.tokenizer.model_type` / `training_params.pretrain.model_type` /
-`training_params.finetune.model_type` to `"MeXXX"` to select it for a run — architecture
-always comes from `model_params.MeXXX.pretrain` regardless of which stage is building it.
+- **Finetuning is Qtome's.** `train_finetune.py` freezes a backbone and trains a `FeatureHead` on its Q-atom codes (`model/Qtome/head/`,
+  `model/Qtome/finetune/`). A backbone with a different readout needs its own head code and entry point: there is no generic finetune hook.
+- **Analysis is panels, not plugin hooks** (`docs/agents/adding-a-panel.md`). The snapshot panels call `model(...)` generically, so they work
+  as they are; the codebook and the dashboard layouts read Qtome's `encode_atoms` and history keys, so a model with another readout
+  adds its own panel files beside them.
 
-## 5. Verify
+### 6. Verify
 
-No test suite exists for this repo — verify by hand:
+There is no test suite; verify by hand.
 
 ```bash
-# 1. Model builds from config
+# the model builds from a config
 python -c "
 import json
 from model.factory import build_pretrain_from_config
 cfg = json.load(open('configs/Qtome/pretrain.template.json'))
-cfg['training_params']['pretrain']['model_type'] = 'MeXXX'
-m = build_pretrain_from_config(cfg)
-print(type(m).__name__, sum(p.numel() for p in m.parameters()))
-"
+cfg['training_params']['pretrain']['model_type'] = 'Name'
+m = build_pretrain_from_config(cfg); print(type(m).__name__, sum(p.numel() for p in m.parameters()))"
 
-# 2. (step 2b) the dashboard panel draws the history a short run writes: python analyze.py pretrain --run <run> --panel training_dashboard
+# a short real run exercises compute_loss, epoch_metrics and the phase switch end to end
+python train_pretrain.py --config <a config with model_type=Name> --set training_params.pretrain.epochs=2 --set preprocess_params.window_fraction=0.01
 
-# 3. A short real Tokenizer run exercises Trainer.compute_loss, epoch_metrics,
-#    on_tokenizer_start end to end.
-python train_tokenizer.py --config <a config with model_type=MeXXX>
-
-# 4. A short real Pretrain run (pointed at the checkpoint from step 3, via
-#    training_params.pretrain.tokenizer_checkpoint) exercises on_pretrain_start and the
-#    masked training path.
-python train_pretrain.py --config <a config with model_type=MeXXX>
+# the stored history draws
+python analyze.py pretrain --run <run> --panel training_dashboard
 ```

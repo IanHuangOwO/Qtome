@@ -1,0 +1,223 @@
+"""Q-atom-amplitude cache for the frozen backbone (CLI: cache_feature.py).
+
+The backbone never changes during finetuning, so its Q-atom amplitudes are computed once per
+(checkpoint, dataset, preprocessing) and stored next to the backbone:
+    <backbone run folder>/feature_cache/<dataset>/<key>/<subject>.npz
+Only Q-atom features use it (AtomExtractor output); raw features never touch the backbone. The key hashes the
+checkpoint, build_config, the code that computes the codes (_CODE_FILES) and the data fingerprint."""
+import os
+import json
+import hashlib
+import re
+
+import numpy as np
+import torch
+from torch.utils.data import Dataset
+
+from IO.channels import get_standard_coords
+from IO.dataset import build_dataset_from_config
+from IO.preprocessing import cache_suffix, num_patches, slice_patches
+from model.Qtome.head.extractor import AtomExtractor
+from model.factory import build_from_checkpoint
+
+
+def _fingerprint(path):
+    """[size, mtime_ns] of a file, or None if missing."""
+    if not os.path.exists(path):
+        return None
+    st = os.stat(path)
+    return [st.st_size, st.st_mtime_ns]
+
+
+def _mne_version():
+    try:
+        import mne
+        return mne.__version__ if get_standard_coords('Cz') is not None else 'installed-but-unusable'
+    except ImportError:
+        return 'none'   # coordinates fall back to the flat metadata polar values
+
+
+_CODE_FILES = ('model/Qtome/Qtome.py', 'model/Qtome/patches.py', 'model/Qtome/embeddings.py', 'model/Qtome/ffn.py',
+               'model/Qtome/encoder.py', 'model/Qtome/atom_bank.py', 'model/Qtome/head/extractor.py',
+               'model/Qtome/finetune/feature_cache.py')
+
+
+def _code_hash():
+    """Any edit to the code that computes the codes gives a new cache folder (a stale cache is
+    silently wrong; a rebuild costs minutes)."""
+    root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+    h = hashlib.sha1()
+    for f in _CODE_FILES:
+        h.update(open(os.path.join(root, f), 'rb').read())
+    return h.hexdigest()[:12]
+
+
+def cache_key(config, dataset_name, checkpoint_path, latent=False, build_config=None):
+    """Folder key: everything that changes the amplitudes of a given subject file."""
+    ds_args = config['dataset_params']['finetune'][dataset_name]
+    parts = dict(
+        ckpt=[os.path.basename(checkpoint_path), *_fingerprint(checkpoint_path)],
+        preprocess=config.get('preprocess_params', {}),
+        dataset={k: v for k, v in ds_args.items() if k != 'subject_to_use'},
+        metadata=_fingerprint(os.path.join(ds_args['dataset_path'], 'metadata.json')),
+        montages=_fingerprint(os.path.join('configs', 'montages.json')),
+        mne=_mne_version(),
+        build=build_config,
+        code=_code_hash(),
+    )
+    if latent:   # z is stored too (latent_* head entries); a separate folder per z source
+        parts['latent'] = True if latent in (True, 'output') else latent
+    return hashlib.sha1(json.dumps(parts, sort_keys=True, default=str).encode()).hexdigest()[:12]
+
+
+def transform_coords(coords, kind, seed=0):
+    """Evaluation-only coordinate transforms, coords [..., C, 3] in metres:
+    'jitter_<k>mm' moves every channel by an independent Gaussian offset (sigma per axis k / sqrt(3): mean
+    displacement ~k mm) and projects it back to its distance from the head centre; 'mirror' swaps left and right
+    (x -> -x). Seeded, so a recording gets the same offsets every time."""
+    if kind == 'mirror':
+        return coords * torch.tensor([-1.0, 1.0, 1.0], dtype=coords.dtype)
+    m = re.fullmatch(r'jitter_(\d+(?:\.\d+)?)mm', kind)
+    assert m, f'unknown coords_transform {kind!r}'
+    g = torch.Generator().manual_seed(int(seed))
+    off = torch.randn(coords.shape, generator=g, dtype=torch.float64) * (float(m.group(1)) / 1000 / 3 ** 0.5)
+    r = coords.double().norm(dim=-1, keepdim=True)
+    moved = coords.double() + off
+    return (moved * r / moved.norm(dim=-1, keepdim=True).clamp_min(1e-9)).to(coords.dtype)
+
+
+def _data_path(config, dataset_name, subject):
+    pp = config['preprocess_params']
+    suffix = cache_suffix(pp['sample_freq'], pp['bandpass_filter'],
+                          pp.get('pre_event_seconds', 0.0), pp.get('post_event_seconds', 0.0))
+    return os.path.join(config['dataset_params']['finetune'][dataset_name]['dataset_path'],
+                        'cache', f"{subject}_{suffix}.npz")
+
+
+def _is_current(path, data_fp):
+    """True if the stored subject file exists and was built from the current compiled data file."""
+    if not os.path.exists(path):
+        return False
+    try:
+        with np.load(path) as z:
+            return json.loads(str(z['meta']))['data'] == data_fp
+    except Exception:
+        return False
+
+
+@torch.no_grad()
+def _build_subject(config, dataset_name, subject, backbone, device, batch_size, path, latent=False):
+    sub_cfg = json.loads(json.dumps(config))
+    sub_cfg['dataset_params']['finetune'] = {
+        dataset_name: {**config['dataset_params']['finetune'][dataset_name], 'subject_to_use': [subject]}}
+    base = build_dataset_from_config(sub_cfg, mode='finetune').base_dataset
+    pp = config['preprocess_params']
+    patch_len = pp.get('patch_length', 100)
+    patch_stride = pp.get('patch_stride', patch_len)
+    valid = base.all_valid_channels[0]
+    coords, vlen = base.all_coords[0].clone(), int(base.all_valid_length[0])
+    # dataset_params.finetune.<ds>.impute_missing_channels (experiment): keep every canonical
+    # channel, missing ones filled in by the backbone (AtomExtractor impute_missing) at their
+    # standard 10-10 position. Part of the dataset dict, so cache_key already separates it.
+    impute = bool(config['dataset_params']['finetune'][dataset_name].get('impute_missing_channels'))
+    if impute:
+        for i in torch.nonzero(~valid).flatten().tolist():
+            pos = get_standard_coords(base.channel_names[i])
+            assert pos is not None, f"no standard position for {base.channel_names[i]}"
+            coords[i] = torch.as_tensor(pos, dtype=coords.dtype)
+    # dataset_params.finetune.<ds>.coords_transform (evaluation only): see transform_coords; in the dataset dict,
+    # so cache_key separates it too.
+    tf = config['dataset_params']['finetune'][dataset_name].get('coords_transform')
+    if tf:
+        coords = transform_coords(coords, tf, seed=int(subject))
+    channel_idx = list(range(len(valid))) if impute else torch.nonzero(valid).flatten().tolist()
+    extractor = AtomExtractor(backbone, channel_idx).to(device).eval()
+    out, zs = [], []
+    for i in range(0, len(base.data), batch_size):
+        x = base.data[i:i + batch_size]                                   # [b, C, T]
+        xp, _ = slice_patches(x, patch_len, patch_stride)                 # [b, C, N', L]
+        b, P = xp.shape[0], xp.shape[2]
+        amp = extractor(xp.to(device), coords.unsqueeze(0).expand(b, -1, -1).to(device),
+                        torch.arange(P, device=device).unsqueeze(0).expand(b, P),
+                        valid.unsqueeze(0).expand(b, -1).to(device), impute_missing=impute,
+                        return_z=latent)                                  # [b, N', Cv, S, 2] fp32 (+ z)
+        if latent:
+            amp, z = amp
+            zs.append(z.half().cpu())
+        out.append(amp.cpu())
+    amp = torch.cat(out)
+    if not torch.isfinite(amp).all() or amp.abs().max() >= 6e4:
+        raise ValueError(f"subject {subject}: atom amplitudes are not finite or exceed the fp16 range "
+                         f"(max abs {amp.abs().max().item():.3g})")
+    data_fp = _fingerprint(_data_path(config, dataset_name, subject))
+    # write-then-rename: parallel finetune runs on the same backbone/dataset share this folder,
+    # and a reader must never see a half-written file
+    tmp = f'{path}.{os.getpid()}.tmp.npz'
+    extra = {'z': torch.cat(zs).numpy()} if latent else {}
+    np.savez(tmp, **extra, amp=amp.half().numpy(), labels=base.labels.numpy().astype(np.int64),
+             valid_length=np.full(len(amp), vlen, dtype=np.int64), channel_idx=np.asarray(channel_idx, dtype=np.int64),
+             meta=np.array(json.dumps({'data': data_fp})))
+    os.replace(tmp, path)
+    return amp.shape
+
+
+def get_atom_cache(config, dataset_name, subjects, batch_size=64, latent=False):
+    """Build any missing or stale per-subject file and return the cache folder. Always extracted on the GPU, whatever
+    device the caller trains on: CPU and GPU codes differ in the last bits, which moved closed-form few-shot results by
+    0.1-0.4 points depending on which job built the cache first (found 2026-10-06; the key does not record the device)."""
+    if not torch.cuda.is_available():
+        raise RuntimeError('the atom cache is built on the GPU only (CPU codes differ slightly); no CUDA device found')
+    device = 'cuda'
+    ckpt = config['training_params']['finetune']['pretrained_checkpoint']
+    ckpt_dict = torch.load(ckpt, map_location='cpu', weights_only=False)
+    backbone = build_from_checkpoint(ckpt_dict).to(device).eval()
+    for p in backbone.parameters():
+        p.requires_grad_(False)
+    run_dir = os.path.dirname(os.path.dirname(ckpt))
+    folder = os.path.join(run_dir, 'feature_cache', dataset_name, cache_key(config, dataset_name, ckpt, latent, ckpt_dict['build_config']))
+    os.makedirs(folder, exist_ok=True)
+    for sub in subjects:
+        sub = str(sub)
+        path = os.path.join(folder, f'{sub}.npz')
+        if _is_current(path, _fingerprint(_data_path(config, dataset_name, sub))):
+            continue
+        shape = _build_subject(config, dataset_name, sub, backbone, device, batch_size, path, latent)
+        print(f"  [feature_cache] built {dataset_name} subject {sub}: amp {tuple(shape)} -> {path}")
+    return folder
+
+
+class CachedAtomDataset(Dataset):
+    """Q-atom amplitudes of the given subjects, in RAM. See the plan's Interfaces section."""
+    def __init__(self, folder, subjects):
+        parts = []
+        for s in subjects:
+            with np.load(os.path.join(folder, f'{s}.npz')) as z:
+                parts.append({k: z[k] for k in ('amp', 'labels', 'valid_length', 'channel_idx', 'z') if k in z})
+        for p in parts[1:]:
+            assert np.array_equal(p['channel_idx'], parts[0]['channel_idx']), "subjects have different real-channel sets"
+        self.amp = torch.from_numpy(np.concatenate([p['amp'] for p in parts]))
+        self.labels = torch.from_numpy(np.concatenate([p['labels'] for p in parts])).long()
+        self.valid_length = torch.from_numpy(np.concatenate([p['valid_length'] for p in parts])).long()
+        self.subject_data = torch.cat([torch.full((len(p['labels']),), int(s), dtype=torch.long)
+                                       for s, p in zip(subjects, parts)])
+        self.channel_idx = parts[0]['channel_idx'].tolist()
+        self.num_patches, self.num_channels, self.num_atoms = self.amp.shape[1], self.amp.shape[2], self.amp.shape[3]
+        self.z = torch.from_numpy(np.concatenate([p['z'] for p in parts])) if 'z' in parts[0] else None   # [T, N', Cv, D]
+
+    def __len__(self):
+        return len(self.labels)
+
+    def __getitem__(self, i):
+        return self.amp[i], self.labels[i], self.valid_length[i]
+
+
+def subjects_of(ds_args):
+    subs = ds_args['subject_to_use']
+    if subs in (['all'], 'all'):
+        with open(os.path.join(ds_args['dataset_path'], 'metadata.json'), encoding='utf-8') as f:
+            ids = list(json.load(f)['data_structure'].keys())
+        try:
+            return sorted(ids, key=int)
+        except ValueError:
+            return sorted(ids)
+    return [str(s) for s in subs]

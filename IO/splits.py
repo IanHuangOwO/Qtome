@@ -8,6 +8,8 @@ optimiser) live with the model (configs/Qtome/protocol_heads.json).
 import json
 import os
 import random
+import zlib
+from typing import Dict, List, Tuple
 
 import numpy as np
 from sklearn.model_selection import StratifiedKFold
@@ -194,3 +196,32 @@ def make_runs(split, pool, subject_data, labels, session=None):
         return np.flatnonzero(np.isin(subject_data, [int(x) for x in subjects]) & keep)
 
     return make(split, pool, trials, labels, split.get('seed', 42))
+
+
+def split_pretrain_subjects(dataset_params: Dict, train_fraction: float = 0.9, seed: int = 42) -> Dict[str, Tuple[List[str], List[str]]]:
+    """Pretrain subject train/val split -> {dataset: (train subjects, val subjects)}.
+    Person-disjoint: datasets recorded from the same people share a cohort
+    (metadata.json data_metadata.cohort, default the dataset name; same subject id = same
+    person within a cohort), and a person is on one side for every dataset of the cohort.
+    Order-independent: every cohort draws from its own RNG (seed, cohort), so adding, removing
+    or reordering datasets leaves the other splits unchanged."""
+    subjects, cohort_of = {}, {}
+    for ds, args in dataset_params.items():
+        meta = json.load(open(os.path.join(args['dataset_path'], 'metadata.json'), encoding='utf-8'))
+        avail = sorted(meta.get('data_structure', {}).keys())
+        req = args['subject_to_use']
+        subjects[ds] = avail if req in (['all'], 'all') else [s for s in avail if s in {str(r) for r in req}]
+        cohort_of[ds] = meta.get('data_metadata', {}).get('cohort', ds)
+    out = {}
+    for cohort in sorted(set(cohort_of.values())):
+        members = [ds for ds in dataset_params if cohort_of[ds] == cohort]
+        persons = sorted({s for ds in members for s in subjects[ds]})
+        random.Random(zlib.crc32(f'{seed}/{cohort}'.encode())).shuffle(persons)
+        n_train = int(len(persons) * train_fraction)
+        if n_train == len(persons) and len(persons) > 1:
+            n_train -= 1
+        n_train = max(n_train, 1) if persons else 0
+        train = set(persons[:n_train])
+        for ds in members:
+            out[ds] = ([s for s in subjects[ds] if s in train], [s for s in subjects[ds] if s not in train])
+    return out

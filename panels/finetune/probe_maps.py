@@ -5,7 +5,6 @@ Run it with --head <the probe's head label>, e.g. cw_probe; runs on an older tri
 import glob
 import json
 import os
-import re
 
 import matplotlib
 
@@ -18,6 +17,7 @@ from IO.config import QTOME_OUTPUT
 from IO.channels import resolve_canonical_channels
 from panels.core.numbers import load_npz, save_npz
 from panels.kit.channels import mirror_order
+from panels.shared.finetune_runs import cell_names, cell_run_dirs, head_files
 from panels.shared.head_maps import summarise, time_axis
 
 PRESETS = set()
@@ -64,19 +64,13 @@ def plot_probe_maps(out_path, maps, channel_names, title, event_s=None):
     plt.close(fig)
 
 
-def _cells(ctx):
-    return sorted({re.sub(r'_seed\d+$', '', os.path.basename(d)) for bb in ctx.groups.values()
-                   for d in glob.glob(f'{QTOME_OUTPUT}/{bb}/finetune/{ctx.head}/*')})
-
-
 def compute(ctx):
     override = dict(e.split('=', 1) for e in getattr(ctx.args, 'event_onset', []))
-    for cell in _cells(ctx):
+    for cell in cell_names(ctx.groups.values(), ctx.head):
         maps, cfg, notes, has_event = {}, None, set(), False
         for g, bb in ctx.groups.items():
-            dirs = sorted(glob.glob(f'{QTOME_OUTPUT}/{bb}/finetune/{ctx.head}/{cell}')
-                          + glob.glob(f'{QTOME_OUTPUT}/{bb}/finetune/{ctx.head}/{cell}_seed*'))
-            heads = [p for d in dirs for p in sorted(glob.glob(f'{d}/finetune/run_*/head.pth'))]
+            dirs = cell_run_dirs(bb, ctx.head, cell)
+            heads = head_files(dirs)
             if not heads:
                 continue
             try:
@@ -106,7 +100,7 @@ def compute(ctx):
 
 
 def draw(ctx):
-    for cell in _cells(ctx):
+    for cell in cell_names(ctx.groups.values(), ctx.head):
         path = ctx.numbers(f'probe_maps_{cell}.npz')
         if not os.path.exists(path):
             continue

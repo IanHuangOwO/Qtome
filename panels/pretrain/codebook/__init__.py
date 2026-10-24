@@ -17,7 +17,7 @@ from panels.pretrain.codebook import plots
 from panels.pretrain.codebook import readout
 from panels.shared.trials import cap_subjects
 
-PRESETS = {'standard'}
+PRESETS = set()
 UNIT = 'Atom'
 
 

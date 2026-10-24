@@ -6,7 +6,7 @@ import torch.nn as nn
 from model.Qtome.atom_bank import AtomBank
 from model.Qtome.embeddings import RelativeSpatialBias, SpatialTemporalEmbeddings
 from model.Qtome.encoder import TSAEncoder
-from model.Qtome.head.config import (make_head_checkpoint, resolve_head_config, needs_atom, needs_raw, needs_latent)
+from model.Qtome.head.config import make_head_checkpoint, needs_atom, needs_raw, needs_latent
 from model.Qtome.head.extractor import AtomExtractor
 from model.Qtome.head.feature_head import FeatureHead
 from model.Qtome.patches import fold_sum
@@ -468,17 +468,3 @@ class FinetuneModel(nn.Module):
         model = cls(backbone, cfg, channel_idx)
         model.head.load_state_dict(ckpt['model_state_dict'])
         return model
-
-
-def build_finetune(backbone, num_channels, num_classes, channel_idx=None, num_patches=None,
-                   sample_freq=200, **ft_params):
-    """finetune_cls entry: builds the frozen backbone + FeatureHead from the numeric head config."""
-    channel_idx = list(range(num_channels)) if channel_idx is None else list(channel_idx)
-    num_atoms = 0
-    if needs_atom(ft_params):
-        num_atoms = backbone.atoms.n_atoms
-    cfg = resolve_head_config(ft_params, num_classes=num_classes, num_patches=num_patches,
-                              num_channels=len(channel_idx), num_atoms=num_atoms,
-                              patch_len=backbone.patch_len, patch_stride=backbone.patch_stride,
-                              sample_freq=float(sample_freq))
-    return FinetuneModel(backbone, cfg, channel_idx)

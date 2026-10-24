@@ -5,12 +5,13 @@ import zlib
 
 import torch
 
-from IO.dataset import build_dataset_from_config, split_pretrain_subjects
+from IO.dataset import build_dataset_from_config
+from IO.splits import split_pretrain_subjects
 from IO.masking import ChannelClusterMask, RandomChannelMask, TimeBlockMask, random_token_mask
 
 
 def val_config(config):
-    """The val half of train_pretrain.py's subject split (IO/dataset.py's split_pretrain_subjects)."""
+    """The val half of train_pretrain.py's subject split (IO/splits.py's split_pretrain_subjects)."""
     cfg = copy.deepcopy(config)
     ratio = config['training_params']['pretrain'].get('train_val_split', 0.9)
     split = split_pretrain_subjects(config['dataset_params']['pretrain'], ratio)

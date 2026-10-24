@@ -41,8 +41,9 @@ python -m tools.misc.run_queue output/queue/<plan>.plan --max-parallel 2 --threa
 # Analysis: one file per analysis under panels/<stage>/ (compute the numbers, then draw the figures from them; failures don't stop the
 # other panels; presets are tagged in each panel's PRESETS). Pretrain = one backbone -> numbers in
 # output/Qtome/<backbone>/pretrain/analysis/, figures in output/Qtome/<backbone>/analysis/pretrain/ (standard: backbone_eval,
-# attention_range, atom_usage, ridge_probe, atom_vs_raw, atom_templates, atom_duplicates, atom_distribution, snapshot, codebook,
-# training_dashboard; quick: the first seven; on request: coord_robustness, long_context, profile, task_filter_*; finetune: atom_maps,
+# attention_range, atom_usage, ridge_probe, atom_vs_raw, atom_templates, atom_duplicates, snapshot,
+# training_dashboard; quick: the first seven; on request: atom_distribution, codebook (each loads every pretrain dataset: ~20-30 min),
+# coord_robustness, long_context, profile, task_filter_*; finetune: atom_maps,
 # probe_maps, class_snapshots, seed_equivalence, training_dashboard). Judge each change by its own mechanism metric, not finetuning
 # (ADR 0020). `--redraw` draws again from the saved numbers; `--panel <name> --help` shows a panel's own options. Writing a panel:
 # docs/agents/adding-a-panel.md.
@@ -166,7 +167,7 @@ Key fields (templates show defaults):
 | Owner | Code | Configs |
 |---|---|---|
 | shared (every model) | `cache_dataset.py`, `datas/`, `IO/` (incl. `IO/splits.py`: protocol splits, `make_runs`), `train_pretrain.py` (dispatches through `model/factory.py`'s plugin registry), `model/base_*.py`, `model/factory.py`, `IO/config.py`, `tools/misc/` | `compile.json`, `montages.json`, `finetune_protocols.json` |
-| Qtome | `model/Qtome/`, `train_finetune.py` (frozen backbone + head), `cache_feature.py` (atom cache), `analyze.py` + `panels/` (every analysis and figure, incl. the task filter) | `configs/Qtome/` |
+| Qtome | `model/Qtome/` (incl. `finetune/`: head sources, protocol, fit, atom cache), `train_finetune.py` + `cache_feature.py` (entry points), `analyze.py` + `panels/` (every analysis and figure, incl. the task filter) | `configs/Qtome/` |
 | from-scratch baselines | `model/EEGNet/`, `train_baseline.py` | `configs/EEGNet/` |
 
 A new pretrained backbone follows `docs/agents/adding-a-model.md` (plugin); a new from-scratch baseline is
@@ -192,7 +193,7 @@ datas/<split>/<Name>/loader.py  compile time only; MOABB datasets have none (met
  │                     pre-epoched and are filtered per epoch.
  └ IO/dataset.py       EEGDataset maps channels onto the 64 slots (non-canonical channels in free slots; missing -> zero
  │                     padding, valid_channels marks real ones), normalises per trial; PretrainDataset cuts
- │                     windows -> patches and draws masks; MontageBatchSampler makes one-montage batches
+ │                     windows -> patches and draws masks (IO/wrappers.py); MontageBatchSampler makes one-montage batches
  └ train_pretrain.py   masked phase from epoch 1 (tokenizer_epochs > 0 first adds the old unmasked, temporal-only phase)
                        (spatial attention + coordinate embedding on, mask curriculum starts)
 ```
@@ -209,7 +210,7 @@ datas/<split>/<Name>/loader.py  compile time only; MOABB datasets have none (met
   not a plugin (no backbone). Finetune caches store volts: raw-input baselines multiply by 1e6.
 - `factory.py`: a pretrain checkpoint stores its `build_config`; `build_from_checkpoint` rebuilds a trained
   backbone from it, never from the editable run config.
-- `train_pretrain.py`: subject split by `IO/dataset.py`'s `split_pretrain_subjects` -- person-disjoint per
+- `train_pretrain.py`: subject split by `IO/splits.py`'s `split_pretrain_subjects` -- person-disjoint per
   cohort (`metadata.json` `data_metadata.cohort`) and independent of dataset order; a subject's near-flat
   channels (std < 0.10 x median, dead electrodes / the recording reference) are treated as padding.
 

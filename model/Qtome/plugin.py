@@ -3,7 +3,7 @@ model/base_plugin.py)."""
 
 import torch
 
-from model.Qtome.Qtome import QtomePretrain, build_finetune
+from model.Qtome.Qtome import QtomePretrain
 from model.base_trainer import BaseTrainer
 from model.base_plugin import BasePlugin
 
@@ -65,6 +65,5 @@ class QtomeTrainer(BaseTrainer):
 
 PLUGIN = BasePlugin(
     build=build_model,
-    finetune_cls=build_finetune,
     trainer_cls=QtomeTrainer,
 )

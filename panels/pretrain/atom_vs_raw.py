@@ -9,10 +9,10 @@ from sklearn.linear_model import RidgeClassifier
 from sklearn.model_selection import GridSearchCV, LeaveOneGroupOut
 from sklearn.metrics import balanced_accuracy_score
 
-from cache_feature import CachedAtomDataset, get_atom_cache
+from model.Qtome.finetune.feature_cache import CachedAtomDataset, get_atom_cache
 from IO.splits import load_sessions
 from panels.shared.ridge import ALPHAS, DATASETS
-from train_finetune import apply_protocol
+from model.Qtome.finetune.protocol import apply_protocol
 
 
 PRESETS = {'standard', 'quick'}
@@ -42,7 +42,7 @@ def atom_vs_raw(config, checkpoint, out_path, datasets=DATASETS):
     log Q-atom power (a^2 + b^2 per channel x Q-atom, mean over N_SEG time segments) and log raw band
     power (per channel x band, same segments). Q-atom - raw > 0: the Q-atom code carries class
     information a raw spectral filterbank does not."""
-    from train_finetune import RawSource
+    from model.Qtome.finetune.sources import RawSource
     res = {}
     for ds, proto in datasets:
         ds_args = {'dataset_path': f'datas/finetune/{ds}', 'subject_to_use': ['all'], 'channels_to_use': ['all']}
