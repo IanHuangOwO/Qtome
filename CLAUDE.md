@@ -56,11 +56,12 @@ python -m tools.analysis.summarize_runs 'output/Qtome/<backbone>/finetune/<head>
 # analysis_pretrain.py, run on request (not in a preset). --filter-source 'multi' (multi-task filter: MI + P300 + SSVEP
 # heads) or one dataset (single-task filter); needs loso cells <ds>_impute64_loso_seed1 (impute_missing_channels=true).
 # Numbers: output/Qtome/<backbone>/pretrain/analysis/task_filter/<source>/ (filter.pt, eval_*) and .../compare/; figures
-# (panel_*, compare_*.png): output/Qtome/<backbone>/analysis/pretrain/task_filter/<source>/ and .../compare/
+# (filter_analysis_*, filter_<ds>_*, compare_*.png): output/Qtome/<backbone>/analysis/pretrain/task_filter/<source>/ and .../compare/
 python analysis_pretrain.py --run <backbone> --panel task_filter_build               # fit and save the filter (again)
+python analysis_pretrain.py --run <backbone> --panel task_filter_filter [--share 0.1]   # the filter alone: importance maps, power kept of white input
 python analysis_pretrain.py --run <backbone> --panel task_filter_eval [--filter-test mi p300 noise] [--target <ds> ...]
 python analysis_pretrain.py --run <backbone> --panel task_filter_panel --target <ds> [--share 0.1]
-python analysis_pretrain.py --run <backbone> --panel task_filter_compare --target <ds> --single <source ds>   # both filters vs ASR / ICLabel
+python analysis_pretrain.py --run <backbone> --panel task_filter_compare --target <ds> [--single <source ds>]   # multi-task filter vs ASR / ICLabel (single-task filter only with --single: it lost)
 ```
 
 No test suite: modules carry runnable self-checks (e.g. `Qtome_modules._selfcheck_head_modules()`), and

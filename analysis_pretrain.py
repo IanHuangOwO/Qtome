@@ -9,11 +9,11 @@ The config is the run's own artifacts/config.json (next to the checkpoint), deep
 output/<output_path>/analysis/ (e.g. output/<backbone>/pretrain/analysis/: numbers, logs, markdown) and every figure in
 output/<backbone>/analysis/pretrain/. Presets: tools/panels PRESETS.
 
-Task filter (panels task_filter_build / _eval / _panel / _compare, on request; the filter and the tables ->
+Task filter (panels task_filter_build / _filter / _eval / _panel / _compare, on request; the filter and the tables ->
 analysis/task_filter/<source>/ and .../compare/, its figures -> analysis/pretrain/task_filter/):
     python analysis_pretrain.py --run <backbone> --panel task_filter_eval [--filter-source multi] [--filter-test mi p300 noise] [--target <ds> ...]
     python analysis_pretrain.py --run <backbone> --panel task_filter_panel --target BNCI2014004 [--share 0.1]
-    python analysis_pretrain.py --run <backbone> --panel task_filter_compare --target BNCI2014008 --single BNCI2014009
+    python analysis_pretrain.py --run <backbone> --panel task_filter_compare --target BNCI2014008 [--single BNCI2014009]
 """
 import argparse
 import json
@@ -48,7 +48,7 @@ def main():
     ap.add_argument('--filter-test', nargs='+', choices=['mi', 'p300', 'noise'], help='task_filter_eval: tests (default all)')
     ap.add_argument('--target', nargs='+', help='task_filter_*: unseen datasets (eval: default per test)')
     ap.add_argument('--share', type=float, default=0.1, choices=[0.5, 0.25, 0.1], help='task_filter_panel: share of cells kept')
-    ap.add_argument('--single', help='task_filter_compare: source dataset of the single-task filter (not a target)')
+    ap.add_argument('--single', help='task_filter_compare: optional, source dataset of a single-task filter to add (not a target); default: the multi-task filter only')
     args = ap.parse_args()
     if args.threads:
         torch.set_num_threads(args.threads)

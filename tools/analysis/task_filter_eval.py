@@ -51,6 +51,26 @@ def lda(w, y):                                                            # moto
     return float(balanced_accuracy_score(y, cross_val_predict(LinearDiscriminantAnalysis(solver='lsqr', shrinkage='auto'), X, y, cv=StratifiedKFold(5))))
 
 
+def mi_features(w):                                                       # the features of lda
+    return np.concatenate([band_power(w, 8, 13), band_power(w, 13, 30)], 1)
+
+
+def p300_features(w):                                                     # the features of lda_auc
+    return w[..., :w.shape[-1] // 10 * 10].reshape(*w.shape[:2], -1, 10).mean(-1).reshape(len(w), -1)
+
+
+def loso(feats, ys, p300_):
+    """Leave-one-subject-out score of a shrinkage LDA on feats (one [trials, features] per subject): trained on the other
+    subjects' trials, tested on the held-out subject's; balanced accuracy, or ROC AUC for P300. Each subject's features are
+    standardised by that subject's own mean and spread (no labels), so subjects share a scale. -> [score per held-out subject]"""
+    z = [(x - x.mean(0)) / (x.std(0) + 1e-12) for x in feats]; out = []
+    for i in range(len(z)):
+        tr = [j for j in range(len(z)) if j != i]
+        clf = LinearDiscriminantAnalysis(solver='lsqr', shrinkage='auto').fit(np.concatenate([z[j] for j in tr]), np.concatenate([ys[j] for j in tr]))
+        out.append(float(roc_auc_score(ys[i], clf.decision_function(z[i])) if p300_ else balanced_accuracy_score(ys[i], clf.predict(z[i]))))
+    return out
+
+
 def lda_auc(w, y):                                                        # P300
     X = w[..., :w.shape[-1] // 10 * 10].reshape(*w.shape[:2], -1, 10).mean(-1).reshape(len(w), -1)   # splits the time axis only, then joins channel x time
     return float(roc_auc_score(y, cross_val_predict(LinearDiscriminantAnalysis(solver='lsqr', shrinkage='auto'), X, y, cv=StratifiedKFold(5), method='decision_function')))
@@ -84,12 +104,13 @@ def hann_at(T, centre, width):                                            # [T] 
     return np.where(np.abs(t) < width / 2, 0.5 + 0.5 * np.cos(2 * np.pi * t / width), 0.0)
 
 
-def artifacts(B, coords, T, rng, line=False):
-    """{name: n [B, C, T]}: shapes only, scaled later to POWER times the trial's power."""
+def artifacts(B, coords, T, rng, line=False, bad_ch=None):
+    """{name: n [B, C, T]}: shapes only, scaled later to POWER times the trial's power. 'noisy channel' is on a random channel
+    per trial, or on channel bad_ch in every trial (the draws are the same, so the other artifacts do not change)."""
     C = len(coords)
     near = lambda p, tau: np.exp(-np.linalg.norm(coords - np.array(p), axis=1) / tau)     # [C] falls off with distance
     out = {'blink': near(FPZ, 0.06)[None, :, None] * np.stack([hann_at(T, rng.integers(T // 4, 3 * T // 4), 0.4 * FS) for _ in range(B)])[:, None]}
-    bad = np.zeros((B, C, T)); bad[np.arange(B), rng.integers(0, C, B)] = rng.standard_normal((B, T))
+    bad = np.zeros((B, C, T)); ch = rng.integers(0, C, B); bad[np.arange(B), ch if bad_ch is None else bad_ch] = rng.standard_normal((B, T))
     out['noisy channel'] = bad
     f = np.fft.rfftfreq(T, 1 / FS); band = (f >= 20) & (f <= 90)
     emg = np.fft.irfft(np.fft.rfft(rng.standard_normal((B, 1, T))) * band, T)
@@ -110,7 +131,13 @@ def _raw(w, chans):                                                       # tria
 
 def asr_clean(noisy, calib, chans):
     import asrpy
-    asr = asrpy.ASR(sfreq=FS, cutoff=20); asr.fit(_raw(calib, chans))
+    cal = _raw(calib, chans)
+    for bs in (100, 99, 101, 98):                                         # asrpy's block covariance fails when the cleaned calibration length is 2 mod the block size
+        asr = asrpy.ASR(sfreq=FS, cutoff=20, blocksize=bs)
+        try:
+            asr.fit(cal); break
+        except ValueError:
+            if bs == 98: raise
     return np.stack(np.split(asr.transform(_raw(noisy, chans)).get_data(), len(noisy), -1)).astype(np.float32)
 
 
@@ -240,10 +267,13 @@ def compare(ctxs, dst, seed=0, log=print):
     score, ica = (lda_auc if p300_ else lda), len(dst_c) >= 8
     lab_ = {m['label']: [m['cartesian'][k] for k in 'xyz'] for m in MONT}; xyz = np.array([lab_[n] for n in dst_c])
     rows = {k: {} for k in COMPARE_KINDS}; rows['clean'] = {'raw': {'lda': []}, 'metric': 'ROC AUC, shrinkage LDA' if p300_ else 'balanced accuracy, shrinkage LDA'}
-    for f in subjects(dst):
+    featurize = p300_features if p300_ else mi_features; ys, feats = [], {'clean': []}; feats.update({k: {} for k in COMPARE_KINDS})   # for the leave-one-subject-out score
+    rows['clean']['bad_channel'] = []                                     # the broken channel of each subject: fixed for the subject, drawn once from its own generator
+    for si, f in enumerate(subjects(dst)):
         z = np.load(f); y = z['labels']; x = z['data'].astype(np.float64); x = x / x.std((1, 2), keepdims=True)
-        T = int(z['valid_end'][0]); x = x[:, [dst_r.index(n) for n in dst_c], :T]; rows['clean']['raw']['lda'].append(score(x, y))
-        arts = artifacts(len(x), xyz, T, rng, line=True)
+        T = int(z['valid_end'][0]); x = x[:, [dst_r.index(n) for n in dst_c], :T]; rows['clean']['raw']['lda'].append(score(x, y)); ys.append(y); feats['clean'].append(featurize(x))
+        bad = int(np.random.default_rng([seed, si]).integers(len(dst_c))); rows['clean']['bad_channel'].append(dst_c[bad]); log(f'  {dst} subject {si + 1}: broken channel {dst_c[bad]}')
+        arts = artifacts(len(x), xyz, T, rng, line=True, bad_ch=bad)
         for kind in COMPARE_KINDS:
             n = arts[kind].astype(np.float64)
             n = n * np.sqrt(POWER * (x ** 2).sum((1, 2), keepdims=True) / (n ** 2).sum((1, 2), keepdims=True)); w1 = x + n
@@ -258,10 +288,13 @@ def compare(ctxs, dst, seed=0, log=print):
                 s_, a_ = kept(w, x, n)
                 for k, v in (('signal', s_), ('artifact', a_), ('gain dB', 10 * np.log10(max(s_, 1e-3) / max(a_, 1e-3))), ('lda', score(w, y))):
                     rows[kind].setdefault(m, {}).setdefault(k, []).append(float(v))
+                feats[kind].setdefault(m, []).append(featurize(w))
         log(f'  {dst} {f.split("/")[-1].split("_")[0]} done')
+    rows['clean']['raw']['loso'] = loso(feats['clean'], ys, p300_)
     for kind in COMPARE_KINDS:
+        for m, fs in feats[kind].items(): rows[kind][m]['loso'] = loso(fs, ys, p300_)
         r = {m: {k: v for k, v in d.items() if k != 'removed'} for m, d in rows[kind].items()}
-        table(r, f'{kind} at {POWER:.0%} of trial power on {dst} (clean lda {np.mean(rows["clean"]["raw"]["lda"]):.3f})',
+        table(r, f'{kind} at {POWER:.0%} of trial power on {dst} (clean lda {np.mean(rows["clean"]["raw"]["lda"]):.3f}, loso {np.mean(rows["clean"]["raw"]["loso"]):.3f})',
               [(f'{lab} {q:g}', b) for lab in ops for q in ops[lab] for b in ('input', 'ASR') + (('ICLabel',) if ica else ())], log)
     return rows
 
