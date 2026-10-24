@@ -209,6 +209,18 @@
       },
       "Wang2016_dev": {
         "dataset_path": "datas/finetune/Wang2016_dev"
+      },
+      "TUAB": {
+        "dataset_path": "datas/finetune/TUAB"
+      },
+      "TUEV": {
+        "dataset_path": "datas/finetune/TUEV"
+      },
+      "TUSL": {
+        "dataset_path": "datas/finetune/TUSL"
+      },
+      "TUAR": {
+        "dataset_path": "datas/finetune/TUAR"
       }
     }
   }

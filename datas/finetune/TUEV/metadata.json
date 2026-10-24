@@ -1,0 +1,4572 @@
+{
+    "data_metadata": {
+        "dataset_name": "TUEV",
+        "dataset_info": {
+            "source_url": "https://isip.piconepress.com/projects/nedc/html/tuh_eeg/",
+            "source_version": "tuh_eeg_events v2.0.1",
+            "file_format": "EDF + .rec annotations",
+            "description": "Temple University Hospital EEG Events Corpus: clinical EEG with six annotated event types.",
+            "task_type": "EEG event classification (clinical)",
+            "reference": "Harati, A., Golmohammadi, M., Lopez, S., Obeid, I., & Picone, J. (2015). Improved EEG event classification using differential energy. IEEE SPMB.",
+            "notes": "Train: patient folders; eval: session folders (a session index, not a patient: its subject id is 'eval<idx>'). EEG-FM-Bench splits all windows at random (0.8 / 0.1 / 0.1), so subject ids only group a patient's files."
+        },
+        "acquisition": {
+            "sample_frequency": 250,
+            "window_size_seconds": 5.0,
+            "num_subjects": 370
+        },
+        "targets": {
+            "count": 6,
+            "type": "eeg_events",
+            "0": {
+                "label": "spsw"
+            },
+            "1": {
+                "label": "gped"
+            },
+            "2": {
+                "label": "pled"
+            },
+            "3": {
+                "label": "eyem"
+            },
+            "4": {
+                "label": "artf"
+            },
+            "5": {
+                "label": "bckg"
+            }
+        },
+        "channels": {
+            "count": 21,
+            "system": "10-20 International System",
+            "1": {
+                "label": "Fp1",
+                "original_label": "FP1"
+            },
+            "2": {
+                "label": "Fp2",
+                "original_label": "FP2"
+            },
+            "3": {
+                "label": "F7",
+                "original_label": "F7"
+            },
+            "4": {
+                "label": "F3",
+                "original_label": "F3"
+            },
+            "5": {
+                "label": "Fz",
+                "original_label": "FZ"
+            },
+            "6": {
+                "label": "F4",
+                "original_label": "F4"
+            },
+            "7": {
+                "label": "F8",
+                "original_label": "F8"
+            },
+            "8": {
+                "label": "T3",
+                "original_label": "T3"
+            },
+            "9": {
+                "label": "C3",
+                "original_label": "C3"
+            },
+            "10": {
+                "label": "Cz",
+                "original_label": "CZ"
+            },
+            "11": {
+                "label": "C4",
+                "original_label": "C4"
+            },
+            "12": {
+                "label": "T4",
+                "original_label": "T4"
+            },
+            "13": {
+                "label": "T5",
+                "original_label": "T5"
+            },
+            "14": {
+                "label": "P3",
+                "original_label": "P3"
+            },
+            "15": {
+                "label": "Pz",
+                "original_label": "PZ"
+            },
+            "16": {
+                "label": "P4",
+                "original_label": "P4"
+            },
+            "17": {
+                "label": "T6",
+                "original_label": "T6"
+            },
+            "18": {
+                "label": "O1",
+                "original_label": "O1"
+            },
+            "19": {
+                "label": "O2",
+                "original_label": "O2"
+            },
+            "20": {
+                "label": "A1",
+                "original_label": "A1"
+            },
+            "21": {
+                "label": "A2",
+                "original_label": "A2"
+            }
+        },
+        "cohort": "TUEG"
+    },
+    "data_structure": {
+        "1": {
+            "patient": "aaaaaaar",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaaaar/aaaaaaar_00000001.edf",
+                    "rec": "raw/edf/train/aaaaaaar/aaaaaaar_00000001.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "2": {
+            "patient": "aaaaaabs",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaaabs/aaaaaabs_00000001.edf",
+                    "rec": "raw/edf/train/aaaaaabs/aaaaaabs_00000001.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "3": {
+            "patient": "aaaaaaci",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaaaci/aaaaaaci_00000001.edf",
+                    "rec": "raw/edf/train/aaaaaaci/aaaaaaci_00000001.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "4": {
+            "patient": "aaaaaadd",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaaadd/aaaaaadd_00000005.edf",
+                    "rec": "raw/edf/train/aaaaaadd/aaaaaadd_00000005.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "5": {
+            "patient": "aaaaaadg",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaaadg/aaaaaadg_00000002.edf",
+                    "rec": "raw/edf/train/aaaaaadg/aaaaaadg_00000002.rec",
+                    "split": "train"
+                },
+                {
+                    "file": "raw/edf/train/aaaaaadg/aaaaaadg_00000008.edf",
+                    "rec": "raw/edf/train/aaaaaadg/aaaaaadg_00000008.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "6": {
+            "patient": "aaaaaadk",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaaadk/aaaaaadk_00000001.edf",
+                    "rec": "raw/edf/train/aaaaaadk/aaaaaadk_00000001.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "7": {
+            "patient": "aaaaaadm",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaaadm/aaaaaadm_00000001.edf",
+                    "rec": "raw/edf/train/aaaaaadm/aaaaaadm_00000001.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "8": {
+            "patient": "aaaaaadn",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaaadn/aaaaaadn_00000004.edf",
+                    "rec": "raw/edf/train/aaaaaadn/aaaaaadn_00000004.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "9": {
+            "patient": "aaaaaads",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaaads/aaaaaads_00000009.edf",
+                    "rec": "raw/edf/train/aaaaaads/aaaaaads_00000009.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "10": {
+            "patient": "aaaaaadt",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaaadt/aaaaaadt_00000010.edf",
+                    "rec": "raw/edf/train/aaaaaadt/aaaaaadt_00000010.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "11": {
+            "patient": "aaaaaadx",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaaadx/aaaaaadx_00000001.edf",
+                    "rec": "raw/edf/train/aaaaaadx/aaaaaadx_00000001.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "12": {
+            "patient": "aaaaaadz",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaaadz/aaaaaadz_00000001.edf",
+                    "rec": "raw/edf/train/aaaaaadz/aaaaaadz_00000001.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "13": {
+            "patient": "aaaaaaer",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaaaer/aaaaaaer_00000001.edf",
+                    "rec": "raw/edf/train/aaaaaaer/aaaaaaer_00000001.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "14": {
+            "patient": "aaaaaaet",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaaaet/aaaaaaet_00000001.edf",
+                    "rec": "raw/edf/train/aaaaaaet/aaaaaaet_00000001.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "15": {
+            "patient": "aaaaaaff",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaaaff/aaaaaaff_00000001.edf",
+                    "rec": "raw/edf/train/aaaaaaff/aaaaaaff_00000001.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "16": {
+            "patient": "aaaaaafi",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaaafi/aaaaaafi_00000001.edf",
+                    "rec": "raw/edf/train/aaaaaafi/aaaaaafi_00000001.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "17": {
+            "patient": "aaaaaafx",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaaafx/aaaaaafx_00000001.edf",
+                    "rec": "raw/edf/train/aaaaaafx/aaaaaafx_00000001.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "18": {
+            "patient": "aaaaaagq",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaaagq/aaaaaagq_00000001.edf",
+                    "rec": "raw/edf/train/aaaaaagq/aaaaaagq_00000001.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "19": {
+            "patient": "aaaaaagx",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaaagx/aaaaaagx_00000001.edf",
+                    "rec": "raw/edf/train/aaaaaagx/aaaaaagx_00000001.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "20": {
+            "patient": "aaaaaahm",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaaahm/aaaaaahm_00000002.edf",
+                    "rec": "raw/edf/train/aaaaaahm/aaaaaahm_00000002.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "21": {
+            "patient": "aaaaaahp",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaaahp/aaaaaahp_00000002.edf",
+                    "rec": "raw/edf/train/aaaaaahp/aaaaaahp_00000002.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "22": {
+            "patient": "aaaaaahr",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaaahr/aaaaaahr_00000001.edf",
+                    "rec": "raw/edf/train/aaaaaahr/aaaaaahr_00000001.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "23": {
+            "patient": "aaaaaaie",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaaaie/aaaaaaie_00000001.edf",
+                    "rec": "raw/edf/train/aaaaaaie/aaaaaaie_00000001.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "24": {
+            "patient": "aaaaaajc",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaaajc/aaaaaajc_00000001.edf",
+                    "rec": "raw/edf/train/aaaaaajc/aaaaaajc_00000001.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "25": {
+            "patient": "aaaaaajg",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaaajg/aaaaaajg_00000001.edf",
+                    "rec": "raw/edf/train/aaaaaajg/aaaaaajg_00000001.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "26": {
+            "patient": "aaaaaako",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaaako/aaaaaako_00000001.edf",
+                    "rec": "raw/edf/train/aaaaaako/aaaaaako_00000001.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "27": {
+            "patient": "aaaaaalp",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaaalp/aaaaaalp_00000001.edf",
+                    "rec": "raw/edf/train/aaaaaalp/aaaaaalp_00000001.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "28": {
+            "patient": "aaaaaamc",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaaamc/aaaaaamc_00000001.edf",
+                    "rec": "raw/edf/train/aaaaaamc/aaaaaamc_00000001.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "29": {
+            "patient": "aaaaaamd",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaaamd/aaaaaamd_00000003.edf",
+                    "rec": "raw/edf/train/aaaaaamd/aaaaaamd_00000003.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "30": {
+            "patient": "aaaaaamm",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaaamm/aaaaaamm_00000001.edf",
+                    "rec": "raw/edf/train/aaaaaamm/aaaaaamm_00000001.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "31": {
+            "patient": "aaaaaaof",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaaaof/aaaaaaof_00000001.edf",
+                    "rec": "raw/edf/train/aaaaaaof/aaaaaaof_00000001.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "32": {
+            "patient": "aaaaaaoy",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaaaoy/aaaaaaoy_00000001.edf",
+                    "rec": "raw/edf/train/aaaaaaoy/aaaaaaoy_00000001.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "33": {
+            "patient": "aaaaaaqg",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaaaqg/aaaaaaqg_00000001.edf",
+                    "rec": "raw/edf/train/aaaaaaqg/aaaaaaqg_00000001.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "34": {
+            "patient": "aaaaaaqz",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaaaqz/aaaaaaqz_00000002.edf",
+                    "rec": "raw/edf/train/aaaaaaqz/aaaaaaqz_00000002.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "35": {
+            "patient": "aaaaaasu",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaaasu/aaaaaasu_00000001.edf",
+                    "rec": "raw/edf/train/aaaaaasu/aaaaaasu_00000001.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "36": {
+            "patient": "aaaaaatm",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaaatm/aaaaaatm_00000001.edf",
+                    "rec": "raw/edf/train/aaaaaatm/aaaaaatm_00000001.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "37": {
+            "patient": "aaaaaatx",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaaatx/aaaaaatx_00000001.edf",
+                    "rec": "raw/edf/train/aaaaaatx/aaaaaatx_00000001.rec",
+                    "split": "train"
+                },
+                {
+                    "file": "raw/edf/train/aaaaaatx/aaaaaatx_00000002.edf",
+                    "rec": "raw/edf/train/aaaaaatx/aaaaaatx_00000002.rec",
+                    "split": "train"
+                },
+                {
+                    "file": "raw/edf/train/aaaaaatx/aaaaaatx_00000003.edf",
+                    "rec": "raw/edf/train/aaaaaatx/aaaaaatx_00000003.rec",
+                    "split": "train"
+                },
+                {
+                    "file": "raw/edf/train/aaaaaatx/aaaaaatx_00000004.edf",
+                    "rec": "raw/edf/train/aaaaaatx/aaaaaatx_00000004.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "38": {
+            "patient": "aaaaaaug",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaaaug/aaaaaaug_00000001.edf",
+                    "rec": "raw/edf/train/aaaaaaug/aaaaaaug_00000001.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "39": {
+            "patient": "aaaaaauq",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaaauq/aaaaaauq_00000001.edf",
+                    "rec": "raw/edf/train/aaaaaauq/aaaaaauq_00000001.rec",
+                    "split": "train"
+                },
+                {
+                    "file": "raw/edf/train/aaaaaauq/aaaaaauq_00000007.edf",
+                    "rec": "raw/edf/train/aaaaaauq/aaaaaauq_00000007.rec",
+                    "split": "train"
+                },
+                {
+                    "file": "raw/edf/train/aaaaaauq/aaaaaauq_00000008.edf",
+                    "rec": "raw/edf/train/aaaaaauq/aaaaaauq_00000008.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "40": {
+            "patient": "aaaaaaur",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaaaur/aaaaaaur_00000001.edf",
+                    "rec": "raw/edf/train/aaaaaaur/aaaaaaur_00000001.rec",
+                    "split": "train"
+                },
+                {
+                    "file": "raw/edf/train/aaaaaaur/aaaaaaur_00000003.edf",
+                    "rec": "raw/edf/train/aaaaaaur/aaaaaaur_00000003.rec",
+                    "split": "train"
+                },
+                {
+                    "file": "raw/edf/train/aaaaaaur/aaaaaaur_00000004.edf",
+                    "rec": "raw/edf/train/aaaaaaur/aaaaaaur_00000004.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "41": {
+            "patient": "aaaaaavn",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaaavn/aaaaaavn_00000001.edf",
+                    "rec": "raw/edf/train/aaaaaavn/aaaaaavn_00000001.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "42": {
+            "patient": "aaaaaavs",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaaavs/aaaaaavs_00000006.edf",
+                    "rec": "raw/edf/train/aaaaaavs/aaaaaavs_00000006.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "43": {
+            "patient": "aaaaaavw",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaaavw/aaaaaavw_00000004.edf",
+                    "rec": "raw/edf/train/aaaaaavw/aaaaaavw_00000004.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "44": {
+            "patient": "aaaaaawk",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaaawk/aaaaaawk_00000003.edf",
+                    "rec": "raw/edf/train/aaaaaawk/aaaaaawk_00000003.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "45": {
+            "patient": "aaaaaawm",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaaawm/aaaaaawm_00000001.edf",
+                    "rec": "raw/edf/train/aaaaaawm/aaaaaawm_00000001.rec",
+                    "split": "train"
+                },
+                {
+                    "file": "raw/edf/train/aaaaaawm/aaaaaawm_00000002.edf",
+                    "rec": "raw/edf/train/aaaaaawm/aaaaaawm_00000002.rec",
+                    "split": "train"
+                },
+                {
+                    "file": "raw/edf/train/aaaaaawm/aaaaaawm_00000003.edf",
+                    "rec": "raw/edf/train/aaaaaawm/aaaaaawm_00000003.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "46": {
+            "patient": "aaaaaawq",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaaawq/aaaaaawq_00000009.edf",
+                    "rec": "raw/edf/train/aaaaaawq/aaaaaawq_00000009.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "47": {
+            "patient": "aaaaaaws",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaaaws/aaaaaaws_00000010.edf",
+                    "rec": "raw/edf/train/aaaaaaws/aaaaaaws_00000010.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "48": {
+            "patient": "aaaaaawx",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaaawx/aaaaaawx_00000001.edf",
+                    "rec": "raw/edf/train/aaaaaawx/aaaaaawx_00000001.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "49": {
+            "patient": "aaaaaaxh",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaaaxh/aaaaaaxh_00000001.edf",
+                    "rec": "raw/edf/train/aaaaaaxh/aaaaaaxh_00000001.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "50": {
+            "patient": "aaaaaaxp",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaaaxp/aaaaaaxp_00000001.edf",
+                    "rec": "raw/edf/train/aaaaaaxp/aaaaaaxp_00000001.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "51": {
+            "patient": "aaaaaaxq",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaaaxq/aaaaaaxq_00000001.edf",
+                    "rec": "raw/edf/train/aaaaaaxq/aaaaaaxq_00000001.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "52": {
+            "patient": "aaaaaayn",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaaayn/aaaaaayn_00000001.edf",
+                    "rec": "raw/edf/train/aaaaaayn/aaaaaayn_00000001.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "53": {
+            "patient": "aaaaaazl",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaaazl/aaaaaazl_00000001.edf",
+                    "rec": "raw/edf/train/aaaaaazl/aaaaaazl_00000001.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "54": {
+            "patient": "aaaaabba",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaabba/aaaaabba_00000003.edf",
+                    "rec": "raw/edf/train/aaaaabba/aaaaabba_00000003.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "55": {
+            "patient": "aaaaabbn",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaabbn/aaaaabbn_00000001.edf",
+                    "rec": "raw/edf/train/aaaaabbn/aaaaabbn_00000001.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "56": {
+            "patient": "aaaaabbu",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaabbu/aaaaabbu_00000001.edf",
+                    "rec": "raw/edf/train/aaaaabbu/aaaaabbu_00000001.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "57": {
+            "patient": "aaaaabbw",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaabbw/aaaaabbw_00000001.edf",
+                    "rec": "raw/edf/train/aaaaabbw/aaaaabbw_00000001.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "58": {
+            "patient": "aaaaabcv",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaabcv/aaaaabcv_00000002.edf",
+                    "rec": "raw/edf/train/aaaaabcv/aaaaabcv_00000002.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "59": {
+            "patient": "aaaaabdo",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaabdo/aaaaabdo_00000004.edf",
+                    "rec": "raw/edf/train/aaaaabdo/aaaaabdo_00000004.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "60": {
+            "patient": "aaaaabea",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaabea/aaaaabea_00000001.edf",
+                    "rec": "raw/edf/train/aaaaabea/aaaaabea_00000001.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "61": {
+            "patient": "aaaaabel",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaabel/aaaaabel_00000013.edf",
+                    "rec": "raw/edf/train/aaaaabel/aaaaabel_00000013.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "62": {
+            "patient": "aaaaabfa",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaabfa/aaaaabfa_00000001.edf",
+                    "rec": "raw/edf/train/aaaaabfa/aaaaabfa_00000001.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "63": {
+            "patient": "aaaaabfp",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaabfp/aaaaabfp_00000001.edf",
+                    "rec": "raw/edf/train/aaaaabfp/aaaaabfp_00000001.rec",
+                    "split": "train"
+                },
+                {
+                    "file": "raw/edf/train/aaaaabfp/aaaaabfp_00000002.edf",
+                    "rec": "raw/edf/train/aaaaabfp/aaaaabfp_00000002.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "64": {
+            "patient": "aaaaabfu",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaabfu/aaaaabfu_00000004.edf",
+                    "rec": "raw/edf/train/aaaaabfu/aaaaabfu_00000004.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "65": {
+            "patient": "aaaaabfy",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaabfy/aaaaabfy_00000007.edf",
+                    "rec": "raw/edf/train/aaaaabfy/aaaaabfy_00000007.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "66": {
+            "patient": "aaaaabgg",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaabgg/aaaaabgg_00000001.edf",
+                    "rec": "raw/edf/train/aaaaabgg/aaaaabgg_00000001.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "67": {
+            "patient": "aaaaabgo",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaabgo/aaaaabgo_00000003.edf",
+                    "rec": "raw/edf/train/aaaaabgo/aaaaabgo_00000003.rec",
+                    "split": "train"
+                },
+                {
+                    "file": "raw/edf/train/aaaaabgo/aaaaabgo_00000004.edf",
+                    "rec": "raw/edf/train/aaaaabgo/aaaaabgo_00000004.rec",
+                    "split": "train"
+                },
+                {
+                    "file": "raw/edf/train/aaaaabgo/aaaaabgo_00000005.edf",
+                    "rec": "raw/edf/train/aaaaabgo/aaaaabgo_00000005.rec",
+                    "split": "train"
+                },
+                {
+                    "file": "raw/edf/train/aaaaabgo/aaaaabgo_00000006.edf",
+                    "rec": "raw/edf/train/aaaaabgo/aaaaabgo_00000006.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "68": {
+            "patient": "aaaaabgq",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaabgq/aaaaabgq_00000001.edf",
+                    "rec": "raw/edf/train/aaaaabgq/aaaaabgq_00000001.rec",
+                    "split": "train"
+                },
+                {
+                    "file": "raw/edf/train/aaaaabgq/aaaaabgq_00000003.edf",
+                    "rec": "raw/edf/train/aaaaabgq/aaaaabgq_00000003.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "69": {
+            "patient": "aaaaabgx",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaabgx/aaaaabgx_00000001.edf",
+                    "rec": "raw/edf/train/aaaaabgx/aaaaabgx_00000001.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "70": {
+            "patient": "aaaaabgz",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaabgz/aaaaabgz_00000003.edf",
+                    "rec": "raw/edf/train/aaaaabgz/aaaaabgz_00000003.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "71": {
+            "patient": "aaaaabhu",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaabhu/aaaaabhu_00000001.edf",
+                    "rec": "raw/edf/train/aaaaabhu/aaaaabhu_00000001.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "72": {
+            "patient": "aaaaabix",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaabix/aaaaabix_00000001.edf",
+                    "rec": "raw/edf/train/aaaaabix/aaaaabix_00000001.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "73": {
+            "patient": "aaaaabjc",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaabjc/aaaaabjc_00000005.edf",
+                    "rec": "raw/edf/train/aaaaabjc/aaaaabjc_00000005.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "74": {
+            "patient": "aaaaabjd",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaabjd/aaaaabjd_00000001.edf",
+                    "rec": "raw/edf/train/aaaaabjd/aaaaabjd_00000001.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "75": {
+            "patient": "aaaaabji",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaabji/aaaaabji_00000001.edf",
+                    "rec": "raw/edf/train/aaaaabji/aaaaabji_00000001.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "76": {
+            "patient": "aaaaabju",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaabju/aaaaabju_00000001.edf",
+                    "rec": "raw/edf/train/aaaaabju/aaaaabju_00000001.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "77": {
+            "patient": "aaaaabky",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaabky/aaaaabky_00000002.edf",
+                    "rec": "raw/edf/train/aaaaabky/aaaaabky_00000002.rec",
+                    "split": "train"
+                },
+                {
+                    "file": "raw/edf/train/aaaaabky/aaaaabky_00000003.edf",
+                    "rec": "raw/edf/train/aaaaabky/aaaaabky_00000003.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "78": {
+            "patient": "aaaaablf",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaablf/aaaaablf_00000001.edf",
+                    "rec": "raw/edf/train/aaaaablf/aaaaablf_00000001.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "79": {
+            "patient": "aaaaablw",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaablw/aaaaablw_00000001.edf",
+                    "rec": "raw/edf/train/aaaaablw/aaaaablw_00000001.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "80": {
+            "patient": "aaaaabna",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaabna/aaaaabna_00000001.edf",
+                    "rec": "raw/edf/train/aaaaabna/aaaaabna_00000001.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "81": {
+            "patient": "aaaaabom",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaabom/aaaaabom_00000001.edf",
+                    "rec": "raw/edf/train/aaaaabom/aaaaabom_00000001.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "82": {
+            "patient": "aaaaaboo",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaaboo/aaaaaboo_00000004.edf",
+                    "rec": "raw/edf/train/aaaaaboo/aaaaaboo_00000004.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "83": {
+            "patient": "aaaaabop",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaabop/aaaaabop_00000002.edf",
+                    "rec": "raw/edf/train/aaaaabop/aaaaabop_00000002.rec",
+                    "split": "train"
+                },
+                {
+                    "file": "raw/edf/train/aaaaabop/aaaaabop_00000003.edf",
+                    "rec": "raw/edf/train/aaaaabop/aaaaabop_00000003.rec",
+                    "split": "train"
+                },
+                {
+                    "file": "raw/edf/train/aaaaabop/aaaaabop_00000004.edf",
+                    "rec": "raw/edf/train/aaaaabop/aaaaabop_00000004.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "84": {
+            "patient": "aaaaaboq",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaaboq/aaaaaboq_00000003.edf",
+                    "rec": "raw/edf/train/aaaaaboq/aaaaaboq_00000003.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "85": {
+            "patient": "aaaaabor",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaabor/aaaaabor_00000001.edf",
+                    "rec": "raw/edf/train/aaaaabor/aaaaabor_00000001.rec",
+                    "split": "train"
+                },
+                {
+                    "file": "raw/edf/train/aaaaabor/aaaaabor_00000002.edf",
+                    "rec": "raw/edf/train/aaaaabor/aaaaabor_00000002.rec",
+                    "split": "train"
+                },
+                {
+                    "file": "raw/edf/train/aaaaabor/aaaaabor_00000004.edf",
+                    "rec": "raw/edf/train/aaaaabor/aaaaabor_00000004.rec",
+                    "split": "train"
+                },
+                {
+                    "file": "raw/edf/train/aaaaabor/aaaaabor_00000010.edf",
+                    "rec": "raw/edf/train/aaaaabor/aaaaabor_00000010.rec",
+                    "split": "train"
+                },
+                {
+                    "file": "raw/edf/train/aaaaabor/aaaaabor_00000011.edf",
+                    "rec": "raw/edf/train/aaaaabor/aaaaabor_00000011.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "86": {
+            "patient": "aaaaabos",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaabos/aaaaabos_00000001.edf",
+                    "rec": "raw/edf/train/aaaaabos/aaaaabos_00000001.rec",
+                    "split": "train"
+                },
+                {
+                    "file": "raw/edf/train/aaaaabos/aaaaabos_00000002.edf",
+                    "rec": "raw/edf/train/aaaaabos/aaaaabos_00000002.rec",
+                    "split": "train"
+                },
+                {
+                    "file": "raw/edf/train/aaaaabos/aaaaabos_00000008.edf",
+                    "rec": "raw/edf/train/aaaaabos/aaaaabos_00000008.rec",
+                    "split": "train"
+                },
+                {
+                    "file": "raw/edf/train/aaaaabos/aaaaabos_00000009.edf",
+                    "rec": "raw/edf/train/aaaaabos/aaaaabos_00000009.rec",
+                    "split": "train"
+                },
+                {
+                    "file": "raw/edf/train/aaaaabos/aaaaabos_00000010.edf",
+                    "rec": "raw/edf/train/aaaaabos/aaaaabos_00000010.rec",
+                    "split": "train"
+                },
+                {
+                    "file": "raw/edf/train/aaaaabos/aaaaabos_00000011.edf",
+                    "rec": "raw/edf/train/aaaaabos/aaaaabos_00000011.rec",
+                    "split": "train"
+                },
+                {
+                    "file": "raw/edf/train/aaaaabos/aaaaabos_00000012.edf",
+                    "rec": "raw/edf/train/aaaaabos/aaaaabos_00000012.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "87": {
+            "patient": "aaaaabqd",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaabqd/aaaaabqd_00000001.edf",
+                    "rec": "raw/edf/train/aaaaabqd/aaaaabqd_00000001.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "88": {
+            "patient": "aaaaabqo",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaabqo/aaaaabqo_00000001.edf",
+                    "rec": "raw/edf/train/aaaaabqo/aaaaabqo_00000001.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "89": {
+            "patient": "aaaaabqq",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaabqq/aaaaabqq_00000012.edf",
+                    "rec": "raw/edf/train/aaaaabqq/aaaaabqq_00000012.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "90": {
+            "patient": "aaaaabqs",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaabqs/aaaaabqs_00000001.edf",
+                    "rec": "raw/edf/train/aaaaabqs/aaaaabqs_00000001.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "91": {
+            "patient": "aaaaabrj",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaabrj/aaaaabrj_00000002.edf",
+                    "rec": "raw/edf/train/aaaaabrj/aaaaabrj_00000002.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "92": {
+            "patient": "aaaaabrr",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaabrr/aaaaabrr_00000001.edf",
+                    "rec": "raw/edf/train/aaaaabrr/aaaaabrr_00000001.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "93": {
+            "patient": "aaaaabsw",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaabsw/aaaaabsw_00000001.edf",
+                    "rec": "raw/edf/train/aaaaabsw/aaaaabsw_00000001.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "94": {
+            "patient": "aaaaabsy",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaabsy/aaaaabsy_00000001.edf",
+                    "rec": "raw/edf/train/aaaaabsy/aaaaabsy_00000001.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "95": {
+            "patient": "aaaaabtg",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaabtg/aaaaabtg_00000001.edf",
+                    "rec": "raw/edf/train/aaaaabtg/aaaaabtg_00000001.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "96": {
+            "patient": "aaaaabth",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaabth/aaaaabth_00000001.edf",
+                    "rec": "raw/edf/train/aaaaabth/aaaaabth_00000001.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "97": {
+            "patient": "aaaaabtr",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaabtr/aaaaabtr_00000001.edf",
+                    "rec": "raw/edf/train/aaaaabtr/aaaaabtr_00000001.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "98": {
+            "patient": "aaaaabtw",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaabtw/aaaaabtw_00000001.edf",
+                    "rec": "raw/edf/train/aaaaabtw/aaaaabtw_00000001.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "99": {
+            "patient": "aaaaabun",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaabun/aaaaabun_00000001.edf",
+                    "rec": "raw/edf/train/aaaaabun/aaaaabun_00000001.rec",
+                    "split": "train"
+                },
+                {
+                    "file": "raw/edf/train/aaaaabun/aaaaabun_00000002.edf",
+                    "rec": "raw/edf/train/aaaaabun/aaaaabun_00000002.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "100": {
+            "patient": "aaaaabuu",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaabuu/aaaaabuu_00000001.edf",
+                    "rec": "raw/edf/train/aaaaabuu/aaaaabuu_00000001.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "101": {
+            "patient": "aaaaabvg",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaabvg/aaaaabvg_00000001.edf",
+                    "rec": "raw/edf/train/aaaaabvg/aaaaabvg_00000001.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "102": {
+            "patient": "aaaaabxb",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaabxb/aaaaabxb_00000001.edf",
+                    "rec": "raw/edf/train/aaaaabxb/aaaaabxb_00000001.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "103": {
+            "patient": "aaaaabxc",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaabxc/aaaaabxc_00000002.edf",
+                    "rec": "raw/edf/train/aaaaabxc/aaaaabxc_00000002.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "104": {
+            "patient": "aaaaabxd",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaabxd/aaaaabxd_00000002.edf",
+                    "rec": "raw/edf/train/aaaaabxd/aaaaabxd_00000002.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "105": {
+            "patient": "aaaaabyi",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaabyi/aaaaabyi_00000006.edf",
+                    "rec": "raw/edf/train/aaaaabyi/aaaaabyi_00000006.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "106": {
+            "patient": "aaaaabyj",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaabyj/aaaaabyj_00000007.edf",
+                    "rec": "raw/edf/train/aaaaabyj/aaaaabyj_00000007.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "107": {
+            "patient": "aaaaabym",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaabym/aaaaabym_00000001.edf",
+                    "rec": "raw/edf/train/aaaaabym/aaaaabym_00000001.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "108": {
+            "patient": "aaaaabyt",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaabyt/aaaaabyt_00000001.edf",
+                    "rec": "raw/edf/train/aaaaabyt/aaaaabyt_00000001.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "109": {
+            "patient": "aaaaacbc",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaacbc/aaaaacbc_00000001.edf",
+                    "rec": "raw/edf/train/aaaaacbc/aaaaacbc_00000001.rec",
+                    "split": "train"
+                },
+                {
+                    "file": "raw/edf/train/aaaaacbc/aaaaacbc_00000003.edf",
+                    "rec": "raw/edf/train/aaaaacbc/aaaaacbc_00000003.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "110": {
+            "patient": "aaaaacbl",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaacbl/aaaaacbl_00000001.edf",
+                    "rec": "raw/edf/train/aaaaacbl/aaaaacbl_00000001.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "111": {
+            "patient": "aaaaaccw",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaaccw/aaaaaccw_00000001.edf",
+                    "rec": "raw/edf/train/aaaaaccw/aaaaaccw_00000001.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "112": {
+            "patient": "aaaaaceh",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaaceh/aaaaaceh_00000001.edf",
+                    "rec": "raw/edf/train/aaaaaceh/aaaaaceh_00000001.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "113": {
+            "patient": "aaaaacer",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaacer/aaaaacer_00000001.edf",
+                    "rec": "raw/edf/train/aaaaacer/aaaaacer_00000001.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "114": {
+            "patient": "aaaaacgq",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaacgq/aaaaacgq_00000001.edf",
+                    "rec": "raw/edf/train/aaaaacgq/aaaaacgq_00000001.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "115": {
+            "patient": "aaaaacgy",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaacgy/aaaaacgy_00000003.edf",
+                    "rec": "raw/edf/train/aaaaacgy/aaaaacgy_00000003.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "116": {
+            "patient": "aaaaachi",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaachi/aaaaachi_00000001.edf",
+                    "rec": "raw/edf/train/aaaaachi/aaaaachi_00000001.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "117": {
+            "patient": "aaaaachx",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaachx/aaaaachx_00000001.edf",
+                    "rec": "raw/edf/train/aaaaachx/aaaaachx_00000001.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "118": {
+            "patient": "aaaaacib",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaacib/aaaaacib_00000001.edf",
+                    "rec": "raw/edf/train/aaaaacib/aaaaacib_00000001.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "119": {
+            "patient": "aaaaacic",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaacic/aaaaacic_00000001.edf",
+                    "rec": "raw/edf/train/aaaaacic/aaaaacic_00000001.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "120": {
+            "patient": "aaaaacid",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaacid/aaaaacid_00000001.edf",
+                    "rec": "raw/edf/train/aaaaacid/aaaaacid_00000001.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "121": {
+            "patient": "aaaaacis",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaacis/aaaaacis_00000001.edf",
+                    "rec": "raw/edf/train/aaaaacis/aaaaacis_00000001.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "122": {
+            "patient": "aaaaacjf",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaacjf/aaaaacjf_00000001.edf",
+                    "rec": "raw/edf/train/aaaaacjf/aaaaacjf_00000001.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "123": {
+            "patient": "aaaaacjh",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaacjh/aaaaacjh_00000001.edf",
+                    "rec": "raw/edf/train/aaaaacjh/aaaaacjh_00000001.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "124": {
+            "patient": "aaaaacjp",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaacjp/aaaaacjp_00000001.edf",
+                    "rec": "raw/edf/train/aaaaacjp/aaaaacjp_00000001.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "125": {
+            "patient": "aaaaacjz",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaacjz/aaaaacjz_00000001.edf",
+                    "rec": "raw/edf/train/aaaaacjz/aaaaacjz_00000001.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "126": {
+            "patient": "aaaaacko",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaacko/aaaaacko_00000006.edf",
+                    "rec": "raw/edf/train/aaaaacko/aaaaacko_00000006.rec",
+                    "split": "train"
+                },
+                {
+                    "file": "raw/edf/train/aaaaacko/aaaaacko_00000007.edf",
+                    "rec": "raw/edf/train/aaaaacko/aaaaacko_00000007.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "127": {
+            "patient": "aaaaacks",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaacks/aaaaacks_00000001.edf",
+                    "rec": "raw/edf/train/aaaaacks/aaaaacks_00000001.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "128": {
+            "patient": "aaaaaclp",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaaclp/aaaaaclp_00000002.edf",
+                    "rec": "raw/edf/train/aaaaaclp/aaaaaclp_00000002.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "129": {
+            "patient": "aaaaacmk",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaacmk/aaaaacmk_00000001.edf",
+                    "rec": "raw/edf/train/aaaaacmk/aaaaacmk_00000001.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "130": {
+            "patient": "aaaaacml",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaacml/aaaaacml_00000001.edf",
+                    "rec": "raw/edf/train/aaaaacml/aaaaacml_00000001.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "131": {
+            "patient": "aaaaacnb",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaacnb/aaaaacnb_00000001.edf",
+                    "rec": "raw/edf/train/aaaaacnb/aaaaacnb_00000001.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "132": {
+            "patient": "aaaaacnc",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaacnc/aaaaacnc_00000001.edf",
+                    "rec": "raw/edf/train/aaaaacnc/aaaaacnc_00000001.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "133": {
+            "patient": "aaaaacof",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaacof/aaaaacof_00000001.edf",
+                    "rec": "raw/edf/train/aaaaacof/aaaaacof_00000001.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "134": {
+            "patient": "aaaaacon",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaacon/aaaaacon_00000001.edf",
+                    "rec": "raw/edf/train/aaaaacon/aaaaacon_00000001.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "135": {
+            "patient": "aaaaacpc",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaacpc/aaaaacpc_00000001.edf",
+                    "rec": "raw/edf/train/aaaaacpc/aaaaacpc_00000001.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "136": {
+            "patient": "aaaaacpd",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaacpd/aaaaacpd_00000001.edf",
+                    "rec": "raw/edf/train/aaaaacpd/aaaaacpd_00000001.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "137": {
+            "patient": "aaaaacqc",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaacqc/aaaaacqc_00000001.edf",
+                    "rec": "raw/edf/train/aaaaacqc/aaaaacqc_00000001.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "138": {
+            "patient": "aaaaacqd",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaacqd/aaaaacqd_00000001.edf",
+                    "rec": "raw/edf/train/aaaaacqd/aaaaacqd_00000001.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "139": {
+            "patient": "aaaaacqe",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaacqe/aaaaacqe_00000001.edf",
+                    "rec": "raw/edf/train/aaaaacqe/aaaaacqe_00000001.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "140": {
+            "patient": "aaaaacqy",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaacqy/aaaaacqy_00000001.edf",
+                    "rec": "raw/edf/train/aaaaacqy/aaaaacqy_00000001.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "141": {
+            "patient": "aaaaacrj",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaacrj/aaaaacrj_00000001.edf",
+                    "rec": "raw/edf/train/aaaaacrj/aaaaacrj_00000001.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "142": {
+            "patient": "aaaaacse",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaacse/aaaaacse_00000001.edf",
+                    "rec": "raw/edf/train/aaaaacse/aaaaacse_00000001.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "143": {
+            "patient": "aaaaacsw",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaacsw/aaaaacsw_00000001.edf",
+                    "rec": "raw/edf/train/aaaaacsw/aaaaacsw_00000001.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "144": {
+            "patient": "aaaaactf",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaactf/aaaaactf_00000001.edf",
+                    "rec": "raw/edf/train/aaaaactf/aaaaactf_00000001.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "145": {
+            "patient": "aaaaactm",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaactm/aaaaactm_00000001.edf",
+                    "rec": "raw/edf/train/aaaaactm/aaaaactm_00000001.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "146": {
+            "patient": "aaaaacuq",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaacuq/aaaaacuq_00000001.edf",
+                    "rec": "raw/edf/train/aaaaacuq/aaaaacuq_00000001.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "147": {
+            "patient": "aaaaacur",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaacur/aaaaacur_00000001.edf",
+                    "rec": "raw/edf/train/aaaaacur/aaaaacur_00000001.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "148": {
+            "patient": "aaaaacvq",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaacvq/aaaaacvq_00000001.edf",
+                    "rec": "raw/edf/train/aaaaacvq/aaaaacvq_00000001.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "149": {
+            "patient": "aaaaacvy",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaacvy/aaaaacvy_00000001.edf",
+                    "rec": "raw/edf/train/aaaaacvy/aaaaacvy_00000001.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "150": {
+            "patient": "aaaaacwg",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaacwg/aaaaacwg_00000007.edf",
+                    "rec": "raw/edf/train/aaaaacwg/aaaaacwg_00000007.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "151": {
+            "patient": "aaaaacwq",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaacwq/aaaaacwq_00000001.edf",
+                    "rec": "raw/edf/train/aaaaacwq/aaaaacwq_00000001.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "152": {
+            "patient": "aaaaacww",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaacww/aaaaacww_00000002.edf",
+                    "rec": "raw/edf/train/aaaaacww/aaaaacww_00000002.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "153": {
+            "patient": "aaaaacwx",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaacwx/aaaaacwx_00000001.edf",
+                    "rec": "raw/edf/train/aaaaacwx/aaaaacwx_00000001.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "154": {
+            "patient": "aaaaacxk",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaacxk/aaaaacxk_00000015.edf",
+                    "rec": "raw/edf/train/aaaaacxk/aaaaacxk_00000015.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "155": {
+            "patient": "aaaaacxl",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaacxl/aaaaacxl_00000010.edf",
+                    "rec": "raw/edf/train/aaaaacxl/aaaaacxl_00000010.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "156": {
+            "patient": "aaaaacxx",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaacxx/aaaaacxx_00000001.edf",
+                    "rec": "raw/edf/train/aaaaacxx/aaaaacxx_00000001.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "157": {
+            "patient": "aaaaacyp",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaacyp/aaaaacyp_00000001.edf",
+                    "rec": "raw/edf/train/aaaaacyp/aaaaacyp_00000001.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "158": {
+            "patient": "aaaaacyw",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaacyw/aaaaacyw_00000001.edf",
+                    "rec": "raw/edf/train/aaaaacyw/aaaaacyw_00000001.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "159": {
+            "patient": "aaaaaczk",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaaczk/aaaaaczk_00000001.edf",
+                    "rec": "raw/edf/train/aaaaaczk/aaaaaczk_00000001.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "160": {
+            "patient": "aaaaadan",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaadan/aaaaadan_00000001.edf",
+                    "rec": "raw/edf/train/aaaaadan/aaaaadan_00000001.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "161": {
+            "patient": "aaaaadat",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaadat/aaaaadat_00000001.edf",
+                    "rec": "raw/edf/train/aaaaadat/aaaaadat_00000001.rec",
+                    "split": "train"
+                },
+                {
+                    "file": "raw/edf/train/aaaaadat/aaaaadat_00000002.edf",
+                    "rec": "raw/edf/train/aaaaadat/aaaaadat_00000002.rec",
+                    "split": "train"
+                },
+                {
+                    "file": "raw/edf/train/aaaaadat/aaaaadat_00000003.edf",
+                    "rec": "raw/edf/train/aaaaadat/aaaaadat_00000003.rec",
+                    "split": "train"
+                },
+                {
+                    "file": "raw/edf/train/aaaaadat/aaaaadat_00000004.edf",
+                    "rec": "raw/edf/train/aaaaadat/aaaaadat_00000004.rec",
+                    "split": "train"
+                },
+                {
+                    "file": "raw/edf/train/aaaaadat/aaaaadat_00000005.edf",
+                    "rec": "raw/edf/train/aaaaadat/aaaaadat_00000005.rec",
+                    "split": "train"
+                },
+                {
+                    "file": "raw/edf/train/aaaaadat/aaaaadat_00000006.edf",
+                    "rec": "raw/edf/train/aaaaadat/aaaaadat_00000006.rec",
+                    "split": "train"
+                },
+                {
+                    "file": "raw/edf/train/aaaaadat/aaaaadat_00000007.edf",
+                    "rec": "raw/edf/train/aaaaadat/aaaaadat_00000007.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "162": {
+            "patient": "aaaaadbw",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaadbw/aaaaadbw_00000001.edf",
+                    "rec": "raw/edf/train/aaaaadbw/aaaaadbw_00000001.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "163": {
+            "patient": "aaaaaddp",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaaddp/aaaaaddp_00000001.edf",
+                    "rec": "raw/edf/train/aaaaaddp/aaaaaddp_00000001.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "164": {
+            "patient": "aaaaadea",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaadea/aaaaadea_00000001.edf",
+                    "rec": "raw/edf/train/aaaaadea/aaaaadea_00000001.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "165": {
+            "patient": "aaaaadey",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaadey/aaaaadey_00000001.edf",
+                    "rec": "raw/edf/train/aaaaadey/aaaaadey_00000001.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "166": {
+            "patient": "aaaaadgr",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaadgr/aaaaadgr_00000001.edf",
+                    "rec": "raw/edf/train/aaaaadgr/aaaaadgr_00000001.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "167": {
+            "patient": "aaaaadik",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaadik/aaaaadik_00000001.edf",
+                    "rec": "raw/edf/train/aaaaadik/aaaaadik_00000001.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "168": {
+            "patient": "aaaaadio",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaadio/aaaaadio_00000001.edf",
+                    "rec": "raw/edf/train/aaaaadio/aaaaadio_00000001.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "169": {
+            "patient": "aaaaadjd",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaadjd/aaaaadjd_00000001.edf",
+                    "rec": "raw/edf/train/aaaaadjd/aaaaadjd_00000001.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "170": {
+            "patient": "aaaaadjn",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaadjn/aaaaadjn_00000001.edf",
+                    "rec": "raw/edf/train/aaaaadjn/aaaaadjn_00000001.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "171": {
+            "patient": "aaaaadlc",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaadlc/aaaaadlc_00000001.edf",
+                    "rec": "raw/edf/train/aaaaadlc/aaaaadlc_00000001.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "172": {
+            "patient": "aaaaadlg",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaadlg/aaaaadlg_00000001.edf",
+                    "rec": "raw/edf/train/aaaaadlg/aaaaadlg_00000001.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "173": {
+            "patient": "aaaaadnh",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaadnh/aaaaadnh_00000001.edf",
+                    "rec": "raw/edf/train/aaaaadnh/aaaaadnh_00000001.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "174": {
+            "patient": "aaaaadni",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaadni/aaaaadni_00000001.edf",
+                    "rec": "raw/edf/train/aaaaadni/aaaaadni_00000001.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "175": {
+            "patient": "aaaaadoa",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaadoa/aaaaadoa_00000006.edf",
+                    "rec": "raw/edf/train/aaaaadoa/aaaaadoa_00000006.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "176": {
+            "patient": "aaaaadoo",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaadoo/aaaaadoo_00000001.edf",
+                    "rec": "raw/edf/train/aaaaadoo/aaaaadoo_00000001.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "177": {
+            "patient": "aaaaadov",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaadov/aaaaadov_00000002.edf",
+                    "rec": "raw/edf/train/aaaaadov/aaaaadov_00000002.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "178": {
+            "patient": "aaaaadpg",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaadpg/aaaaadpg_00000001.edf",
+                    "rec": "raw/edf/train/aaaaadpg/aaaaadpg_00000001.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "179": {
+            "patient": "aaaaadqg",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaadqg/aaaaadqg_00000009.edf",
+                    "rec": "raw/edf/train/aaaaadqg/aaaaadqg_00000009.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "180": {
+            "patient": "aaaaadqq",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaadqq/aaaaadqq_00000003.edf",
+                    "rec": "raw/edf/train/aaaaadqq/aaaaadqq_00000003.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "181": {
+            "patient": "aaaaadqt",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaadqt/aaaaadqt_00000002.edf",
+                    "rec": "raw/edf/train/aaaaadqt/aaaaadqt_00000002.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "182": {
+            "patient": "aaaaadqz",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaadqz/aaaaadqz_00000001.edf",
+                    "rec": "raw/edf/train/aaaaadqz/aaaaadqz_00000001.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "183": {
+            "patient": "aaaaadrd",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaadrd/aaaaadrd_00000003.edf",
+                    "rec": "raw/edf/train/aaaaadrd/aaaaadrd_00000003.rec",
+                    "split": "train"
+                },
+                {
+                    "file": "raw/edf/train/aaaaadrd/aaaaadrd_00000005.edf",
+                    "rec": "raw/edf/train/aaaaadrd/aaaaadrd_00000005.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "184": {
+            "patient": "aaaaadrg",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaadrg/aaaaadrg_00000002.edf",
+                    "rec": "raw/edf/train/aaaaadrg/aaaaadrg_00000002.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "185": {
+            "patient": "aaaaadrh",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaadrh/aaaaadrh_00000002.edf",
+                    "rec": "raw/edf/train/aaaaadrh/aaaaadrh_00000002.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "186": {
+            "patient": "aaaaadru",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaadru/aaaaadru_00000005.edf",
+                    "rec": "raw/edf/train/aaaaadru/aaaaadru_00000005.rec",
+                    "split": "train"
+                },
+                {
+                    "file": "raw/edf/train/aaaaadru/aaaaadru_00000006.edf",
+                    "rec": "raw/edf/train/aaaaadru/aaaaadru_00000006.rec",
+                    "split": "train"
+                },
+                {
+                    "file": "raw/edf/train/aaaaadru/aaaaadru_00000007.edf",
+                    "rec": "raw/edf/train/aaaaadru/aaaaadru_00000007.rec",
+                    "split": "train"
+                },
+                {
+                    "file": "raw/edf/train/aaaaadru/aaaaadru_00000008.edf",
+                    "rec": "raw/edf/train/aaaaadru/aaaaadru_00000008.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "187": {
+            "patient": "aaaaadrv",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaadrv/aaaaadrv_00000003.edf",
+                    "rec": "raw/edf/train/aaaaadrv/aaaaadrv_00000003.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "188": {
+            "patient": "aaaaadsd",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaadsd/aaaaadsd_00000001.edf",
+                    "rec": "raw/edf/train/aaaaadsd/aaaaadsd_00000001.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "189": {
+            "patient": "aaaaadsg",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaadsg/aaaaadsg_00000001.edf",
+                    "rec": "raw/edf/train/aaaaadsg/aaaaadsg_00000001.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "190": {
+            "patient": "aaaaadsh",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaadsh/aaaaadsh_00000001.edf",
+                    "rec": "raw/edf/train/aaaaadsh/aaaaadsh_00000001.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "191": {
+            "patient": "aaaaadsr",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaadsr/aaaaadsr_00000007.edf",
+                    "rec": "raw/edf/train/aaaaadsr/aaaaadsr_00000007.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "192": {
+            "patient": "aaaaadss",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaadss/aaaaadss_00000007.edf",
+                    "rec": "raw/edf/train/aaaaadss/aaaaadss_00000007.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "193": {
+            "patient": "aaaaadst",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaadst/aaaaadst_00000001.edf",
+                    "rec": "raw/edf/train/aaaaadst/aaaaadst_00000001.rec",
+                    "split": "train"
+                },
+                {
+                    "file": "raw/edf/train/aaaaadst/aaaaadst_00000005.edf",
+                    "rec": "raw/edf/train/aaaaadst/aaaaadst_00000005.rec",
+                    "split": "train"
+                },
+                {
+                    "file": "raw/edf/train/aaaaadst/aaaaadst_00000006.edf",
+                    "rec": "raw/edf/train/aaaaadst/aaaaadst_00000006.rec",
+                    "split": "train"
+                },
+                {
+                    "file": "raw/edf/train/aaaaadst/aaaaadst_00000008.edf",
+                    "rec": "raw/edf/train/aaaaadst/aaaaadst_00000008.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "194": {
+            "patient": "aaaaadsv",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaadsv/aaaaadsv_00000005.edf",
+                    "rec": "raw/edf/train/aaaaadsv/aaaaadsv_00000005.rec",
+                    "split": "train"
+                },
+                {
+                    "file": "raw/edf/train/aaaaadsv/aaaaadsv_00000011.edf",
+                    "rec": "raw/edf/train/aaaaadsv/aaaaadsv_00000011.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "195": {
+            "patient": "aaaaadty",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaadty/aaaaadty_00000001.edf",
+                    "rec": "raw/edf/train/aaaaadty/aaaaadty_00000001.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "196": {
+            "patient": "aaaaadud",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaadud/aaaaadud_00000001.edf",
+                    "rec": "raw/edf/train/aaaaadud/aaaaadud_00000001.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "197": {
+            "patient": "aaaaaduk",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaaduk/aaaaaduk_00000001.edf",
+                    "rec": "raw/edf/train/aaaaaduk/aaaaaduk_00000001.rec",
+                    "split": "train"
+                },
+                {
+                    "file": "raw/edf/train/aaaaaduk/aaaaaduk_00000002.edf",
+                    "rec": "raw/edf/train/aaaaaduk/aaaaaduk_00000002.rec",
+                    "split": "train"
+                },
+                {
+                    "file": "raw/edf/train/aaaaaduk/aaaaaduk_00000003.edf",
+                    "rec": "raw/edf/train/aaaaaduk/aaaaaduk_00000003.rec",
+                    "split": "train"
+                },
+                {
+                    "file": "raw/edf/train/aaaaaduk/aaaaaduk_00000004.edf",
+                    "rec": "raw/edf/train/aaaaaduk/aaaaaduk_00000004.rec",
+                    "split": "train"
+                },
+                {
+                    "file": "raw/edf/train/aaaaaduk/aaaaaduk_00000007.edf",
+                    "rec": "raw/edf/train/aaaaaduk/aaaaaduk_00000007.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "198": {
+            "patient": "aaaaadul",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaadul/aaaaadul_00000001.edf",
+                    "rec": "raw/edf/train/aaaaadul/aaaaadul_00000001.rec",
+                    "split": "train"
+                },
+                {
+                    "file": "raw/edf/train/aaaaadul/aaaaadul_00000002.edf",
+                    "rec": "raw/edf/train/aaaaadul/aaaaadul_00000002.rec",
+                    "split": "train"
+                },
+                {
+                    "file": "raw/edf/train/aaaaadul/aaaaadul_00000003.edf",
+                    "rec": "raw/edf/train/aaaaadul/aaaaadul_00000003.rec",
+                    "split": "train"
+                },
+                {
+                    "file": "raw/edf/train/aaaaadul/aaaaadul_00000004.edf",
+                    "rec": "raw/edf/train/aaaaadul/aaaaadul_00000004.rec",
+                    "split": "train"
+                },
+                {
+                    "file": "raw/edf/train/aaaaadul/aaaaadul_00000006.edf",
+                    "rec": "raw/edf/train/aaaaadul/aaaaadul_00000006.rec",
+                    "split": "train"
+                },
+                {
+                    "file": "raw/edf/train/aaaaadul/aaaaadul_00000007.edf",
+                    "rec": "raw/edf/train/aaaaadul/aaaaadul_00000007.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "199": {
+            "patient": "aaaaaduy",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaaduy/aaaaaduy_00000001.edf",
+                    "rec": "raw/edf/train/aaaaaduy/aaaaaduy_00000001.rec",
+                    "split": "train"
+                },
+                {
+                    "file": "raw/edf/train/aaaaaduy/aaaaaduy_00000002.edf",
+                    "rec": "raw/edf/train/aaaaaduy/aaaaaduy_00000002.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "200": {
+            "patient": "aaaaadvc",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaadvc/aaaaadvc_00000001.edf",
+                    "rec": "raw/edf/train/aaaaadvc/aaaaadvc_00000001.rec",
+                    "split": "train"
+                },
+                {
+                    "file": "raw/edf/train/aaaaadvc/aaaaadvc_00000002.edf",
+                    "rec": "raw/edf/train/aaaaadvc/aaaaadvc_00000002.rec",
+                    "split": "train"
+                },
+                {
+                    "file": "raw/edf/train/aaaaadvc/aaaaadvc_00000003.edf",
+                    "rec": "raw/edf/train/aaaaadvc/aaaaadvc_00000003.rec",
+                    "split": "train"
+                },
+                {
+                    "file": "raw/edf/train/aaaaadvc/aaaaadvc_00000004.edf",
+                    "rec": "raw/edf/train/aaaaadvc/aaaaadvc_00000004.rec",
+                    "split": "train"
+                },
+                {
+                    "file": "raw/edf/train/aaaaadvc/aaaaadvc_00000006.edf",
+                    "rec": "raw/edf/train/aaaaadvc/aaaaadvc_00000006.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "201": {
+            "patient": "aaaaadvi",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaadvi/aaaaadvi_00000001.edf",
+                    "rec": "raw/edf/train/aaaaadvi/aaaaadvi_00000001.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "202": {
+            "patient": "aaaaadvu",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaadvu/aaaaadvu_00000001.edf",
+                    "rec": "raw/edf/train/aaaaadvu/aaaaadvu_00000001.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "203": {
+            "patient": "aaaaadww",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaadww/aaaaadww_00000002.edf",
+                    "rec": "raw/edf/train/aaaaadww/aaaaadww_00000002.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "204": {
+            "patient": "aaaaadxh",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaadxh/aaaaadxh_00000001.edf",
+                    "rec": "raw/edf/train/aaaaadxh/aaaaadxh_00000001.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "205": {
+            "patient": "aaaaadxl",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaadxl/aaaaadxl_00000002.edf",
+                    "rec": "raw/edf/train/aaaaadxl/aaaaadxl_00000002.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "206": {
+            "patient": "aaaaadxv",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaadxv/aaaaadxv_00000002.edf",
+                    "rec": "raw/edf/train/aaaaadxv/aaaaadxv_00000002.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "207": {
+            "patient": "aaaaadxw",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaadxw/aaaaadxw_00000001.edf",
+                    "rec": "raw/edf/train/aaaaadxw/aaaaadxw_00000001.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "208": {
+            "patient": "aaaaadyg",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaadyg/aaaaadyg_00000001.edf",
+                    "rec": "raw/edf/train/aaaaadyg/aaaaadyg_00000001.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "209": {
+            "patient": "aaaaadyv",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaadyv/aaaaadyv_00000001.edf",
+                    "rec": "raw/edf/train/aaaaadyv/aaaaadyv_00000001.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "210": {
+            "patient": "aaaaaeaz",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaaeaz/aaaaaeaz_00000001.edf",
+                    "rec": "raw/edf/train/aaaaaeaz/aaaaaeaz_00000001.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "211": {
+            "patient": "aaaaaecc",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaaecc/aaaaaecc_00000002.edf",
+                    "rec": "raw/edf/train/aaaaaecc/aaaaaecc_00000002.rec",
+                    "split": "train"
+                },
+                {
+                    "file": "raw/edf/train/aaaaaecc/aaaaaecc_00000004.edf",
+                    "rec": "raw/edf/train/aaaaaecc/aaaaaecc_00000004.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "212": {
+            "patient": "aaaaaecu",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaaecu/aaaaaecu_00000001.edf",
+                    "rec": "raw/edf/train/aaaaaecu/aaaaaecu_00000001.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "213": {
+            "patient": "aaaaaedd",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaaedd/aaaaaedd_00000001.edf",
+                    "rec": "raw/edf/train/aaaaaedd/aaaaaedd_00000001.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "214": {
+            "patient": "aaaaaeec",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaaeec/aaaaaeec_00000008.edf",
+                    "rec": "raw/edf/train/aaaaaeec/aaaaaeec_00000008.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "215": {
+            "patient": "aaaaaeee",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaaeee/aaaaaeee_00000001.edf",
+                    "rec": "raw/edf/train/aaaaaeee/aaaaaeee_00000001.rec",
+                    "split": "train"
+                },
+                {
+                    "file": "raw/edf/train/aaaaaeee/aaaaaeee_00000003.edf",
+                    "rec": "raw/edf/train/aaaaaeee/aaaaaeee_00000003.rec",
+                    "split": "train"
+                },
+                {
+                    "file": "raw/edf/train/aaaaaeee/aaaaaeee_00000004.edf",
+                    "rec": "raw/edf/train/aaaaaeee/aaaaaeee_00000004.rec",
+                    "split": "train"
+                },
+                {
+                    "file": "raw/edf/train/aaaaaeee/aaaaaeee_00000005.edf",
+                    "rec": "raw/edf/train/aaaaaeee/aaaaaeee_00000005.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "216": {
+            "patient": "aaaaaeel",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaaeel/aaaaaeel_00000002.edf",
+                    "rec": "raw/edf/train/aaaaaeel/aaaaaeel_00000002.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "217": {
+            "patient": "aaaaaeer",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaaeer/aaaaaeer_00000001.edf",
+                    "rec": "raw/edf/train/aaaaaeer/aaaaaeer_00000001.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "218": {
+            "patient": "aaaaaeex",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaaeex/aaaaaeex_00000002.edf",
+                    "rec": "raw/edf/train/aaaaaeex/aaaaaeex_00000002.rec",
+                    "split": "train"
+                },
+                {
+                    "file": "raw/edf/train/aaaaaeex/aaaaaeex_00000003.edf",
+                    "rec": "raw/edf/train/aaaaaeex/aaaaaeex_00000003.rec",
+                    "split": "train"
+                },
+                {
+                    "file": "raw/edf/train/aaaaaeex/aaaaaeex_00000004.edf",
+                    "rec": "raw/edf/train/aaaaaeex/aaaaaeex_00000004.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "219": {
+            "patient": "aaaaaefj",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaaefj/aaaaaefj_00000001.edf",
+                    "rec": "raw/edf/train/aaaaaefj/aaaaaefj_00000001.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "220": {
+            "patient": "aaaaaefs",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaaefs/aaaaaefs_00000001.edf",
+                    "rec": "raw/edf/train/aaaaaefs/aaaaaefs_00000001.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "221": {
+            "patient": "aaaaaegi",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaaegi/aaaaaegi_00000004.edf",
+                    "rec": "raw/edf/train/aaaaaegi/aaaaaegi_00000004.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "222": {
+            "patient": "aaaaaegl",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaaegl/aaaaaegl_00000002.edf",
+                    "rec": "raw/edf/train/aaaaaegl/aaaaaegl_00000002.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "223": {
+            "patient": "aaaaaegp",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaaegp/aaaaaegp_00000007.edf",
+                    "rec": "raw/edf/train/aaaaaegp/aaaaaegp_00000007.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "224": {
+            "patient": "aaaaaehl",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaaehl/aaaaaehl_00000001.edf",
+                    "rec": "raw/edf/train/aaaaaehl/aaaaaehl_00000001.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "225": {
+            "patient": "aaaaaehv",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaaehv/aaaaaehv_00000001.edf",
+                    "rec": "raw/edf/train/aaaaaehv/aaaaaehv_00000001.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "226": {
+            "patient": "aaaaaeic",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaaeic/aaaaaeic_00000001.edf",
+                    "rec": "raw/edf/train/aaaaaeic/aaaaaeic_00000001.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "227": {
+            "patient": "aaaaaeie",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaaeie/aaaaaeie_00000001.edf",
+                    "rec": "raw/edf/train/aaaaaeie/aaaaaeie_00000001.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "228": {
+            "patient": "aaaaaeio",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaaeio/aaaaaeio_00000001.edf",
+                    "rec": "raw/edf/train/aaaaaeio/aaaaaeio_00000001.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "229": {
+            "patient": "aaaaaejk",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaaejk/aaaaaejk_00000001.edf",
+                    "rec": "raw/edf/train/aaaaaejk/aaaaaejk_00000001.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "230": {
+            "patient": "aaaaaelg",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaaelg/aaaaaelg_00000001.edf",
+                    "rec": "raw/edf/train/aaaaaelg/aaaaaelg_00000001.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "231": {
+            "patient": "aaaaaelw",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaaelw/aaaaaelw_00000002.edf",
+                    "rec": "raw/edf/train/aaaaaelw/aaaaaelw_00000002.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "232": {
+            "patient": "aaaaaems",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaaems/aaaaaems_00000001.edf",
+                    "rec": "raw/edf/train/aaaaaems/aaaaaems_00000001.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "233": {
+            "patient": "aaaaaeni",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaaeni/aaaaaeni_00000001.edf",
+                    "rec": "raw/edf/train/aaaaaeni/aaaaaeni_00000001.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "234": {
+            "patient": "aaaaaeoa",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaaeoa/aaaaaeoa_00000001.edf",
+                    "rec": "raw/edf/train/aaaaaeoa/aaaaaeoa_00000001.rec",
+                    "split": "train"
+                },
+                {
+                    "file": "raw/edf/train/aaaaaeoa/aaaaaeoa_00000002.edf",
+                    "rec": "raw/edf/train/aaaaaeoa/aaaaaeoa_00000002.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "235": {
+            "patient": "aaaaaeqc",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaaeqc/aaaaaeqc_00000001.edf",
+                    "rec": "raw/edf/train/aaaaaeqc/aaaaaeqc_00000001.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "236": {
+            "patient": "aaaaaeqd",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaaeqd/aaaaaeqd_00000001.edf",
+                    "rec": "raw/edf/train/aaaaaeqd/aaaaaeqd_00000001.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "237": {
+            "patient": "aaaaaeqr",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaaeqr/aaaaaeqr_00000001.edf",
+                    "rec": "raw/edf/train/aaaaaeqr/aaaaaeqr_00000001.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "238": {
+            "patient": "aaaaaeri",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaaeri/aaaaaeri_00000001.edf",
+                    "rec": "raw/edf/train/aaaaaeri/aaaaaeri_00000001.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "239": {
+            "patient": "aaaaaert",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaaert/aaaaaert_00000001.edf",
+                    "rec": "raw/edf/train/aaaaaert/aaaaaert_00000001.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "240": {
+            "patient": "aaaaaesj",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaaesj/aaaaaesj_00000001.edf",
+                    "rec": "raw/edf/train/aaaaaesj/aaaaaesj_00000001.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "241": {
+            "patient": "aaaaaesm",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaaesm/aaaaaesm_00000001.edf",
+                    "rec": "raw/edf/train/aaaaaesm/aaaaaesm_00000001.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "242": {
+            "patient": "aaaaaetx",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaaetx/aaaaaetx_00000001.edf",
+                    "rec": "raw/edf/train/aaaaaetx/aaaaaetx_00000001.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "243": {
+            "patient": "aaaaaety",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaaety/aaaaaety_00000001.edf",
+                    "rec": "raw/edf/train/aaaaaety/aaaaaety_00000001.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "244": {
+            "patient": "aaaaaetz",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaaetz/aaaaaetz_00000001.edf",
+                    "rec": "raw/edf/train/aaaaaetz/aaaaaetz_00000001.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "245": {
+            "patient": "aaaaaeuh",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaaeuh/aaaaaeuh_00000001.edf",
+                    "rec": "raw/edf/train/aaaaaeuh/aaaaaeuh_00000001.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "246": {
+            "patient": "aaaaaeur",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaaeur/aaaaaeur_00000001.edf",
+                    "rec": "raw/edf/train/aaaaaeur/aaaaaeur_00000001.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "247": {
+            "patient": "aaaaaeux",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaaeux/aaaaaeux_00000001.edf",
+                    "rec": "raw/edf/train/aaaaaeux/aaaaaeux_00000001.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "248": {
+            "patient": "aaaaaevo",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaaevo/aaaaaevo_00000001.edf",
+                    "rec": "raw/edf/train/aaaaaevo/aaaaaevo_00000001.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "249": {
+            "patient": "aaaaaevv",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaaevv/aaaaaevv_00000001.edf",
+                    "rec": "raw/edf/train/aaaaaevv/aaaaaevv_00000001.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "250": {
+            "patient": "aaaaaewe",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaaewe/aaaaaewe_00000001.edf",
+                    "rec": "raw/edf/train/aaaaaewe/aaaaaewe_00000001.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "251": {
+            "patient": "aaaaaewi",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaaewi/aaaaaewi_00000003.edf",
+                    "rec": "raw/edf/train/aaaaaewi/aaaaaewi_00000003.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "252": {
+            "patient": "aaaaaewj",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaaewj/aaaaaewj_00000003.edf",
+                    "rec": "raw/edf/train/aaaaaewj/aaaaaewj_00000003.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "253": {
+            "patient": "aaaaaexb",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaaexb/aaaaaexb_00000001.edf",
+                    "rec": "raw/edf/train/aaaaaexb/aaaaaexb_00000001.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "254": {
+            "patient": "aaaaaexn",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaaexn/aaaaaexn_00000001.edf",
+                    "rec": "raw/edf/train/aaaaaexn/aaaaaexn_00000001.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "255": {
+            "patient": "aaaaaeyk",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaaeyk/aaaaaeyk_00000001.edf",
+                    "rec": "raw/edf/train/aaaaaeyk/aaaaaeyk_00000001.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "256": {
+            "patient": "aaaaaeyr",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaaeyr/aaaaaeyr_00000002.edf",
+                    "rec": "raw/edf/train/aaaaaeyr/aaaaaeyr_00000002.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "257": {
+            "patient": "aaaaaeys",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaaeys/aaaaaeys_00000001.edf",
+                    "rec": "raw/edf/train/aaaaaeys/aaaaaeys_00000001.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "258": {
+            "patient": "aaaaaeyu",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaaeyu/aaaaaeyu_00000008.edf",
+                    "rec": "raw/edf/train/aaaaaeyu/aaaaaeyu_00000008.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "259": {
+            "patient": "aaaaaeyz",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaaeyz/aaaaaeyz_00000001.edf",
+                    "rec": "raw/edf/train/aaaaaeyz/aaaaaeyz_00000001.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "260": {
+            "patient": "aaaaaezj",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaaezj/aaaaaezj_00000001.edf",
+                    "rec": "raw/edf/train/aaaaaezj/aaaaaezj_00000001.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "261": {
+            "patient": "aaaaaezm",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaaezm/aaaaaezm_00000001.edf",
+                    "rec": "raw/edf/train/aaaaaezm/aaaaaezm_00000001.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "262": {
+            "patient": "aaaaafai",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaafai/aaaaafai_00000001.edf",
+                    "rec": "raw/edf/train/aaaaafai/aaaaafai_00000001.rec",
+                    "split": "train"
+                },
+                {
+                    "file": "raw/edf/train/aaaaafai/aaaaafai_00000002.edf",
+                    "rec": "raw/edf/train/aaaaafai/aaaaafai_00000002.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "263": {
+            "patient": "aaaaafaj",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaafaj/aaaaafaj_00000001.edf",
+                    "rec": "raw/edf/train/aaaaafaj/aaaaafaj_00000001.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "264": {
+            "patient": "aaaaafcs",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaafcs/aaaaafcs_00000001.edf",
+                    "rec": "raw/edf/train/aaaaafcs/aaaaafcs_00000001.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "265": {
+            "patient": "aaaaafcu",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaafcu/aaaaafcu_00000001.edf",
+                    "rec": "raw/edf/train/aaaaafcu/aaaaafcu_00000001.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "266": {
+            "patient": "aaaaafdw",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaafdw/aaaaafdw_00000002.edf",
+                    "rec": "raw/edf/train/aaaaafdw/aaaaafdw_00000002.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "267": {
+            "patient": "aaaaafef",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaafef/aaaaafef_00000001.edf",
+                    "rec": "raw/edf/train/aaaaafef/aaaaafef_00000001.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "268": {
+            "patient": "aaaaafeu",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaafeu/aaaaafeu_00000001.edf",
+                    "rec": "raw/edf/train/aaaaafeu/aaaaafeu_00000001.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "269": {
+            "patient": "aaaaafff",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaafff/aaaaafff_00000002.edf",
+                    "rec": "raw/edf/train/aaaaafff/aaaaafff_00000002.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "270": {
+            "patient": "aaaaaffh",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaaffh/aaaaaffh_00000001.edf",
+                    "rec": "raw/edf/train/aaaaaffh/aaaaaffh_00000001.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "271": {
+            "patient": "aaaaaffm",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaaffm/aaaaaffm_00000001.edf",
+                    "rec": "raw/edf/train/aaaaaffm/aaaaaffm_00000001.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "272": {
+            "patient": "aaaaaffr",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaaffr/aaaaaffr_00000001.edf",
+                    "rec": "raw/edf/train/aaaaaffr/aaaaaffr_00000001.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "273": {
+            "patient": "aaaaaffz",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaaffz/aaaaaffz_00000001.edf",
+                    "rec": "raw/edf/train/aaaaaffz/aaaaaffz_00000001.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "274": {
+            "patient": "aaaaafgm",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaafgm/aaaaafgm_00000001.edf",
+                    "rec": "raw/edf/train/aaaaafgm/aaaaafgm_00000001.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "275": {
+            "patient": "aaaaafgy",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaafgy/aaaaafgy_00000001.edf",
+                    "rec": "raw/edf/train/aaaaafgy/aaaaafgy_00000001.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "276": {
+            "patient": "aaaaafgz",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaafgz/aaaaafgz_00000001.edf",
+                    "rec": "raw/edf/train/aaaaafgz/aaaaafgz_00000001.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "277": {
+            "patient": "aaaaafit",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaafit/aaaaafit_00000001.edf",
+                    "rec": "raw/edf/train/aaaaafit/aaaaafit_00000001.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "278": {
+            "patient": "aaaaafiv",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaafiv/aaaaafiv_00000001.edf",
+                    "rec": "raw/edf/train/aaaaafiv/aaaaafiv_00000001.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "279": {
+            "patient": "aaaaafjb",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaafjb/aaaaafjb_00000002.edf",
+                    "rec": "raw/edf/train/aaaaafjb/aaaaafjb_00000002.rec",
+                    "split": "train"
+                },
+                {
+                    "file": "raw/edf/train/aaaaafjb/aaaaafjb_00000023.edf",
+                    "rec": "raw/edf/train/aaaaafjb/aaaaafjb_00000023.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "280": {
+            "patient": "aaaaafjm",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaafjm/aaaaafjm_00000011.edf",
+                    "rec": "raw/edf/train/aaaaafjm/aaaaafjm_00000011.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "281": {
+            "patient": "aaaaafka",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaafka/aaaaafka_00000001.edf",
+                    "rec": "raw/edf/train/aaaaafka/aaaaafka_00000001.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "282": {
+            "patient": "aaaaafkp",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaafkp/aaaaafkp_00000001.edf",
+                    "rec": "raw/edf/train/aaaaafkp/aaaaafkp_00000001.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "283": {
+            "patient": "aaaaafku",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaafku/aaaaafku_00000001.edf",
+                    "rec": "raw/edf/train/aaaaafku/aaaaafku_00000001.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "284": {
+            "patient": "aaaaafmb",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaafmb/aaaaafmb_00000001.edf",
+                    "rec": "raw/edf/train/aaaaafmb/aaaaafmb_00000001.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "285": {
+            "patient": "aaaaafmi",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaafmi/aaaaafmi_00000001.edf",
+                    "rec": "raw/edf/train/aaaaafmi/aaaaafmi_00000001.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "286": {
+            "patient": "aaaaafmn",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaafmn/aaaaafmn_00000001.edf",
+                    "rec": "raw/edf/train/aaaaafmn/aaaaafmn_00000001.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "287": {
+            "patient": "aaaaafmv",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaafmv/aaaaafmv_00000001.edf",
+                    "rec": "raw/edf/train/aaaaafmv/aaaaafmv_00000001.rec",
+                    "split": "train"
+                },
+                {
+                    "file": "raw/edf/train/aaaaafmv/aaaaafmv_00000002.edf",
+                    "rec": "raw/edf/train/aaaaafmv/aaaaafmv_00000002.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "288": {
+            "patient": "aaaaafnb",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaafnb/aaaaafnb_00000001.edf",
+                    "rec": "raw/edf/train/aaaaafnb/aaaaafnb_00000001.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "289": {
+            "patient": "aaaaafoe",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaafoe/aaaaafoe_00000001.edf",
+                    "rec": "raw/edf/train/aaaaafoe/aaaaafoe_00000001.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "290": {
+            "patient": "aaaaafop",
+            "runs": [
+                {
+                    "file": "raw/edf/train/aaaaafop/aaaaafop_00000001.edf",
+                    "rec": "raw/edf/train/aaaaafop/aaaaafop_00000001.rec",
+                    "split": "train"
+                }
+            ]
+        },
+        "291": {
+            "patient": "eval000",
+            "runs": [
+                {
+                    "file": "raw/edf/eval/000/bckg_000_a_.edf",
+                    "rec": "raw/edf/eval/000/bckg_000_a_.rec",
+                    "split": "eval"
+                }
+            ]
+        },
+        "292": {
+            "patient": "eval001",
+            "runs": [
+                {
+                    "file": "raw/edf/eval/001/bckg_001_a_.edf",
+                    "rec": "raw/edf/eval/001/bckg_001_a_.rec",
+                    "split": "eval"
+                },
+                {
+                    "file": "raw/edf/eval/001/pled_001_a_.edf",
+                    "rec": "raw/edf/eval/001/pled_001_a_.rec",
+                    "split": "eval"
+                },
+                {
+                    "file": "raw/edf/eval/001/pled_001_a_2.edf",
+                    "rec": "raw/edf/eval/001/pled_001_a_2.rec",
+                    "split": "eval"
+                },
+                {
+                    "file": "raw/edf/eval/001/pled_001_a_3.edf",
+                    "rec": "raw/edf/eval/001/pled_001_a_3.rec",
+                    "split": "eval"
+                },
+                {
+                    "file": "raw/edf/eval/001/spsw_001_a_1.edf",
+                    "rec": "raw/edf/eval/001/spsw_001_a_1.rec",
+                    "split": "eval"
+                }
+            ]
+        },
+        "293": {
+            "patient": "eval002",
+            "runs": [
+                {
+                    "file": "raw/edf/eval/002/bckg_002_a_.edf",
+                    "rec": "raw/edf/eval/002/bckg_002_a_.rec",
+                    "split": "eval"
+                },
+                {
+                    "file": "raw/edf/eval/002/spsw_002_a_1.edf",
+                    "rec": "raw/edf/eval/002/spsw_002_a_1.rec",
+                    "split": "eval"
+                }
+            ]
+        },
+        "294": {
+            "patient": "eval003",
+            "runs": [
+                {
+                    "file": "raw/edf/eval/003/bckg_003_a_.edf",
+                    "rec": "raw/edf/eval/003/bckg_003_a_.rec",
+                    "split": "eval"
+                }
+            ]
+        },
+        "295": {
+            "patient": "eval004",
+            "runs": [
+                {
+                    "file": "raw/edf/eval/004/bckg_004_a_.edf",
+                    "rec": "raw/edf/eval/004/bckg_004_a_.rec",
+                    "split": "eval"
+                },
+                {
+                    "file": "raw/edf/eval/004/gped_004_a_3.edf",
+                    "rec": "raw/edf/eval/004/gped_004_a_3.rec",
+                    "split": "eval"
+                },
+                {
+                    "file": "raw/edf/eval/004/pled_004_a_.edf",
+                    "rec": "raw/edf/eval/004/pled_004_a_.rec",
+                    "split": "eval"
+                }
+            ]
+        },
+        "296": {
+            "patient": "eval005",
+            "runs": [
+                {
+                    "file": "raw/edf/eval/005/bckg_005_a_.edf",
+                    "rec": "raw/edf/eval/005/bckg_005_a_.rec",
+                    "split": "eval"
+                },
+                {
+                    "file": "raw/edf/eval/005/spsw_005_a_.edf",
+                    "rec": "raw/edf/eval/005/spsw_005_a_.rec",
+                    "split": "eval"
+                }
+            ]
+        },
+        "297": {
+            "patient": "eval006",
+            "runs": [
+                {
+                    "file": "raw/edf/eval/006/bckg_006_a_.edf",
+                    "rec": "raw/edf/eval/006/bckg_006_a_.rec",
+                    "split": "eval"
+                },
+                {
+                    "file": "raw/edf/eval/006/pled_006_a_.edf",
+                    "rec": "raw/edf/eval/006/pled_006_a_.rec",
+                    "split": "eval"
+                },
+                {
+                    "file": "raw/edf/eval/006/pled_006_a_2.edf",
+                    "rec": "raw/edf/eval/006/pled_006_a_2.rec",
+                    "split": "eval"
+                }
+            ]
+        },
+        "298": {
+            "patient": "eval007",
+            "runs": [
+                {
+                    "file": "raw/edf/eval/007/bckg_007_a_.edf",
+                    "rec": "raw/edf/eval/007/bckg_007_a_.rec",
+                    "split": "eval"
+                },
+                {
+                    "file": "raw/edf/eval/007/pled_007_a_2.edf",
+                    "rec": "raw/edf/eval/007/pled_007_a_2.rec",
+                    "split": "eval"
+                }
+            ]
+        },
+        "299": {
+            "patient": "eval008",
+            "runs": [
+                {
+                    "file": "raw/edf/eval/008/bckg_008_a_.edf",
+                    "rec": "raw/edf/eval/008/bckg_008_a_.rec",
+                    "split": "eval"
+                },
+                {
+                    "file": "raw/edf/eval/008/pled_008_a_1.edf",
+                    "rec": "raw/edf/eval/008/pled_008_a_1.rec",
+                    "split": "eval"
+                },
+                {
+                    "file": "raw/edf/eval/008/spsw_008_a_.edf",
+                    "rec": "raw/edf/eval/008/spsw_008_a_.rec",
+                    "split": "eval"
+                }
+            ]
+        },
+        "300": {
+            "patient": "eval009",
+            "runs": [
+                {
+                    "file": "raw/edf/eval/009/bckg_009_a_.edf",
+                    "rec": "raw/edf/eval/009/bckg_009_a_.rec",
+                    "split": "eval"
+                },
+                {
+                    "file": "raw/edf/eval/009/gped_009_a_.edf",
+                    "rec": "raw/edf/eval/009/gped_009_a_.rec",
+                    "split": "eval"
+                }
+            ]
+        },
+        "301": {
+            "patient": "eval010",
+            "runs": [
+                {
+                    "file": "raw/edf/eval/010/bckg_010_a_.edf",
+                    "rec": "raw/edf/eval/010/bckg_010_a_.rec",
+                    "split": "eval"
+                },
+                {
+                    "file": "raw/edf/eval/010/gped_010_a_1.edf",
+                    "rec": "raw/edf/eval/010/gped_010_a_1.rec",
+                    "split": "eval"
+                },
+                {
+                    "file": "raw/edf/eval/010/pled_010_a_.edf",
+                    "rec": "raw/edf/eval/010/pled_010_a_.rec",
+                    "split": "eval"
+                },
+                {
+                    "file": "raw/edf/eval/010/spsw_010_a_.edf",
+                    "rec": "raw/edf/eval/010/spsw_010_a_.rec",
+                    "split": "eval"
+                }
+            ]
+        },
+        "302": {
+            "patient": "eval011",
+            "runs": [
+                {
+                    "file": "raw/edf/eval/011/bckg_011_a_.edf",
+                    "rec": "raw/edf/eval/011/bckg_011_a_.rec",
+                    "split": "eval"
+                },
+                {
+                    "file": "raw/edf/eval/011/pled_011_a_1.edf",
+                    "rec": "raw/edf/eval/011/pled_011_a_1.rec",
+                    "split": "eval"
+                }
+            ]
+        },
+        "303": {
+            "patient": "eval012",
+            "runs": [
+                {
+                    "file": "raw/edf/eval/012/bckg_012_a_.edf",
+                    "rec": "raw/edf/eval/012/bckg_012_a_.rec",
+                    "split": "eval"
+                },
+                {
+                    "file": "raw/edf/eval/012/spsw_012_a_3.edf",
+                    "rec": "raw/edf/eval/012/spsw_012_a_3.rec",
+                    "split": "eval"
+                }
+            ]
+        },
+        "304": {
+            "patient": "eval013",
+            "runs": [
+                {
+                    "file": "raw/edf/eval/013/bckg_013_a_.edf",
+                    "rec": "raw/edf/eval/013/bckg_013_a_.rec",
+                    "split": "eval"
+                },
+                {
+                    "file": "raw/edf/eval/013/pled_013_a_1.edf",
+                    "rec": "raw/edf/eval/013/pled_013_a_1.rec",
+                    "split": "eval"
+                }
+            ]
+        },
+        "305": {
+            "patient": "eval014",
+            "runs": [
+                {
+                    "file": "raw/edf/eval/014/bckg_014_a_.edf",
+                    "rec": "raw/edf/eval/014/bckg_014_a_.rec",
+                    "split": "eval"
+                },
+                {
+                    "file": "raw/edf/eval/014/pled_014_a_2.edf",
+                    "rec": "raw/edf/eval/014/pled_014_a_2.rec",
+                    "split": "eval"
+                }
+            ]
+        },
+        "306": {
+            "patient": "eval015",
+            "runs": [
+                {
+                    "file": "raw/edf/eval/015/bckg_015_a_.edf",
+                    "rec": "raw/edf/eval/015/bckg_015_a_.rec",
+                    "split": "eval"
+                },
+                {
+                    "file": "raw/edf/eval/015/pled_015_a_.edf",
+                    "rec": "raw/edf/eval/015/pled_015_a_.rec",
+                    "split": "eval"
+                },
+                {
+                    "file": "raw/edf/eval/015/spsw_015_a_2.edf",
+                    "rec": "raw/edf/eval/015/spsw_015_a_2.rec",
+                    "split": "eval"
+                }
+            ]
+        },
+        "307": {
+            "patient": "eval016",
+            "runs": [
+                {
+                    "file": "raw/edf/eval/016/bckg_016_a_.edf",
+                    "rec": "raw/edf/eval/016/bckg_016_a_.rec",
+                    "split": "eval"
+                },
+                {
+                    "file": "raw/edf/eval/016/pled_016_a_2.edf",
+                    "rec": "raw/edf/eval/016/pled_016_a_2.rec",
+                    "split": "eval"
+                },
+                {
+                    "file": "raw/edf/eval/016/pled_016_a_7.edf",
+                    "rec": "raw/edf/eval/016/pled_016_a_7.rec",
+                    "split": "eval"
+                },
+                {
+                    "file": "raw/edf/eval/016/pled_016_a_8.edf",
+                    "rec": "raw/edf/eval/016/pled_016_a_8.rec",
+                    "split": "eval"
+                },
+                {
+                    "file": "raw/edf/eval/016/pled_016_a_9.edf",
+                    "rec": "raw/edf/eval/016/pled_016_a_9.rec",
+                    "split": "eval"
+                }
+            ]
+        },
+        "308": {
+            "patient": "eval017",
+            "runs": [
+                {
+                    "file": "raw/edf/eval/017/bckg_017_a_.edf",
+                    "rec": "raw/edf/eval/017/bckg_017_a_.rec",
+                    "split": "eval"
+                },
+                {
+                    "file": "raw/edf/eval/017/gped_017_a_.edf",
+                    "rec": "raw/edf/eval/017/gped_017_a_.rec",
+                    "split": "eval"
+                },
+                {
+                    "file": "raw/edf/eval/017/pled_017_a_.edf",
+                    "rec": "raw/edf/eval/017/pled_017_a_.rec",
+                    "split": "eval"
+                },
+                {
+                    "file": "raw/edf/eval/017/pled_017_a_1.edf",
+                    "rec": "raw/edf/eval/017/pled_017_a_1.rec",
+                    "split": "eval"
+                },
+                {
+                    "file": "raw/edf/eval/017/spsw_017_a_2.edf",
+                    "rec": "raw/edf/eval/017/spsw_017_a_2.rec",
+                    "split": "eval"
+                }
+            ]
+        },
+        "309": {
+            "patient": "eval018",
+            "runs": [
+                {
+                    "file": "raw/edf/eval/018/bckg_018_a_.edf",
+                    "rec": "raw/edf/eval/018/bckg_018_a_.rec",
+                    "split": "eval"
+                },
+                {
+                    "file": "raw/edf/eval/018/pled_018_a_1.edf",
+                    "rec": "raw/edf/eval/018/pled_018_a_1.rec",
+                    "split": "eval"
+                },
+                {
+                    "file": "raw/edf/eval/018/spsw_018_a_1.edf",
+                    "rec": "raw/edf/eval/018/spsw_018_a_1.rec",
+                    "split": "eval"
+                }
+            ]
+        },
+        "310": {
+            "patient": "eval019",
+            "runs": [
+                {
+                    "file": "raw/edf/eval/019/bckg_019_a_.edf",
+                    "rec": "raw/edf/eval/019/bckg_019_a_.rec",
+                    "split": "eval"
+                },
+                {
+                    "file": "raw/edf/eval/019/gped_019_a_.edf",
+                    "rec": "raw/edf/eval/019/gped_019_a_.rec",
+                    "split": "eval"
+                },
+                {
+                    "file": "raw/edf/eval/019/pled_019_a_1.edf",
+                    "rec": "raw/edf/eval/019/pled_019_a_1.rec",
+                    "split": "eval"
+                }
+            ]
+        },
+        "311": {
+            "patient": "eval020",
+            "runs": [
+                {
+                    "file": "raw/edf/eval/020/bckg_020_a_.edf",
+                    "rec": "raw/edf/eval/020/bckg_020_a_.rec",
+                    "split": "eval"
+                },
+                {
+                    "file": "raw/edf/eval/020/gped_020_a_1.edf",
+                    "rec": "raw/edf/eval/020/gped_020_a_1.rec",
+                    "split": "eval"
+                },
+                {
+                    "file": "raw/edf/eval/020/spsw_020_a_6.edf",
+                    "rec": "raw/edf/eval/020/spsw_020_a_6.rec",
+                    "split": "eval"
+                }
+            ]
+        },
+        "312": {
+            "patient": "eval021",
+            "runs": [
+                {
+                    "file": "raw/edf/eval/021/bckg_021_a_.edf",
+                    "rec": "raw/edf/eval/021/bckg_021_a_.rec",
+                    "split": "eval"
+                },
+                {
+                    "file": "raw/edf/eval/021/pled_021_a_.edf",
+                    "rec": "raw/edf/eval/021/pled_021_a_.rec",
+                    "split": "eval"
+                },
+                {
+                    "file": "raw/edf/eval/021/pled_021_a_1.edf",
+                    "rec": "raw/edf/eval/021/pled_021_a_1.rec",
+                    "split": "eval"
+                }
+            ]
+        },
+        "313": {
+            "patient": "eval022",
+            "runs": [
+                {
+                    "file": "raw/edf/eval/022/bckg_022_a_.edf",
+                    "rec": "raw/edf/eval/022/bckg_022_a_.rec",
+                    "split": "eval"
+                },
+                {
+                    "file": "raw/edf/eval/022/gped_022_a_.edf",
+                    "rec": "raw/edf/eval/022/gped_022_a_.rec",
+                    "split": "eval"
+                },
+                {
+                    "file": "raw/edf/eval/022/pled_022_a_1.edf",
+                    "rec": "raw/edf/eval/022/pled_022_a_1.rec",
+                    "split": "eval"
+                },
+                {
+                    "file": "raw/edf/eval/022/spsw_022_a_.edf",
+                    "rec": "raw/edf/eval/022/spsw_022_a_.rec",
+                    "split": "eval"
+                }
+            ]
+        },
+        "314": {
+            "patient": "eval023",
+            "runs": [
+                {
+                    "file": "raw/edf/eval/023/bckg_023_a_.edf",
+                    "rec": "raw/edf/eval/023/bckg_023_a_.rec",
+                    "split": "eval"
+                },
+                {
+                    "file": "raw/edf/eval/023/gped_023_a_.edf",
+                    "rec": "raw/edf/eval/023/gped_023_a_.rec",
+                    "split": "eval"
+                },
+                {
+                    "file": "raw/edf/eval/023/pled_023_a_.edf",
+                    "rec": "raw/edf/eval/023/pled_023_a_.rec",
+                    "split": "eval"
+                },
+                {
+                    "file": "raw/edf/eval/023/spsw_023_a_1.edf",
+                    "rec": "raw/edf/eval/023/spsw_023_a_1.rec",
+                    "split": "eval"
+                }
+            ]
+        },
+        "315": {
+            "patient": "eval024",
+            "runs": [
+                {
+                    "file": "raw/edf/eval/024/bckg_024_a_.edf",
+                    "rec": "raw/edf/eval/024/bckg_024_a_.rec",
+                    "split": "eval"
+                },
+                {
+                    "file": "raw/edf/eval/024/pled_024_a_.edf",
+                    "rec": "raw/edf/eval/024/pled_024_a_.rec",
+                    "split": "eval"
+                },
+                {
+                    "file": "raw/edf/eval/024/spsw_024_a_2.edf",
+                    "rec": "raw/edf/eval/024/spsw_024_a_2.rec",
+                    "split": "eval"
+                }
+            ]
+        },
+        "316": {
+            "patient": "eval025",
+            "runs": [
+                {
+                    "file": "raw/edf/eval/025/bckg_025_a_.edf",
+                    "rec": "raw/edf/eval/025/bckg_025_a_.rec",
+                    "split": "eval"
+                }
+            ]
+        },
+        "317": {
+            "patient": "eval026",
+            "runs": [
+                {
+                    "file": "raw/edf/eval/026/bckg_026_a_.edf",
+                    "rec": "raw/edf/eval/026/bckg_026_a_.rec",
+                    "split": "eval"
+                },
+                {
+                    "file": "raw/edf/eval/026/pled_026_a_1.edf",
+                    "rec": "raw/edf/eval/026/pled_026_a_1.rec",
+                    "split": "eval"
+                },
+                {
+                    "file": "raw/edf/eval/026/pled_026_a_2.edf",
+                    "rec": "raw/edf/eval/026/pled_026_a_2.rec",
+                    "split": "eval"
+                }
+            ]
+        },
+        "318": {
+            "patient": "eval027",
+            "runs": [
+                {
+                    "file": "raw/edf/eval/027/bckg_027_a_.edf",
+                    "rec": "raw/edf/eval/027/bckg_027_a_.rec",
+                    "split": "eval"
+                }
+            ]
+        },
+        "319": {
+            "patient": "eval028",
+            "runs": [
+                {
+                    "file": "raw/edf/eval/028/bckg_028_a_.edf",
+                    "rec": "raw/edf/eval/028/bckg_028_a_.rec",
+                    "split": "eval"
+                }
+            ]
+        },
+        "320": {
+            "patient": "eval029",
+            "runs": [
+                {
+                    "file": "raw/edf/eval/029/bckg_029_a_.edf",
+                    "rec": "raw/edf/eval/029/bckg_029_a_.rec",
+                    "split": "eval"
+                }
+            ]
+        },
+        "321": {
+            "patient": "eval030",
+            "runs": [
+                {
+                    "file": "raw/edf/eval/030/bckg_030_a_.edf",
+                    "rec": "raw/edf/eval/030/bckg_030_a_.rec",
+                    "split": "eval"
+                }
+            ]
+        },
+        "322": {
+            "patient": "eval031",
+            "runs": [
+                {
+                    "file": "raw/edf/eval/031/bckg_031_a_.edf",
+                    "rec": "raw/edf/eval/031/bckg_031_a_.rec",
+                    "split": "eval"
+                },
+                {
+                    "file": "raw/edf/eval/031/gped_031_a_.edf",
+                    "rec": "raw/edf/eval/031/gped_031_a_.rec",
+                    "split": "eval"
+                }
+            ]
+        },
+        "323": {
+            "patient": "eval032",
+            "runs": [
+                {
+                    "file": "raw/edf/eval/032/bckg_032_a_.edf",
+                    "rec": "raw/edf/eval/032/bckg_032_a_.rec",
+                    "split": "eval"
+                },
+                {
+                    "file": "raw/edf/eval/032/gped_032_a_.edf",
+                    "rec": "raw/edf/eval/032/gped_032_a_.rec",
+                    "split": "eval"
+                },
+                {
+                    "file": "raw/edf/eval/032/spsw_032_a_.edf",
+                    "rec": "raw/edf/eval/032/spsw_032_a_.rec",
+                    "split": "eval"
+                }
+            ]
+        },
+        "324": {
+            "patient": "eval033",
+            "runs": [
+                {
+                    "file": "raw/edf/eval/033/bckg_033_a_.edf",
+                    "rec": "raw/edf/eval/033/bckg_033_a_.rec",
+                    "split": "eval"
+                }
+            ]
+        },
+        "325": {
+            "patient": "eval034",
+            "runs": [
+                {
+                    "file": "raw/edf/eval/034/bckg_034_a_.edf",
+                    "rec": "raw/edf/eval/034/bckg_034_a_.rec",
+                    "split": "eval"
+                }
+            ]
+        },
+        "326": {
+            "patient": "eval035",
+            "runs": [
+                {
+                    "file": "raw/edf/eval/035/bckg_035_a_.edf",
+                    "rec": "raw/edf/eval/035/bckg_035_a_.rec",
+                    "split": "eval"
+                },
+                {
+                    "file": "raw/edf/eval/035/gped_035_a_.edf",
+                    "rec": "raw/edf/eval/035/gped_035_a_.rec",
+                    "split": "eval"
+                },
+                {
+                    "file": "raw/edf/eval/035/spsw_035_a_.edf",
+                    "rec": "raw/edf/eval/035/spsw_035_a_.rec",
+                    "split": "eval"
+                }
+            ]
+        },
+        "327": {
+            "patient": "eval036",
+            "runs": [
+                {
+                    "file": "raw/edf/eval/036/bckg_036_a_.edf",
+                    "rec": "raw/edf/eval/036/bckg_036_a_.rec",
+                    "split": "eval"
+                }
+            ]
+        },
+        "328": {
+            "patient": "eval037",
+            "runs": [
+                {
+                    "file": "raw/edf/eval/037/bckg_037_a_.edf",
+                    "rec": "raw/edf/eval/037/bckg_037_a_.rec",
+                    "split": "eval"
+                },
+                {
+                    "file": "raw/edf/eval/037/bckg_037_a_1.edf",
+                    "rec": "raw/edf/eval/037/bckg_037_a_1.rec",
+                    "split": "eval"
+                },
+                {
+                    "file": "raw/edf/eval/037/spsw_037_a_.edf",
+                    "rec": "raw/edf/eval/037/spsw_037_a_.rec",
+                    "split": "eval"
+                }
+            ]
+        },
+        "329": {
+            "patient": "eval038",
+            "runs": [
+                {
+                    "file": "raw/edf/eval/038/bckg_038_a_.edf",
+                    "rec": "raw/edf/eval/038/bckg_038_a_.rec",
+                    "split": "eval"
+                },
+                {
+                    "file": "raw/edf/eval/038/spsw_038_a_.edf",
+                    "rec": "raw/edf/eval/038/spsw_038_a_.rec",
+                    "split": "eval"
+                }
+            ]
+        },
+        "330": {
+            "patient": "eval039",
+            "runs": [
+                {
+                    "file": "raw/edf/eval/039/bckg_039_a_.edf",
+                    "rec": "raw/edf/eval/039/bckg_039_a_.rec",
+                    "split": "eval"
+                }
+            ]
+        },
+        "331": {
+            "patient": "eval040",
+            "runs": [
+                {
+                    "file": "raw/edf/eval/040/bckg_040_a_.edf",
+                    "rec": "raw/edf/eval/040/bckg_040_a_.rec",
+                    "split": "eval"
+                },
+                {
+                    "file": "raw/edf/eval/040/spsw_040_a_1.edf",
+                    "rec": "raw/edf/eval/040/spsw_040_a_1.rec",
+                    "split": "eval"
+                }
+            ]
+        },
+        "332": {
+            "patient": "eval041",
+            "runs": [
+                {
+                    "file": "raw/edf/eval/041/bckg_041_a_.edf",
+                    "rec": "raw/edf/eval/041/bckg_041_a_.rec",
+                    "split": "eval"
+                },
+                {
+                    "file": "raw/edf/eval/041/spsw_041_a_.edf",
+                    "rec": "raw/edf/eval/041/spsw_041_a_.rec",
+                    "split": "eval"
+                }
+            ]
+        },
+        "333": {
+            "patient": "eval043",
+            "runs": [
+                {
+                    "file": "raw/edf/eval/043/bckg_043_a_1.edf",
+                    "rec": "raw/edf/eval/043/bckg_043_a_1.rec",
+                    "split": "eval"
+                },
+                {
+                    "file": "raw/edf/eval/043/gped_043_a_.edf",
+                    "rec": "raw/edf/eval/043/gped_043_a_.rec",
+                    "split": "eval"
+                },
+                {
+                    "file": "raw/edf/eval/043/gped_043_a_1.edf",
+                    "rec": "raw/edf/eval/043/gped_043_a_1.rec",
+                    "split": "eval"
+                },
+                {
+                    "file": "raw/edf/eval/043/spsw_043_a_.edf",
+                    "rec": "raw/edf/eval/043/spsw_043_a_.rec",
+                    "split": "eval"
+                }
+            ]
+        },
+        "334": {
+            "patient": "eval044",
+            "runs": [
+                {
+                    "file": "raw/edf/eval/044/bckg_044_a_1.edf",
+                    "rec": "raw/edf/eval/044/bckg_044_a_1.rec",
+                    "split": "eval"
+                }
+            ]
+        },
+        "335": {
+            "patient": "eval045",
+            "runs": [
+                {
+                    "file": "raw/edf/eval/045/bckg_045_a_.edf",
+                    "rec": "raw/edf/eval/045/bckg_045_a_.rec",
+                    "split": "eval"
+                },
+                {
+                    "file": "raw/edf/eval/045/gped_045_a_.edf",
+                    "rec": "raw/edf/eval/045/gped_045_a_.rec",
+                    "split": "eval"
+                }
+            ]
+        },
+        "336": {
+            "patient": "eval046",
+            "runs": [
+                {
+                    "file": "raw/edf/eval/046/spsw_046_a_1.edf",
+                    "rec": "raw/edf/eval/046/spsw_046_a_1.rec",
+                    "split": "eval"
+                },
+                {
+                    "file": "raw/edf/eval/046/spsw_046_a_2.edf",
+                    "rec": "raw/edf/eval/046/spsw_046_a_2.rec",
+                    "split": "eval"
+                }
+            ]
+        },
+        "337": {
+            "patient": "eval047",
+            "runs": [
+                {
+                    "file": "raw/edf/eval/047/gped_047_a_.edf",
+                    "rec": "raw/edf/eval/047/gped_047_a_.rec",
+                    "split": "eval"
+                },
+                {
+                    "file": "raw/edf/eval/047/spsw_047_a_.edf",
+                    "rec": "raw/edf/eval/047/spsw_047_a_.rec",
+                    "split": "eval"
+                }
+            ]
+        },
+        "338": {
+            "patient": "eval048",
+            "runs": [
+                {
+                    "file": "raw/edf/eval/048/bckg_048_a_.edf",
+                    "rec": "raw/edf/eval/048/bckg_048_a_.rec",
+                    "split": "eval"
+                },
+                {
+                    "file": "raw/edf/eval/048/spsw_048_a_1.edf",
+                    "rec": "raw/edf/eval/048/spsw_048_a_1.rec",
+                    "split": "eval"
+                }
+            ]
+        },
+        "339": {
+            "patient": "eval049",
+            "runs": [
+                {
+                    "file": "raw/edf/eval/049/gped_049_a_2.edf",
+                    "rec": "raw/edf/eval/049/gped_049_a_2.rec",
+                    "split": "eval"
+                },
+                {
+                    "file": "raw/edf/eval/049/gped_049_a_4.edf",
+                    "rec": "raw/edf/eval/049/gped_049_a_4.rec",
+                    "split": "eval"
+                },
+                {
+                    "file": "raw/edf/eval/049/gped_049_a_6.edf",
+                    "rec": "raw/edf/eval/049/gped_049_a_6.rec",
+                    "split": "eval"
+                },
+                {
+                    "file": "raw/edf/eval/049/spsw_049_a_1.edf",
+                    "rec": "raw/edf/eval/049/spsw_049_a_1.rec",
+                    "split": "eval"
+                }
+            ]
+        },
+        "340": {
+            "patient": "eval050",
+            "runs": [
+                {
+                    "file": "raw/edf/eval/050/bckg_050_a_.edf",
+                    "rec": "raw/edf/eval/050/bckg_050_a_.rec",
+                    "split": "eval"
+                },
+                {
+                    "file": "raw/edf/eval/050/gped_050_a_5.edf",
+                    "rec": "raw/edf/eval/050/gped_050_a_5.rec",
+                    "split": "eval"
+                },
+                {
+                    "file": "raw/edf/eval/050/gped_050_a_6.edf",
+                    "rec": "raw/edf/eval/050/gped_050_a_6.rec",
+                    "split": "eval"
+                }
+            ]
+        },
+        "341": {
+            "patient": "eval051",
+            "runs": [
+                {
+                    "file": "raw/edf/eval/051/bckg_051_a_1.edf",
+                    "rec": "raw/edf/eval/051/bckg_051_a_1.rec",
+                    "split": "eval"
+                }
+            ]
+        },
+        "342": {
+            "patient": "eval052",
+            "runs": [
+                {
+                    "file": "raw/edf/eval/052/bckg_052_a_.edf",
+                    "rec": "raw/edf/eval/052/bckg_052_a_.rec",
+                    "split": "eval"
+                },
+                {
+                    "file": "raw/edf/eval/052/gped_052_a_.edf",
+                    "rec": "raw/edf/eval/052/gped_052_a_.rec",
+                    "split": "eval"
+                }
+            ]
+        },
+        "343": {
+            "patient": "eval054",
+            "runs": [
+                {
+                    "file": "raw/edf/eval/054/spsw_054_a_1.edf",
+                    "rec": "raw/edf/eval/054/spsw_054_a_1.rec",
+                    "split": "eval"
+                }
+            ]
+        },
+        "344": {
+            "patient": "eval055",
+            "runs": [
+                {
+                    "file": "raw/edf/eval/055/bckg_055_a_.edf",
+                    "rec": "raw/edf/eval/055/bckg_055_a_.rec",
+                    "split": "eval"
+                },
+                {
+                    "file": "raw/edf/eval/055/gped_055_a_.edf",
+                    "rec": "raw/edf/eval/055/gped_055_a_.rec",
+                    "split": "eval"
+                }
+            ]
+        },
+        "345": {
+            "patient": "eval056",
+            "runs": [
+                {
+                    "file": "raw/edf/eval/056/gped_056_a_.edf",
+                    "rec": "raw/edf/eval/056/gped_056_a_.rec",
+                    "split": "eval"
+                }
+            ]
+        },
+        "346": {
+            "patient": "eval058",
+            "runs": [
+                {
+                    "file": "raw/edf/eval/058/gped_058_a_1.edf",
+                    "rec": "raw/edf/eval/058/gped_058_a_1.rec",
+                    "split": "eval"
+                },
+                {
+                    "file": "raw/edf/eval/058/spsw_058_a_.edf",
+                    "rec": "raw/edf/eval/058/spsw_058_a_.rec",
+                    "split": "eval"
+                }
+            ]
+        },
+        "347": {
+            "patient": "eval059",
+            "runs": [
+                {
+                    "file": "raw/edf/eval/059/bckg_059_a_.edf",
+                    "rec": "raw/edf/eval/059/bckg_059_a_.rec",
+                    "split": "eval"
+                }
+            ]
+        },
+        "348": {
+            "patient": "eval060",
+            "runs": [
+                {
+                    "file": "raw/edf/eval/060/bckg_060_a_.edf",
+                    "rec": "raw/edf/eval/060/bckg_060_a_.rec",
+                    "split": "eval"
+                }
+            ]
+        },
+        "349": {
+            "patient": "eval063",
+            "runs": [
+                {
+                    "file": "raw/edf/eval/063/bckg_063_a_.edf",
+                    "rec": "raw/edf/eval/063/bckg_063_a_.rec",
+                    "split": "eval"
+                }
+            ]
+        },
+        "350": {
+            "patient": "eval064",
+            "runs": [
+                {
+                    "file": "raw/edf/eval/064/spsw_064_a_1.edf",
+                    "rec": "raw/edf/eval/064/spsw_064_a_1.rec",
+                    "split": "eval"
+                }
+            ]
+        },
+        "351": {
+            "patient": "eval066",
+            "runs": [
+                {
+                    "file": "raw/edf/eval/066/bckg_066_a_1.edf",
+                    "rec": "raw/edf/eval/066/bckg_066_a_1.rec",
+                    "split": "eval"
+                }
+            ]
+        },
+        "352": {
+            "patient": "eval067",
+            "runs": [
+                {
+                    "file": "raw/edf/eval/067/spsw_067_a_1.edf",
+                    "rec": "raw/edf/eval/067/spsw_067_a_1.rec",
+                    "split": "eval"
+                }
+            ]
+        },
+        "353": {
+            "patient": "eval068",
+            "runs": [
+                {
+                    "file": "raw/edf/eval/068/bckg_068_a_.edf",
+                    "rec": "raw/edf/eval/068/bckg_068_a_.rec",
+                    "split": "eval"
+                }
+            ]
+        },
+        "354": {
+            "patient": "eval070",
+            "runs": [
+                {
+                    "file": "raw/edf/eval/070/bckg_070_a_.edf",
+                    "rec": "raw/edf/eval/070/bckg_070_a_.rec",
+                    "split": "eval"
+                },
+                {
+                    "file": "raw/edf/eval/070/spsw_070_a_.edf",
+                    "rec": "raw/edf/eval/070/spsw_070_a_.rec",
+                    "split": "eval"
+                }
+            ]
+        },
+        "355": {
+            "patient": "eval072",
+            "runs": [
+                {
+                    "file": "raw/edf/eval/072/spsw_072_a_1.edf",
+                    "rec": "raw/edf/eval/072/spsw_072_a_1.rec",
+                    "split": "eval"
+                }
+            ]
+        },
+        "356": {
+            "patient": "eval073",
+            "runs": [
+                {
+                    "file": "raw/edf/eval/073/bckg_073_a_1.edf",
+                    "rec": "raw/edf/eval/073/bckg_073_a_1.rec",
+                    "split": "eval"
+                }
+            ]
+        },
+        "357": {
+            "patient": "eval074",
+            "runs": [
+                {
+                    "file": "raw/edf/eval/074/spsw_074_a_.edf",
+                    "rec": "raw/edf/eval/074/spsw_074_a_.rec",
+                    "split": "eval"
+                }
+            ]
+        },
+        "358": {
+            "patient": "eval077",
+            "runs": [
+                {
+                    "file": "raw/edf/eval/077/spsw_077_a_1.edf",
+                    "rec": "raw/edf/eval/077/spsw_077_a_1.rec",
+                    "split": "eval"
+                }
+            ]
+        },
+        "359": {
+            "patient": "eval082",
+            "runs": [
+                {
+                    "file": "raw/edf/eval/082/bckg_082_a_.edf",
+                    "rec": "raw/edf/eval/082/bckg_082_a_.rec",
+                    "split": "eval"
+                }
+            ]
+        },
+        "360": {
+            "patient": "eval084",
+            "runs": [
+                {
+                    "file": "raw/edf/eval/084/bckg_084_a_.edf",
+                    "rec": "raw/edf/eval/084/bckg_084_a_.rec",
+                    "split": "eval"
+                }
+            ]
+        },
+        "361": {
+            "patient": "eval086",
+            "runs": [
+                {
+                    "file": "raw/edf/eval/086/bckg_086_a_1.edf",
+                    "rec": "raw/edf/eval/086/bckg_086_a_1.rec",
+                    "split": "eval"
+                }
+            ]
+        },
+        "362": {
+            "patient": "eval088",
+            "runs": [
+                {
+                    "file": "raw/edf/eval/088/spsw_088_a_.edf",
+                    "rec": "raw/edf/eval/088/spsw_088_a_.rec",
+                    "split": "eval"
+                }
+            ]
+        },
+        "363": {
+            "patient": "eval089",
+            "runs": [
+                {
+                    "file": "raw/edf/eval/089/spsw_089_a_.edf",
+                    "rec": "raw/edf/eval/089/spsw_089_a_.rec",
+                    "split": "eval"
+                }
+            ]
+        },
+        "364": {
+            "patient": "eval090",
+            "runs": [
+                {
+                    "file": "raw/edf/eval/090/bckg_090_a_1.edf",
+                    "rec": "raw/edf/eval/090/bckg_090_a_1.rec",
+                    "split": "eval"
+                }
+            ]
+        },
+        "365": {
+            "patient": "eval091",
+            "runs": [
+                {
+                    "file": "raw/edf/eval/091/spsw_091_a_.edf",
+                    "rec": "raw/edf/eval/091/spsw_091_a_.rec",
+                    "split": "eval"
+                }
+            ]
+        },
+        "366": {
+            "patient": "eval092",
+            "runs": [
+                {
+                    "file": "raw/edf/eval/092/bckg_092_a_.edf",
+                    "rec": "raw/edf/eval/092/bckg_092_a_.rec",
+                    "split": "eval"
+                }
+            ]
+        },
+        "367": {
+            "patient": "eval093",
+            "runs": [
+                {
+                    "file": "raw/edf/eval/093/bckg_093_a_2.edf",
+                    "rec": "raw/edf/eval/093/bckg_093_a_2.rec",
+                    "split": "eval"
+                },
+                {
+                    "file": "raw/edf/eval/093/spsw_093_a_.edf",
+                    "rec": "raw/edf/eval/093/spsw_093_a_.rec",
+                    "split": "eval"
+                }
+            ]
+        },
+        "368": {
+            "patient": "eval097",
+            "runs": [
+                {
+                    "file": "raw/edf/eval/097/bckg_097_a_1.edf",
+                    "rec": "raw/edf/eval/097/bckg_097_a_1.rec",
+                    "split": "eval"
+                }
+            ]
+        },
+        "369": {
+            "patient": "eval098",
+            "runs": [
+                {
+                    "file": "raw/edf/eval/098/bckg_098_a_1.edf",
+                    "rec": "raw/edf/eval/098/bckg_098_a_1.rec",
+                    "split": "eval"
+                },
+                {
+                    "file": "raw/edf/eval/098/spsw_098_a_.edf",
+                    "rec": "raw/edf/eval/098/spsw_098_a_.rec",
+                    "split": "eval"
+                },
+                {
+                    "file": "raw/edf/eval/098/spsw_098_a_1.edf",
+                    "rec": "raw/edf/eval/098/spsw_098_a_1.rec",
+                    "split": "eval"
+                }
+            ]
+        },
+        "370": {
+            "patient": "eval099",
+            "runs": [
+                {
+                    "file": "raw/edf/eval/099/bckg_099_a_1.edf",
+                    "rec": "raw/edf/eval/099/bckg_099_a_1.rec",
+                    "split": "eval"
+                },
+                {
+                    "file": "raw/edf/eval/099/spsw_099_a_.edf",
+                    "rec": "raw/edf/eval/099/spsw_099_a_.rec",
+                    "split": "eval"
+                }
+            ]
+        }
+    }
+}

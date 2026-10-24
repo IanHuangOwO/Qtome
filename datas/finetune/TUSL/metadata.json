@@ -1,0 +1,757 @@
+{
+    "data_metadata": {
+        "dataset_name": "TUSL",
+        "dataset_info": {
+            "source_url": "https://isip.piconepress.com/projects/nedc/html/tuh_eeg/",
+            "source_version": "tuh_eeg_slowing v2.0.1",
+            "file_format": "EDF + .tse_agg annotations",
+            "description": "Temple University Hospital EEG Slowing Corpus: 10 s samples of seizure, slowing and (complex) background.",
+            "task_type": "Slowing / seizure / background classification (clinical)",
+            "reference": "von Weltin, E., Ahsan, T., Shah, V., Jamshed, D., Golmohammadi, M., Obeid, I., & Picone, J. (2017). Electroencephalographic slowing: a primary source of error in automatic seizure detection. IEEE SPMB.",
+            "notes": "Seizure samples come from the TUH EEG Seizure Corpus, slowing and complex background were collected manually."
+        },
+        "acquisition": {
+            "sample_frequency": 250,
+            "window_size_seconds": 10.0,
+            "num_subjects": 38
+        },
+        "targets": {
+            "count": 3,
+            "type": "slowing",
+            "0": {
+                "label": "seizure"
+            },
+            "1": {
+                "label": "slowing"
+            },
+            "2": {
+                "label": "background"
+            }
+        },
+        "channels": {
+            "count": 21,
+            "system": "10-20 International System",
+            "1": {
+                "label": "Fp1",
+                "original_label": "FP1"
+            },
+            "2": {
+                "label": "Fp2",
+                "original_label": "FP2"
+            },
+            "3": {
+                "label": "F7",
+                "original_label": "F7"
+            },
+            "4": {
+                "label": "F3",
+                "original_label": "F3"
+            },
+            "5": {
+                "label": "Fz",
+                "original_label": "FZ"
+            },
+            "6": {
+                "label": "F4",
+                "original_label": "F4"
+            },
+            "7": {
+                "label": "F8",
+                "original_label": "F8"
+            },
+            "8": {
+                "label": "T3",
+                "original_label": "T3"
+            },
+            "9": {
+                "label": "C3",
+                "original_label": "C3"
+            },
+            "10": {
+                "label": "Cz",
+                "original_label": "CZ"
+            },
+            "11": {
+                "label": "C4",
+                "original_label": "C4"
+            },
+            "12": {
+                "label": "T4",
+                "original_label": "T4"
+            },
+            "13": {
+                "label": "T5",
+                "original_label": "T5"
+            },
+            "14": {
+                "label": "P3",
+                "original_label": "P3"
+            },
+            "15": {
+                "label": "Pz",
+                "original_label": "PZ"
+            },
+            "16": {
+                "label": "P4",
+                "original_label": "P4"
+            },
+            "17": {
+                "label": "T6",
+                "original_label": "T6"
+            },
+            "18": {
+                "label": "O1",
+                "original_label": "O1"
+            },
+            "19": {
+                "label": "O2",
+                "original_label": "O2"
+            },
+            "20": {
+                "label": "A1",
+                "original_label": "A1"
+            },
+            "21": {
+                "label": "A2",
+                "original_label": "A2"
+            }
+        },
+        "cohort": "TUEG"
+    },
+    "data_structure": {
+        "1": {
+            "patient": "aaaaaaju",
+            "runs": [
+                {
+                    "file": "raw/edf/aaaaaaju/s005_2010/01_tcp_ar/aaaaaaju_s005_t000.edf",
+                    "ann": "raw/edf/aaaaaaju/s005_2010/01_tcp_ar/aaaaaaju_s005_t000.tse_agg"
+                },
+                {
+                    "file": "raw/edf/aaaaaaju/s007_2013/01_tcp_ar/aaaaaaju_s007_t000.edf",
+                    "ann": "raw/edf/aaaaaaju/s007_2013/01_tcp_ar/aaaaaaju_s007_t000.tse_agg"
+                }
+            ]
+        },
+        "2": {
+            "patient": "aaaaaalq",
+            "runs": [
+                {
+                    "file": "raw/edf/aaaaaalq/s001_2003/02_tcp_le/aaaaaalq_s001_t000.edf",
+                    "ann": "raw/edf/aaaaaalq/s001_2003/02_tcp_le/aaaaaalq_s001_t000.tse_agg"
+                }
+            ]
+        },
+        "3": {
+            "patient": "aaaaaasy",
+            "runs": [
+                {
+                    "file": "raw/edf/aaaaaasy/s002_2003/02_tcp_le/aaaaaasy_s002_t000.edf",
+                    "ann": "raw/edf/aaaaaasy/s002_2003/02_tcp_le/aaaaaasy_s002_t000.tse_agg"
+                },
+                {
+                    "file": "raw/edf/aaaaaasy/s003_2003/01_tcp_ar/aaaaaasy_s003_t000.edf",
+                    "ann": "raw/edf/aaaaaasy/s003_2003/01_tcp_ar/aaaaaasy_s003_t000.tse_agg"
+                },
+                {
+                    "file": "raw/edf/aaaaaasy/s003_2003/01_tcp_ar/aaaaaasy_s003_t004.edf",
+                    "ann": "raw/edf/aaaaaasy/s003_2003/01_tcp_ar/aaaaaasy_s003_t004.tse_agg"
+                }
+            ]
+        },
+        "4": {
+            "patient": "aaaaabiw",
+            "runs": [
+                {
+                    "file": "raw/edf/aaaaabiw/s005_2003/01_tcp_ar/aaaaabiw_s005_t000.edf",
+                    "ann": "raw/edf/aaaaabiw/s005_2003/01_tcp_ar/aaaaabiw_s005_t000.tse_agg"
+                },
+                {
+                    "file": "raw/edf/aaaaabiw/s016_2012/01_tcp_ar/aaaaabiw_s016_t000.edf",
+                    "ann": "raw/edf/aaaaabiw/s016_2012/01_tcp_ar/aaaaabiw_s016_t000.tse_agg"
+                },
+                {
+                    "file": "raw/edf/aaaaabiw/s017_2012/01_tcp_ar/aaaaabiw_s017_t000.edf",
+                    "ann": "raw/edf/aaaaabiw/s017_2012/01_tcp_ar/aaaaabiw_s017_t000.tse_agg"
+                },
+                {
+                    "file": "raw/edf/aaaaabiw/s018_2013/01_tcp_ar/aaaaabiw_s018_t000.edf",
+                    "ann": "raw/edf/aaaaabiw/s018_2013/01_tcp_ar/aaaaabiw_s018_t000.tse_agg"
+                }
+            ]
+        },
+        "5": {
+            "patient": "aaaaabms",
+            "runs": [
+                {
+                    "file": "raw/edf/aaaaabms/s001_2003/02_tcp_le/aaaaabms_s001_t001.edf",
+                    "ann": "raw/edf/aaaaabms/s001_2003/02_tcp_le/aaaaabms_s001_t001.tse_agg"
+                },
+                {
+                    "file": "raw/edf/aaaaabms/s002_2003/02_tcp_le/aaaaabms_s002_t002.edf",
+                    "ann": "raw/edf/aaaaabms/s002_2003/02_tcp_le/aaaaabms_s002_t002.tse_agg"
+                },
+                {
+                    "file": "raw/edf/aaaaabms/s002_2003/02_tcp_le/aaaaabms_s002_t003.edf",
+                    "ann": "raw/edf/aaaaabms/s002_2003/02_tcp_le/aaaaabms_s002_t003.tse_agg"
+                }
+            ]
+        },
+        "6": {
+            "patient": "aaaaachj",
+            "runs": [
+                {
+                    "file": "raw/edf/aaaaachj/s001_2004/02_tcp_le/aaaaachj_s001_t000.edf",
+                    "ann": "raw/edf/aaaaachj/s001_2004/02_tcp_le/aaaaachj_s001_t000.tse_agg"
+                },
+                {
+                    "file": "raw/edf/aaaaachj/s002_2004/01_tcp_ar/aaaaachj_s002_t006.edf",
+                    "ann": "raw/edf/aaaaachj/s002_2004/01_tcp_ar/aaaaachj_s002_t006.tse_agg"
+                }
+            ]
+        },
+        "7": {
+            "patient": "aaaaadsz",
+            "runs": [
+                {
+                    "file": "raw/edf/aaaaadsz/s001_2006/02_tcp_le/aaaaadsz_s001_t000.edf",
+                    "ann": "raw/edf/aaaaadsz/s001_2006/02_tcp_le/aaaaadsz_s001_t000.tse_agg"
+                },
+                {
+                    "file": "raw/edf/aaaaadsz/s002_2006/01_tcp_ar/aaaaadsz_s002_t000.edf",
+                    "ann": "raw/edf/aaaaadsz/s002_2006/01_tcp_ar/aaaaadsz_s002_t000.tse_agg"
+                },
+                {
+                    "file": "raw/edf/aaaaadsz/s002_2006/01_tcp_ar/aaaaadsz_s002_t001.edf",
+                    "ann": "raw/edf/aaaaadsz/s002_2006/01_tcp_ar/aaaaadsz_s002_t001.tse_agg"
+                },
+                {
+                    "file": "raw/edf/aaaaadsz/s005_2006/02_tcp_le/aaaaadsz_s005_t000.edf",
+                    "ann": "raw/edf/aaaaadsz/s005_2006/02_tcp_le/aaaaadsz_s005_t000.tse_agg"
+                }
+            ]
+        },
+        "8": {
+            "patient": "aaaaaedy",
+            "runs": [
+                {
+                    "file": "raw/edf/aaaaaedy/s002_2004/02_tcp_le/aaaaaedy_s002_t001.edf",
+                    "ann": "raw/edf/aaaaaedy/s002_2004/02_tcp_le/aaaaaedy_s002_t001.tse_agg"
+                },
+                {
+                    "file": "raw/edf/aaaaaedy/s003_2004/02_tcp_le/aaaaaedy_s003_t000.edf",
+                    "ann": "raw/edf/aaaaaedy/s003_2004/02_tcp_le/aaaaaedy_s003_t000.tse_agg"
+                }
+            ]
+        },
+        "9": {
+            "patient": "aaaaaegi",
+            "runs": [
+                {
+                    "file": "raw/edf/aaaaaegi/s003_2013/01_tcp_ar/aaaaaegi_s003_t000.edf",
+                    "ann": "raw/edf/aaaaaegi/s003_2013/01_tcp_ar/aaaaaegi_s003_t000.tse_agg"
+                }
+            ]
+        },
+        "10": {
+            "patient": "aaaaaelb",
+            "runs": [
+                {
+                    "file": "raw/edf/aaaaaelb/s003_2010/01_tcp_ar/aaaaaelb_s003_t000.edf",
+                    "ann": "raw/edf/aaaaaelb/s003_2010/01_tcp_ar/aaaaaelb_s003_t000.tse_agg"
+                }
+            ]
+        },
+        "11": {
+            "patient": "aaaaafwz",
+            "runs": [
+                {
+                    "file": "raw/edf/aaaaafwz/s001_2007/02_tcp_le/aaaaafwz_s001_t000.edf",
+                    "ann": "raw/edf/aaaaafwz/s001_2007/02_tcp_le/aaaaafwz_s001_t000.tse_agg"
+                },
+                {
+                    "file": "raw/edf/aaaaafwz/s001_2007/02_tcp_le/aaaaafwz_s001_t001.edf",
+                    "ann": "raw/edf/aaaaafwz/s001_2007/02_tcp_le/aaaaafwz_s001_t001.tse_agg"
+                }
+            ]
+        },
+        "12": {
+            "patient": "aaaaagcs",
+            "runs": [
+                {
+                    "file": "raw/edf/aaaaagcs/s002_2008/02_tcp_le/aaaaagcs_s002_t000.edf",
+                    "ann": "raw/edf/aaaaagcs/s002_2008/02_tcp_le/aaaaagcs_s002_t000.tse_agg"
+                }
+            ]
+        },
+        "13": {
+            "patient": "aaaaagqb",
+            "runs": [
+                {
+                    "file": "raw/edf/aaaaagqb/s001_2008/02_tcp_le/aaaaagqb_s001_t000.edf",
+                    "ann": "raw/edf/aaaaagqb/s001_2008/02_tcp_le/aaaaagqb_s001_t000.tse_agg"
+                },
+                {
+                    "file": "raw/edf/aaaaagqb/s002_2008/02_tcp_le/aaaaagqb_s002_t001.edf",
+                    "ann": "raw/edf/aaaaagqb/s002_2008/02_tcp_le/aaaaagqb_s002_t001.tse_agg"
+                },
+                {
+                    "file": "raw/edf/aaaaagqb/s003_2008/02_tcp_le/aaaaagqb_s003_t002.edf",
+                    "ann": "raw/edf/aaaaagqb/s003_2008/02_tcp_le/aaaaagqb_s003_t002.tse_agg"
+                }
+            ]
+        },
+        "14": {
+            "patient": "aaaaaiat",
+            "runs": [
+                {
+                    "file": "raw/edf/aaaaaiat/s003_2012/01_tcp_ar/aaaaaiat_s003_t000.edf",
+                    "ann": "raw/edf/aaaaaiat/s003_2012/01_tcp_ar/aaaaaiat_s003_t000.tse_agg"
+                },
+                {
+                    "file": "raw/edf/aaaaaiat/s004_2012/01_tcp_ar/aaaaaiat_s004_t000.edf",
+                    "ann": "raw/edf/aaaaaiat/s004_2012/01_tcp_ar/aaaaaiat_s004_t000.tse_agg"
+                }
+            ]
+        },
+        "15": {
+            "patient": "aaaaaike",
+            "runs": [
+                {
+                    "file": "raw/edf/aaaaaike/s001_2009/02_tcp_le/aaaaaike_s001_t001.edf",
+                    "ann": "raw/edf/aaaaaike/s001_2009/02_tcp_le/aaaaaike_s001_t001.tse_agg"
+                }
+            ]
+        },
+        "16": {
+            "patient": "aaaaajns",
+            "runs": [
+                {
+                    "file": "raw/edf/aaaaajns/s001_2010/01_tcp_ar/aaaaajns_s001_t001.edf",
+                    "ann": "raw/edf/aaaaajns/s001_2010/01_tcp_ar/aaaaajns_s001_t001.tse_agg"
+                },
+                {
+                    "file": "raw/edf/aaaaajns/s002_2010/01_tcp_ar/aaaaajns_s002_t000.edf",
+                    "ann": "raw/edf/aaaaajns/s002_2010/01_tcp_ar/aaaaajns_s002_t000.tse_agg"
+                },
+                {
+                    "file": "raw/edf/aaaaajns/s002_2010/01_tcp_ar/aaaaajns_s002_t001.edf",
+                    "ann": "raw/edf/aaaaajns/s002_2010/01_tcp_ar/aaaaajns_s002_t001.tse_agg"
+                },
+                {
+                    "file": "raw/edf/aaaaajns/s002_2010/01_tcp_ar/aaaaajns_s002_t002.edf",
+                    "ann": "raw/edf/aaaaajns/s002_2010/01_tcp_ar/aaaaajns_s002_t002.tse_agg"
+                },
+                {
+                    "file": "raw/edf/aaaaajns/s002_2010/01_tcp_ar/aaaaajns_s002_t003.edf",
+                    "ann": "raw/edf/aaaaajns/s002_2010/01_tcp_ar/aaaaajns_s002_t003.tse_agg"
+                },
+                {
+                    "file": "raw/edf/aaaaajns/s003_2010/01_tcp_ar/aaaaajns_s003_t000.edf",
+                    "ann": "raw/edf/aaaaajns/s003_2010/01_tcp_ar/aaaaajns_s003_t000.tse_agg"
+                },
+                {
+                    "file": "raw/edf/aaaaajns/s003_2010/01_tcp_ar/aaaaajns_s003_t001.edf",
+                    "ann": "raw/edf/aaaaajns/s003_2010/01_tcp_ar/aaaaajns_s003_t001.tse_agg"
+                },
+                {
+                    "file": "raw/edf/aaaaajns/s004_2010/01_tcp_ar/aaaaajns_s004_t001.edf",
+                    "ann": "raw/edf/aaaaajns/s004_2010/01_tcp_ar/aaaaajns_s004_t001.tse_agg"
+                },
+                {
+                    "file": "raw/edf/aaaaajns/s005_2010/01_tcp_ar/aaaaajns_s005_t000.edf",
+                    "ann": "raw/edf/aaaaajns/s005_2010/01_tcp_ar/aaaaajns_s005_t000.tse_agg"
+                },
+                {
+                    "file": "raw/edf/aaaaajns/s005_2010/01_tcp_ar/aaaaajns_s005_t001.edf",
+                    "ann": "raw/edf/aaaaajns/s005_2010/01_tcp_ar/aaaaajns_s005_t001.tse_agg"
+                }
+            ]
+        },
+        "17": {
+            "patient": "aaaaajqb",
+            "runs": [
+                {
+                    "file": "raw/edf/aaaaajqb/s001_2010/02_tcp_le/aaaaajqb_s001_t000.edf",
+                    "ann": "raw/edf/aaaaajqb/s001_2010/02_tcp_le/aaaaajqb_s001_t000.tse_agg"
+                }
+            ]
+        },
+        "18": {
+            "patient": "aaaaajqo",
+            "runs": [
+                {
+                    "file": "raw/edf/aaaaajqo/s007_2010/02_tcp_le/aaaaajqo_s007_t001.edf",
+                    "ann": "raw/edf/aaaaajqo/s007_2010/02_tcp_le/aaaaajqo_s007_t001.tse_agg"
+                },
+                {
+                    "file": "raw/edf/aaaaajqo/s008_2010/02_tcp_le/aaaaajqo_s008_t000.edf",
+                    "ann": "raw/edf/aaaaajqo/s008_2010/02_tcp_le/aaaaajqo_s008_t000.tse_agg"
+                },
+                {
+                    "file": "raw/edf/aaaaajqo/s008_2010/02_tcp_le/aaaaajqo_s008_t001.edf",
+                    "ann": "raw/edf/aaaaajqo/s008_2010/02_tcp_le/aaaaajqo_s008_t001.tse_agg"
+                },
+                {
+                    "file": "raw/edf/aaaaajqo/s020_2010/02_tcp_le/aaaaajqo_s020_t001.edf",
+                    "ann": "raw/edf/aaaaajqo/s020_2010/02_tcp_le/aaaaajqo_s020_t001.tse_agg"
+                },
+                {
+                    "file": "raw/edf/aaaaajqo/s028_2010/01_tcp_ar/aaaaajqo_s028_t000.edf",
+                    "ann": "raw/edf/aaaaajqo/s028_2010/01_tcp_ar/aaaaajqo_s028_t000.tse_agg"
+                }
+            ]
+        },
+        "19": {
+            "patient": "aaaaajrj",
+            "runs": [
+                {
+                    "file": "raw/edf/aaaaajrj/s004_2012/01_tcp_ar/aaaaajrj_s004_t004.edf",
+                    "ann": "raw/edf/aaaaajrj/s004_2012/01_tcp_ar/aaaaajrj_s004_t004.tse_agg"
+                },
+                {
+                    "file": "raw/edf/aaaaajrj/s005_2012/01_tcp_ar/aaaaajrj_s005_t007.edf",
+                    "ann": "raw/edf/aaaaajrj/s005_2012/01_tcp_ar/aaaaajrj_s005_t007.tse_agg"
+                }
+            ]
+        },
+        "20": {
+            "patient": "aaaaakbz",
+            "runs": [
+                {
+                    "file": "raw/edf/aaaaakbz/s001_2010/01_tcp_ar/aaaaakbz_s001_t000.edf",
+                    "ann": "raw/edf/aaaaakbz/s001_2010/01_tcp_ar/aaaaakbz_s001_t000.tse_agg"
+                },
+                {
+                    "file": "raw/edf/aaaaakbz/s002_2010/01_tcp_ar/aaaaakbz_s002_t000.edf",
+                    "ann": "raw/edf/aaaaakbz/s002_2010/01_tcp_ar/aaaaakbz_s002_t000.tse_agg"
+                },
+                {
+                    "file": "raw/edf/aaaaakbz/s005_2011/01_tcp_ar/aaaaakbz_s005_t000.edf",
+                    "ann": "raw/edf/aaaaakbz/s005_2011/01_tcp_ar/aaaaakbz_s005_t000.tse_agg"
+                }
+            ]
+        },
+        "21": {
+            "patient": "aaaaalhf",
+            "runs": [
+                {
+                    "file": "raw/edf/aaaaalhf/s001_2011/02_tcp_le/aaaaalhf_s001_t000.edf",
+                    "ann": "raw/edf/aaaaalhf/s001_2011/02_tcp_le/aaaaalhf_s001_t000.tse_agg"
+                }
+            ]
+        },
+        "22": {
+            "patient": "aaaaaltw",
+            "runs": [
+                {
+                    "file": "raw/edf/aaaaaltw/s001_2011/02_tcp_le/aaaaaltw_s001_t001.edf",
+                    "ann": "raw/edf/aaaaaltw/s001_2011/02_tcp_le/aaaaaltw_s001_t001.tse_agg"
+                }
+            ]
+        },
+        "23": {
+            "patient": "aaaaamhb",
+            "runs": [
+                {
+                    "file": "raw/edf/aaaaamhb/s001_2011/01_tcp_ar/aaaaamhb_s001_t000.edf",
+                    "ann": "raw/edf/aaaaamhb/s001_2011/01_tcp_ar/aaaaamhb_s001_t000.tse_agg"
+                },
+                {
+                    "file": "raw/edf/aaaaamhb/s001_2011/01_tcp_ar/aaaaamhb_s001_t001.edf",
+                    "ann": "raw/edf/aaaaamhb/s001_2011/01_tcp_ar/aaaaamhb_s001_t001.tse_agg"
+                },
+                {
+                    "file": "raw/edf/aaaaamhb/s012_2012/01_tcp_ar/aaaaamhb_s012_t006.edf",
+                    "ann": "raw/edf/aaaaamhb/s012_2012/01_tcp_ar/aaaaamhb_s012_t006.tse_agg"
+                },
+                {
+                    "file": "raw/edf/aaaaamhb/s013_2013/01_tcp_ar/aaaaamhb_s013_t001.edf",
+                    "ann": "raw/edf/aaaaamhb/s013_2013/01_tcp_ar/aaaaamhb_s013_t001.tse_agg"
+                }
+            ]
+        },
+        "24": {
+            "patient": "aaaaammu",
+            "runs": [
+                {
+                    "file": "raw/edf/aaaaammu/s001_2011/01_tcp_ar/aaaaammu_s001_t001.edf",
+                    "ann": "raw/edf/aaaaammu/s001_2011/01_tcp_ar/aaaaammu_s001_t001.tse_agg"
+                },
+                {
+                    "file": "raw/edf/aaaaammu/s002_2012/01_tcp_ar/aaaaammu_s002_t001.edf",
+                    "ann": "raw/edf/aaaaammu/s002_2012/01_tcp_ar/aaaaammu_s002_t001.tse_agg"
+                }
+            ]
+        },
+        "25": {
+            "patient": "aaaaamoa",
+            "runs": [
+                {
+                    "file": "raw/edf/aaaaamoa/s001_2012/01_tcp_ar/aaaaamoa_s001_t000.edf",
+                    "ann": "raw/edf/aaaaamoa/s001_2012/01_tcp_ar/aaaaamoa_s001_t000.tse_agg"
+                },
+                {
+                    "file": "raw/edf/aaaaamoa/s006_2012/01_tcp_ar/aaaaamoa_s006_t003.edf",
+                    "ann": "raw/edf/aaaaamoa/s006_2012/01_tcp_ar/aaaaamoa_s006_t003.tse_agg"
+                },
+                {
+                    "file": "raw/edf/aaaaamoa/s006_2012/01_tcp_ar/aaaaamoa_s006_t004.edf",
+                    "ann": "raw/edf/aaaaamoa/s006_2012/01_tcp_ar/aaaaamoa_s006_t004.tse_agg"
+                },
+                {
+                    "file": "raw/edf/aaaaamoa/s006_2012/01_tcp_ar/aaaaamoa_s006_t008.edf",
+                    "ann": "raw/edf/aaaaamoa/s006_2012/01_tcp_ar/aaaaamoa_s006_t008.tse_agg"
+                }
+            ]
+        },
+        "26": {
+            "patient": "aaaaamtj",
+            "runs": [
+                {
+                    "file": "raw/edf/aaaaamtj/s001_2012/01_tcp_ar/aaaaamtj_s001_t000.edf",
+                    "ann": "raw/edf/aaaaamtj/s001_2012/01_tcp_ar/aaaaamtj_s001_t000.tse_agg"
+                }
+            ]
+        },
+        "27": {
+            "patient": "aaaaamyc",
+            "runs": [
+                {
+                    "file": "raw/edf/aaaaamyc/s006_2013/01_tcp_ar/aaaaamyc_s006_t000.edf",
+                    "ann": "raw/edf/aaaaamyc/s006_2013/01_tcp_ar/aaaaamyc_s006_t000.tse_agg"
+                },
+                {
+                    "file": "raw/edf/aaaaamyc/s006_2013/01_tcp_ar/aaaaamyc_s006_t003.edf",
+                    "ann": "raw/edf/aaaaamyc/s006_2013/01_tcp_ar/aaaaamyc_s006_t003.tse_agg"
+                },
+                {
+                    "file": "raw/edf/aaaaamyc/s006_2013/01_tcp_ar/aaaaamyc_s006_t004.edf",
+                    "ann": "raw/edf/aaaaamyc/s006_2013/01_tcp_ar/aaaaamyc_s006_t004.tse_agg"
+                },
+                {
+                    "file": "raw/edf/aaaaamyc/s006_2013/01_tcp_ar/aaaaamyc_s006_t005.edf",
+                    "ann": "raw/edf/aaaaamyc/s006_2013/01_tcp_ar/aaaaamyc_s006_t005.tse_agg"
+                }
+            ]
+        },
+        "28": {
+            "patient": "aaaaanog",
+            "runs": [
+                {
+                    "file": "raw/edf/aaaaanog/s002_2012/01_tcp_ar/aaaaanog_s002_t000.edf",
+                    "ann": "raw/edf/aaaaanog/s002_2012/01_tcp_ar/aaaaanog_s002_t000.tse_agg"
+                }
+            ]
+        },
+        "29": {
+            "patient": "aaaaanrc",
+            "runs": [
+                {
+                    "file": "raw/edf/aaaaanrc/s001_2012/01_tcp_ar/aaaaanrc_s001_t001.edf",
+                    "ann": "raw/edf/aaaaanrc/s001_2012/01_tcp_ar/aaaaanrc_s001_t001.tse_agg"
+                },
+                {
+                    "file": "raw/edf/aaaaanrc/s001_2012/01_tcp_ar/aaaaanrc_s001_t002.edf",
+                    "ann": "raw/edf/aaaaanrc/s001_2012/01_tcp_ar/aaaaanrc_s001_t002.tse_agg"
+                },
+                {
+                    "file": "raw/edf/aaaaanrc/s002_2012/01_tcp_ar/aaaaanrc_s002_t000.edf",
+                    "ann": "raw/edf/aaaaanrc/s002_2012/01_tcp_ar/aaaaanrc_s002_t000.tse_agg"
+                },
+                {
+                    "file": "raw/edf/aaaaanrc/s002_2012/01_tcp_ar/aaaaanrc_s002_t001.edf",
+                    "ann": "raw/edf/aaaaanrc/s002_2012/01_tcp_ar/aaaaanrc_s002_t001.tse_agg"
+                },
+                {
+                    "file": "raw/edf/aaaaanrc/s002_2012/01_tcp_ar/aaaaanrc_s002_t002.edf",
+                    "ann": "raw/edf/aaaaanrc/s002_2012/01_tcp_ar/aaaaanrc_s002_t002.tse_agg"
+                },
+                {
+                    "file": "raw/edf/aaaaanrc/s002_2012/01_tcp_ar/aaaaanrc_s002_t003.edf",
+                    "ann": "raw/edf/aaaaanrc/s002_2012/01_tcp_ar/aaaaanrc_s002_t003.tse_agg"
+                },
+                {
+                    "file": "raw/edf/aaaaanrc/s002_2012/01_tcp_ar/aaaaanrc_s002_t004.edf",
+                    "ann": "raw/edf/aaaaanrc/s002_2012/01_tcp_ar/aaaaanrc_s002_t004.tse_agg"
+                },
+                {
+                    "file": "raw/edf/aaaaanrc/s004_2012/01_tcp_ar/aaaaanrc_s004_t001.edf",
+                    "ann": "raw/edf/aaaaanrc/s004_2012/01_tcp_ar/aaaaanrc_s004_t001.tse_agg"
+                },
+                {
+                    "file": "raw/edf/aaaaanrc/s004_2012/01_tcp_ar/aaaaanrc_s004_t002.edf",
+                    "ann": "raw/edf/aaaaanrc/s004_2012/01_tcp_ar/aaaaanrc_s004_t002.tse_agg"
+                },
+                {
+                    "file": "raw/edf/aaaaanrc/s004_2012/01_tcp_ar/aaaaanrc_s004_t003.edf",
+                    "ann": "raw/edf/aaaaanrc/s004_2012/01_tcp_ar/aaaaanrc_s004_t003.tse_agg"
+                },
+                {
+                    "file": "raw/edf/aaaaanrc/s004_2012/01_tcp_ar/aaaaanrc_s004_t004.edf",
+                    "ann": "raw/edf/aaaaanrc/s004_2012/01_tcp_ar/aaaaanrc_s004_t004.tse_agg"
+                },
+                {
+                    "file": "raw/edf/aaaaanrc/s004_2012/01_tcp_ar/aaaaanrc_s004_t005.edf",
+                    "ann": "raw/edf/aaaaanrc/s004_2012/01_tcp_ar/aaaaanrc_s004_t005.tse_agg"
+                },
+                {
+                    "file": "raw/edf/aaaaanrc/s004_2012/01_tcp_ar/aaaaanrc_s004_t006.edf",
+                    "ann": "raw/edf/aaaaanrc/s004_2012/01_tcp_ar/aaaaanrc_s004_t006.tse_agg"
+                },
+                {
+                    "file": "raw/edf/aaaaanrc/s004_2012/01_tcp_ar/aaaaanrc_s004_t007.edf",
+                    "ann": "raw/edf/aaaaanrc/s004_2012/01_tcp_ar/aaaaanrc_s004_t007.tse_agg"
+                },
+                {
+                    "file": "raw/edf/aaaaanrc/s004_2012/01_tcp_ar/aaaaanrc_s004_t008.edf",
+                    "ann": "raw/edf/aaaaanrc/s004_2012/01_tcp_ar/aaaaanrc_s004_t008.tse_agg"
+                },
+                {
+                    "file": "raw/edf/aaaaanrc/s004_2012/01_tcp_ar/aaaaanrc_s004_t009.edf",
+                    "ann": "raw/edf/aaaaanrc/s004_2012/01_tcp_ar/aaaaanrc_s004_t009.tse_agg"
+                },
+                {
+                    "file": "raw/edf/aaaaanrc/s004_2012/01_tcp_ar/aaaaanrc_s004_t010.edf",
+                    "ann": "raw/edf/aaaaanrc/s004_2012/01_tcp_ar/aaaaanrc_s004_t010.tse_agg"
+                },
+                {
+                    "file": "raw/edf/aaaaanrc/s005_2012/01_tcp_ar/aaaaanrc_s005_t000.edf",
+                    "ann": "raw/edf/aaaaanrc/s005_2012/01_tcp_ar/aaaaanrc_s005_t000.tse_agg"
+                }
+            ]
+        },
+        "30": {
+            "patient": "aaaaaogd",
+            "runs": [
+                {
+                    "file": "raw/edf/aaaaaogd/s008_2012/01_tcp_ar/aaaaaogd_s008_t003.edf",
+                    "ann": "raw/edf/aaaaaogd/s008_2012/01_tcp_ar/aaaaaogd_s008_t003.tse_agg"
+                },
+                {
+                    "file": "raw/edf/aaaaaogd/s008_2012/01_tcp_ar/aaaaaogd_s008_t005.edf",
+                    "ann": "raw/edf/aaaaaogd/s008_2012/01_tcp_ar/aaaaaogd_s008_t005.tse_agg"
+                }
+            ]
+        },
+        "31": {
+            "patient": "aaaaaogk",
+            "runs": [
+                {
+                    "file": "raw/edf/aaaaaogk/s001_2012/01_tcp_ar/aaaaaogk_s001_t001.edf",
+                    "ann": "raw/edf/aaaaaogk/s001_2012/01_tcp_ar/aaaaaogk_s001_t001.tse_agg"
+                },
+                {
+                    "file": "raw/edf/aaaaaogk/s001_2012/01_tcp_ar/aaaaaogk_s001_t002.edf",
+                    "ann": "raw/edf/aaaaaogk/s001_2012/01_tcp_ar/aaaaaogk_s001_t002.tse_agg"
+                }
+            ]
+        },
+        "32": {
+            "patient": "aaaaaouk",
+            "runs": [
+                {
+                    "file": "raw/edf/aaaaaouk/s001_2013/01_tcp_ar/aaaaaouk_s001_t000.edf",
+                    "ann": "raw/edf/aaaaaouk/s001_2013/01_tcp_ar/aaaaaouk_s001_t000.tse_agg"
+                },
+                {
+                    "file": "raw/edf/aaaaaouk/s008_2013/01_tcp_ar/aaaaaouk_s008_t002.edf",
+                    "ann": "raw/edf/aaaaaouk/s008_2013/01_tcp_ar/aaaaaouk_s008_t002.tse_agg"
+                }
+            ]
+        },
+        "33": {
+            "patient": "aaaaapas",
+            "runs": [
+                {
+                    "file": "raw/edf/aaaaapas/s001_2013/01_tcp_ar/aaaaapas_s001_t001.edf",
+                    "ann": "raw/edf/aaaaapas/s001_2013/01_tcp_ar/aaaaapas_s001_t001.tse_agg"
+                },
+                {
+                    "file": "raw/edf/aaaaapas/s003_2013/01_tcp_ar/aaaaapas_s003_t000.edf",
+                    "ann": "raw/edf/aaaaapas/s003_2013/01_tcp_ar/aaaaapas_s003_t000.tse_agg"
+                },
+                {
+                    "file": "raw/edf/aaaaapas/s003_2013/01_tcp_ar/aaaaapas_s003_t001.edf",
+                    "ann": "raw/edf/aaaaapas/s003_2013/01_tcp_ar/aaaaapas_s003_t001.tse_agg"
+                },
+                {
+                    "file": "raw/edf/aaaaapas/s003_2013/01_tcp_ar/aaaaapas_s003_t002.edf",
+                    "ann": "raw/edf/aaaaapas/s003_2013/01_tcp_ar/aaaaapas_s003_t002.tse_agg"
+                },
+                {
+                    "file": "raw/edf/aaaaapas/s004_2013/01_tcp_ar/aaaaapas_s004_t002.edf",
+                    "ann": "raw/edf/aaaaapas/s004_2013/01_tcp_ar/aaaaapas_s004_t002.tse_agg"
+                },
+                {
+                    "file": "raw/edf/aaaaapas/s005_2013/01_tcp_ar/aaaaapas_s005_t000.edf",
+                    "ann": "raw/edf/aaaaapas/s005_2013/01_tcp_ar/aaaaapas_s005_t000.tse_agg"
+                }
+            ]
+        },
+        "34": {
+            "patient": "aaaaapks",
+            "runs": [
+                {
+                    "file": "raw/edf/aaaaapks/s003_2013/01_tcp_ar/aaaaapks_s003_t000.edf",
+                    "ann": "raw/edf/aaaaapks/s003_2013/01_tcp_ar/aaaaapks_s003_t000.tse_agg"
+                },
+                {
+                    "file": "raw/edf/aaaaapks/s003_2013/01_tcp_ar/aaaaapks_s003_t004.edf",
+                    "ann": "raw/edf/aaaaapks/s003_2013/01_tcp_ar/aaaaapks_s003_t004.tse_agg"
+                },
+                {
+                    "file": "raw/edf/aaaaapks/s008_2013/01_tcp_ar/aaaaapks_s008_t000.edf",
+                    "ann": "raw/edf/aaaaapks/s008_2013/01_tcp_ar/aaaaapks_s008_t000.tse_agg"
+                },
+                {
+                    "file": "raw/edf/aaaaapks/s009_2013/01_tcp_ar/aaaaapks_s009_t000.edf",
+                    "ann": "raw/edf/aaaaapks/s009_2013/01_tcp_ar/aaaaapks_s009_t000.tse_agg"
+                }
+            ]
+        },
+        "35": {
+            "patient": "aaaaapkv",
+            "runs": [
+                {
+                    "file": "raw/edf/aaaaapkv/s001_2013/01_tcp_ar/aaaaapkv_s001_t000.edf",
+                    "ann": "raw/edf/aaaaapkv/s001_2013/01_tcp_ar/aaaaapkv_s001_t000.tse_agg"
+                }
+            ]
+        },
+        "36": {
+            "patient": "aaaaaplb",
+            "runs": [
+                {
+                    "file": "raw/edf/aaaaaplb/s001_2013/01_tcp_ar/aaaaaplb_s001_t000.edf",
+                    "ann": "raw/edf/aaaaaplb/s001_2013/01_tcp_ar/aaaaaplb_s001_t000.tse_agg"
+                }
+            ]
+        },
+        "37": {
+            "patient": "aaaaapnl",
+            "runs": [
+                {
+                    "file": "raw/edf/aaaaapnl/s002_2013/01_tcp_ar/aaaaapnl_s002_t000.edf",
+                    "ann": "raw/edf/aaaaapnl/s002_2013/01_tcp_ar/aaaaapnl_s002_t000.tse_agg"
+                },
+                {
+                    "file": "raw/edf/aaaaapnl/s002_2013/01_tcp_ar/aaaaapnl_s002_t001.edf",
+                    "ann": "raw/edf/aaaaapnl/s002_2013/01_tcp_ar/aaaaapnl_s002_t001.tse_agg"
+                }
+            ]
+        },
+        "38": {
+            "patient": "aaaaapqh",
+            "runs": [
+                {
+                    "file": "raw/edf/aaaaapqh/s004_2013/01_tcp_ar/aaaaapqh_s004_t000.edf",
+                    "ann": "raw/edf/aaaaapqh/s004_2013/01_tcp_ar/aaaaapqh_s004_t000.tse_agg"
+                },
+                {
+                    "file": "raw/edf/aaaaapqh/s004_2013/01_tcp_ar/aaaaapqh_s004_t002.edf",
+                    "ann": "raw/edf/aaaaapqh/s004_2013/01_tcp_ar/aaaaapqh_s004_t002.tse_agg"
+                }
+            ]
+        }
+    }
+}
