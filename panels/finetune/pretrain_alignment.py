@@ -46,6 +46,9 @@ def draw(ctx):
         colorbar_marks(fig.colorbar(im1, ax=a1, fraction=0.04), (-fl, fl)); colorbar_marks(fig.colorbar(im2, ax=a2, fraction=0.04), (0.5,))
         fig.suptitle(f'{g}: reconstruction vs classification gradients on the same trials\n'
                      f'dashed on the colour bars: ±{fl:.3f} = the spread of random directions (left), 0.5 = chance of a negative cosine (right)', fontweight='bold')
+        fig.text(0.5, -0.02, 'How to read: left, the cosine between the reconstruction-loss gradient and the classification-loss gradient on the same trials (> 0: reconstruction also helps classification; 0: unrelated; < 0: opposed).\n'
+                 'A pretrained backbone sits near a reconstruction minimum, so that gradient is mostly noise: values inside the dashed lines cannot be told from random. Right, how often the cosine is negative (0.5 = chance).',
+                 ha='center', va='top', fontsize=8, color='#333333')
         out = ctx.figure(f'pretrain_alignment_{g}.png')
         fig.savefig(out, dpi=130, bbox_inches='tight')
         plt.close(fig)

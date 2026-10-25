@@ -29,7 +29,7 @@ def colorbar_marks(cbar, values, color='black'):
         cbar.ax.axhline(v, color=color, lw=1.0, ls='--')
 
 
-def matrix_row(out_path, mats, stds, titles, row_labels, col_labels, vmin, vmax, cmap, suptitle, cbar_label='', marks=(), outline_diag=False):
+def matrix_row(out_path, mats, stds, titles, row_labels, col_labels, vmin, vmax, cmap, suptitle, cbar_label='', marks=(), outline_diag=False, note=''):
     """One annotated matrix per title side by side (mats, stds: lists of [R, C]) with one shared colour bar -> out_path."""
     n = len(mats)
     fig, axes = plt.subplots(1, n, figsize=(2.9 * n + 1.2, 3.6), squeeze=False)
@@ -39,5 +39,7 @@ def matrix_row(out_path, mats, stds, titles, row_labels, col_labels, vmin, vmax,
             ax.set_yticklabels([])
     colorbar_marks(fig.colorbar(im, ax=list(axes[0]), fraction=0.015, pad=0.01, label=cbar_label), marks)
     fig.suptitle(suptitle, fontweight='bold')
+    if note:
+        fig.text(0.5, -0.02, note, ha='center', va='top', fontsize=8, color='#333333')
     fig.savefig(out_path, dpi=130, bbox_inches='tight')
     plt.close(fig)

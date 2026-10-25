@@ -49,5 +49,7 @@ def draw(ctx):
         matrix_row(out, [z['mean'][..., i] for i in range(len(groups))], [z['std'][..., i] for i in range(len(groups))], groups,
                    tasks, tasks, -lim, lim, 'RdBu_r', f'{g}: cross-task gradient correlation (cosine of classification gradients, mean ± std over probe repeats)\n'
                    f'outlined diagonal = the same task on other batches (ceiling); dashed on the colour bar = ±{fl:.3f}, the spread of random directions',
-                   'cosine', marks=(-fl, fl), outline_diag=True)
+                   'cosine', marks=(-fl, fl), outline_diag=True,
+                   note='How to read: the cosine says how much two tasks push a parameter group the same way (1 = the same direction, 0 = unrelated, -1 = opposite).\n'
+                        'Single-batch gradients are noisy, so even one task against itself (outlined diagonal) agrees only weakly: judge a cell against the diagonal and the dashed floor, not against 1.')
         print(f'  -> {out}')

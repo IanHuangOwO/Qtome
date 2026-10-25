@@ -52,6 +52,26 @@ def phase_aligned(ref_d, d, h):
     return np.cos(t) * d + np.sin(t) * h
 
 
+def aligned_topographies(groups):
+    """The atom topographies of the groups' backbones (their atom_labels numbers, run the panel on each first) on the channels all of them
+    share, common-average referenced and unit length -> (topo [group, atom, channel], channels, coords), or None if one backbone has no
+    atom_labels numbers."""
+    zs = []
+    for bb in groups.values():
+        path = f'{QTOME_OUTPUT}/{bb}/pretrain/analysis/atom_labels.npz'
+        if not os.path.exists(path):
+            return None
+        zs.append(load_npz(path))
+    common = [c for c in zs[0]['channels'] if all(c in z['channels'] for z in zs)]
+    topo = []
+    for z in zs:
+        t = z['topo'][:, [list(z['channels']).index(c) for c in common]]
+        t = t - t.mean(1, keepdims=True)
+        topo.append(t / np.linalg.norm(t, axis=1, keepdims=True))
+    coords = zs[0]['coords'][[list(zs[0]['channels']).index(c) for c in common]]
+    return np.stack(topo), np.array(common), coords
+
+
 def compute(ctx):
     names = list(ctx.groups)
     if len(names) < 2:
@@ -73,6 +93,19 @@ def compute(ctx):
         out[f'S_{a}_{b}'], out[f'rows_{a}_{b}'], out[f'cols_{a}_{b}'], out[f'matched_{a}_{b}'] = S, r, c, m
         print(f"  {names[a]} vs {names[b]}: matched similarity mean {m.mean():.2f}, {(m >= ctx.args.match_threshold).sum()}/{n} >= "
               f"{ctx.args.match_threshold}; chance level: mean {null.mean():.2f}, 99th percentile {np.percentile(null, 99):.2f}")
+    topo = aligned_topographies(ctx.groups)
+    if topo is None:
+        print('  (no atom_labels numbers for every backbone: topographies not compared; run --panel atom_labels on each first)')
+    else:
+        out.update(topo=topo[0], topo_channels=topo[1], topo_coords=topo[2])
+        for a, b in itertools.combinations(range(len(names)), 2):
+            St = np.abs(topo[0][a] @ topo[0][b].T)                                     # sign-free topography similarity
+            r, c = out[f'rows_{a}_{b}'], out[f'cols_{a}_{b}']
+            out[f'topo_S_{a}_{b}'] = St
+            other = St[~np.isin(np.arange(St.size).reshape(St.shape), r * St.shape[1] + c)]
+            print(f"  {names[a]} vs {names[b]}: topography |cos| of matched atoms mean {St[r, c].mean():.2f} "
+                  f"(of atoms with waveform similarity >= {ctx.args.match_threshold}: {St[r, c][out[f'matched_{a}_{b}'] >= ctx.args.match_threshold].mean():.2f}); "
+                  f"unmatched pairs: mean {other.mean():.2f}, 95th percentile {np.percentile(other, 95):.2f}, {len(topo[1])} shared channels")
     out['threshold'] = np.array(ctx.args.match_threshold)
     out['gallery'] = np.array(ctx.args.gallery)
     save_npz(ctx.numbers('atom_seed_match.npz'), **out)
@@ -144,4 +177,55 @@ def draw(ctx):
     fig.suptitle(f'Most reproducible atoms of {names[0]} and their matches in the other backbones (phase-aligned templates)', fontweight='bold')
     out = ctx.figure('atom_seed_match_gallery.png')
     fig.tight_layout(); fig.savefig(out, dpi=130); plt.close(fig)
+    print(f'  -> {out}')
+    if 'topo' in z:
+        draw_topography(ctx, z, names, pairs, top[:min(8, len(top))])
+
+
+def draw_topography(ctx, z, names, pairs, order_atoms):
+    """atom_seed_match_topography.png: waveform similarity against topography similarity of every matched atom, and the topographies of the
+    most reproducible atoms in every group. Needs the atom_labels numbers of every backbone."""
+    from panels.kit.topomap import build_triangulation, draw_topomap, project_coords_2d
+    thr = float(z['threshold'])
+    fig = plt.figure(figsize=(15, 5.6))
+    gs = fig.add_gridspec(1, 2, width_ratios=[1, 1.5])
+    ax = fig.add_subplot(gs[0])
+    allnull = np.concatenate([z[f'topo_S_{a}_{b}'][~np.isin(np.arange(z[f'topo_S_{a}_{b}'].size).reshape(z[f'topo_S_{a}_{b}'].shape),
+                              z[f'rows_{a}_{b}'] * z[f'topo_S_{a}_{b}'].shape[1] + z[f'cols_{a}_{b}'])] for a, b in pairs])
+    ax.axhspan(0, float(np.mean(allnull)), color='#cccccc', alpha=0.6, label=f'unmatched atom pairs: mean {np.mean(allnull):.2f}')
+    ax.axhline(np.percentile(allnull, 95), color='#888888', ls=':', lw=1, label=f'unmatched pairs, 95th percentile {np.percentile(allnull, 95):.2f}')
+    ax.axvline(thr, color='k', ls='--', lw=0.8)
+    for k, (a, b) in enumerate(pairs):
+        r, c = z[f'rows_{a}_{b}'], z[f'cols_{a}_{b}']
+        ax.scatter(z[f'matched_{a}_{b}'], z[f'topo_S_{a}_{b}'][r, c], s=22, color=COLORS[k % len(COLORS)], alpha=0.85, label=f'{names[a]} vs {names[b]}')
+    ax.set_xlabel('waveform similarity of the matched atoms'); ax.set_ylabel('topography similarity (|cosine|, sign-free)')
+    ax.set_xlim(-0.02, 1.02); ax.set_ylim(0, 1.02); ax.legend(fontsize=7, loc='lower right')
+    hit = []
+    for a, b in pairs:                                                    # is the matched atom also the closest topography of the other backbone?
+        St, good = z[f'topo_S_{a}_{b}'], z[f'matched_{a}_{b}'] >= thr
+        rank = np.array([int((St[i] > St[i, j]).sum()) + 1 for i, j in zip(z[f'rows_{a}_{b}'], z[f'cols_{a}_{b}'])])
+        hit.append(f'{names[a]}-{names[b]} {int((rank[good] == 1).sum())}/{int(good.sum())}')
+    ax.set_title('Do atoms with the same waveform sit at the same place on the scalp?\n'
+                 f'the matched atom is also the closest topography (chance 1/{z["D"].shape[1]}): ' + ', '.join(hit), fontsize=8, fontweight='bold')
+    pos2d = project_coords_2d(z['topo_coords']); tri = build_triangulation(pos2d)
+    G, top = len(names), order_atoms
+    sub = gs[1].subgridspec(len(top), G, hspace=0.05, wspace=0.05)
+    for row, i in enumerate(top):
+        idx = {0: i}
+        for g in range(1, G):
+            idx[g] = int(z[f'cols_0_{g}'][list(z[f'rows_0_{g}']).index(i)])
+        for g in range(G):
+            axt = fig.add_subplot(sub[row, g]); v = z['topo'][g][idx[g]]
+            if g and float(z['topo'][0][i] @ v) < 0:
+                v = -v                                                    # sign for display only: as the reference atom
+            draw_topomap(axt, pos2d, v, cmap='RdBu_r', vmin=-np.abs(v).max(), vmax=np.abs(v).max(), triang=tri)
+            if row == 0:
+                axt.set_title(names[g], fontsize=8)
+            if g == 0:
+                axt.set_ylabel(f'atom {i}\n{z["freq"][0][i]:.0f} Hz', rotation=0, ha='right', va='center', fontsize=7)
+            else:
+                axt.text(0.5, -0.02, f'|cos| {abs(float(z["topo"][0][i] @ z["topo"][g][idx[g]])):.2f}', transform=axt.transAxes, ha='center', va='top', fontsize=6)
+    fig.suptitle(f'Atom topographies across backbones ({len(z["topo_channels"])} shared channels, common-average reference)', fontweight='bold')
+    out = ctx.figure('atom_seed_match_topography.png')
+    fig.savefig(out, dpi=130, bbox_inches='tight'); plt.close(fig)
     print(f'  -> {out}')

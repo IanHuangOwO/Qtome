@@ -66,5 +66,7 @@ def draw(ctx):
                    tasks, tasks, 0.0, 1.0, 'YlGnBu',
                    f'{g}: cross-task subspace affinity (rank-{int(z["rank"])} gradient subspaces, mean ± std over probe repeats)\n'
                    f'outlined diagonal = the same task on another probe repeat (ceiling); dashed on the colour bar = {float(z["chance"][0]):.3f}, '
-                   f'unrelated subspaces (95th percentile {float(z["chance"][1]):.3f})', 'affinity', marks=(float(z['chance'][0]),), outline_diag=True)
+                   f'unrelated subspaces (95th percentile {float(z["chance"][1]):.3f})', 'affinity', marks=(float(z['chance'][0]),), outline_diag=True,
+                   note='How to read: each task\'s main gradient directions (a rank-6 basis) are compared across tasks: 0 = unrelated subspaces, 1 = the same subspace.\n'
+                        'Cells near the diagonal value share about as much as a task does with itself; cells near the dashed line share nothing.')
         print(f'  -> {out}')
