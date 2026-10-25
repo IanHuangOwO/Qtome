@@ -22,27 +22,39 @@ def pca_basis(g, rank):
     return np.linalg.svd(g, full_matrices=False)[2][:rank].T
 
 
+def chance_affinity(batches, rank, dim, draws=200, seed=0):
+    """Affinity of two unrelated gradient sets of the same shape (random Gaussian rows): the level that means no relation -> mean, 95th percentile."""
+    rng = np.random.default_rng(seed)
+    v = [np.linalg.svd(pca_basis(rng.standard_normal((batches, dim)), rank).T @ pca_basis(rng.standard_normal((batches, dim)), rank),
+                       compute_uv=False).mean() for _ in range(draws)]
+    return float(np.mean(v)), float(np.percentile(v, 95))
+
+
 def affinity(ce, rank):
-    """ce [task, seed, batch, group, dim] -> mean, std over seeds of the pairwise affinity, each [task, task, group]."""
+    """ce [task, seed, batch, group, dim] -> mean, std of the pairwise affinity, each [task, task, group]: between two tasks over the probe
+    repeats; on the diagonal one task against itself (repeat against another repeat: the ceiling)."""
     T, R, K, G, _ = ce.shape
     rank = min(rank, K - 1)
-    out = np.full((T, T, R, G), np.nan)
-    for r in range(R):
-        for gi in range(G):
-            U = [pca_basis(ce[t, r, :, gi], rank) if np.isfinite(ce[t, r, :, gi]).all() else None for t in range(T)]
-            for a in range(T):
-                for b in range(T):
-                    if a != b and U[a] is not None and U[b] is not None:
-                        out[a, b, r, gi] = np.linalg.svd(U[a].T @ U[b], compute_uv=False).mean()
-    return np.nanmean(out, axis=2), np.nanstd(out, axis=2)
+    U = [[[pca_basis(ce[t, r, :, gi], rank) if np.isfinite(ce[t, r, :, gi]).all() else None for gi in range(G)] for r in range(R)] for t in range(T)]
+    aff = lambda u, v: np.nan if u is None or v is None else np.linalg.svd(u.T @ v, compute_uv=False).mean()
+    mean, std = np.full((T, T, G), np.nan), np.full((T, T, G), np.nan)
+    for a in range(T):
+        for b in range(T):
+            for gi in range(G):
+                v = ([aff(U[a][r][gi], U[b][r][gi]) for r in range(R)] if a != b
+                     else [aff(U[a][r][gi], U[a][s][gi]) for r in range(R) for s in range(r + 1, R)])
+                mean[a, b, gi], std[a, b, gi] = np.nanmean(v), np.nanstd(v)
+    return mean, std
 
 
 def compute(ctx):
     for g in ctx.groups:
         z = gp.gradients(ctx, g)
         mean, std = affinity(z['ce'], ctx.args.affinity_rank)
+        rank = min(ctx.args.affinity_rank, z['ce'].shape[2] - 1)
+        chance = chance_affinity(z['ce'].shape[2], rank, z['ce'].shape[-1])
         save_npz(ctx.numbers(f'subspace_affinity_{g}.npz'), mean=mean, std=std, tasks=z['tasks'], groups=z['groups'],
-                 rank=np.array(min(ctx.args.affinity_rank, z['ce'].shape[2] - 1)))
+                 rank=np.array(rank), chance=np.array(chance))
 
 
 def draw(ctx):
@@ -52,5 +64,7 @@ def draw(ctx):
         out = ctx.figure(f'subspace_affinity_{g}.png')
         matrix_row(out, [z['mean'][..., i] for i in range(len(groups))], [z['std'][..., i] for i in range(len(groups))], groups,
                    tasks, tasks, 0.0, 1.0, 'YlGnBu',
-                   f'{g}: cross-task subspace affinity (rank-{int(z["rank"])} gradient subspaces, mean ± std over probe repeats)', 'affinity')
+                   f'{g}: cross-task subspace affinity (rank-{int(z["rank"])} gradient subspaces, mean ± std over probe repeats)\n'
+                   f'outlined diagonal = the same task on another probe repeat (ceiling); dashed on the colour bar = {float(z["chance"][0]):.3f}, '
+                   f'unrelated subspaces (95th percentile {float(z["chance"][1]):.3f})', 'affinity', marks=(float(z['chance'][0]),), outline_diag=True)
         print(f'  -> {out}')

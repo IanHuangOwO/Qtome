@@ -41,17 +41,17 @@ python -m tools.misc.run_queue output/queue/<plan>.plan --max-parallel 2 --threa
 # Analysis: one file per analysis under panels/<stage>/ (compute the numbers, then draw the figures from them; failures don't stop the
 # other panels; presets are tagged in each panel's PRESETS). Pretrain = one backbone -> numbers in
 # output/Qtome/<backbone>/pretrain/analysis/, figures in output/Qtome/<backbone>/analysis/pretrain/ (standard: backbone_eval,
-# attention_range, atom_usage, ridge_probe, atom_vs_raw, atom_templates, atom_duplicates, snapshot,
+# attention_range, atom_usage, ridge_probe, atom_vs_raw, atom_templates, atom_duplicates, atom_labels, snapshot,
 # training_dashboard; quick: attention_range, atom_usage, ridge_probe, atom_vs_raw, atom_templates, atom_duplicates; on request: atom_distribution, codebook (each loads every pretrain dataset: ~20-30 min),
-# coord_robustness, long_context, profile, atom_labels (ICLabel class, topography and spectrum of each atom), task_filter_*; finetune: atom_maps,
-# probe_maps, class_snapshots, seed_equivalence, training_dashboard, atom_seed_match (needs >= 2 --group seeds)). Judge each change by its own mechanism metric, not finetuning
+# coord_robustness, long_context, profile, task_filter_*; finetune: atom_maps,
+# probe_maps, class_snapshots, seed_equivalence, training_dashboard). Judge each change by its own mechanism metric, not finetuning
 # (ADR 0020). `--redraw` draws again from the saved numbers; `--panel <name> --help` shows a panel's own options. Writing a panel:
 # docs/agents/adding-a-panel.md.
 python analyze.py list                                                  # every panel, its presets and one-line description
 python analyze.py check                                                 # every panel imports, flags consistent (no data; run after editing a panel)
 python analyze.py pretrain --run <backbone> [--preset quick] [--panel <name> ...] [--redraw]
 python analyze.py pretrain --panel profile [--train]                    # parameter counts + timing, no checkpoint
-# Finetune = several backbones under one head label -> output/analysis/<groups>/ (standard: summary, report, gradient_correlation, subspace_affinity, pretrain_alignment; others
+# Finetune = several backbones under one head label -> output/analysis/<groups>/ (standard: summary, report, gradient_correlation, subspace_affinity, pretrain_alignment, atom_seed_match (skipped with one group); others
 # on request; training_dashboard: one figure per fold -> <backbone>/analysis/finetune/<head>/<cell>/). Run backbone_eval first.
 python analyze.py finetune --group base=<backbone> --group X=<backbone> --ref base [--head frozen_learned] [--panel <name> ...]
 # Cross-task gradient panels (standard finetune preset; EEG-FM-Bench Figs. 3, 4, 8): backbone gradients of each finetune cell's trained head, shared probe cached as gradient_probe_<group>.npz

@@ -18,7 +18,7 @@ from panels.core.context import load_model
 from panels.core.numbers import load_npz, save_npz
 from panels.shared.atom_dictionary import FS, atom_templates, peak_freq
 
-PRESETS = set()
+PRESETS = {'standard'}
 COLORS = ('#2a78d6', '#eb6834', '#1baf7a', '#eda100', '#9a5fd0')   # one per group, in order
 
 
@@ -55,7 +55,8 @@ def phase_aligned(ref_d, d, h):
 def compute(ctx):
     names = list(ctx.groups)
     if len(names) < 2:
-        raise ValueError('atom_seed_match needs at least two --group backbones')
+        print('atom_seed_match: skipped, it needs at least two --group backbones (seeds of one recipe)')
+        return
     T = {}
     for g, bb in ctx.groups.items():
         m = load_model({}, f'{QTOME_OUTPUT}/{bb}/pretrain/checkpoint/last.pth', ctx.device)
@@ -78,6 +79,8 @@ def compute(ctx):
 
 
 def draw(ctx):
+    if not os.path.exists(ctx.numbers('atom_seed_match.npz')):
+        return
     z = load_npz(ctx.numbers('atom_seed_match.npz'))
     names = [str(g) for g in z['groups']]
     pairs = list(itertools.combinations(range(len(names)), 2))

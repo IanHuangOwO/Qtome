@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 from panels.core.numbers import load_npz, save_npz
-from panels.kit.matrix import annotated_matrix
+from panels.kit.matrix import annotated_matrix, colorbar_marks
 from panels.shared import gradient_probe as gp
 
 PRESETS = {'standard'}
@@ -31,7 +31,7 @@ def compute(ctx):
         z = gp.gradients(ctx, g)
         cm, cs, pm, ps = alignment(z['ce'], z['rec'])
         save_npz(ctx.numbers(f'pretrain_alignment_{g}.npz'), cos_mean=cm, cos_std=cs, conflict_mean=pm, conflict_std=ps,
-                 tasks=z['tasks'], groups=z['groups'])
+                 tasks=z['tasks'], groups=z['groups'], floor=np.array(1 / np.sqrt(z['ce'].shape[-1])))
 
 
 def draw(ctx):
@@ -39,12 +39,13 @@ def draw(ctx):
         z = load_npz(ctx.numbers(f'pretrain_alignment_{g}.npz'))
         tasks, groups = [str(t) for t in z['tasks']], [str(x) for x in z['groups']]
         fig, (a1, a2) = plt.subplots(1, 2, figsize=(2.0 * len(groups) + 3, 0.5 * len(tasks) + 3.4))
-        lim = max(0.2, float(np.nanmax(np.abs(z['cos_mean']))))
+        lim = max(0.2, float(np.nanmax(np.abs(z['cos_mean'])))); fl = float(z['floor'])
         im1 = annotated_matrix(a1, z['cos_mean'], z['cos_std'], tasks, groups, -lim, lim, 'RdBu_r', 'cosine(reconstruction, classification)')
         im2 = annotated_matrix(a2, z['conflict_mean'], z['conflict_std'], tasks, groups, 0.0, 1.0, 'YlGnBu',
                                'share of batches in conflict (cosine < 0)')
-        fig.colorbar(im1, ax=a1, fraction=0.04); fig.colorbar(im2, ax=a2, fraction=0.04)
-        fig.suptitle(f'{g}: reconstruction vs classification gradients on the same trials', fontweight='bold')
+        colorbar_marks(fig.colorbar(im1, ax=a1, fraction=0.04), (-fl, fl)); colorbar_marks(fig.colorbar(im2, ax=a2, fraction=0.04), (0.5,))
+        fig.suptitle(f'{g}: reconstruction vs classification gradients on the same trials\n'
+                     f'dashed on the colour bars: ±{fl:.3f} = the spread of random directions (left), 0.5 = chance of a negative cosine (right)', fontweight='bold')
         out = ctx.figure(f'pretrain_alignment_{g}.png')
         fig.savefig(out, dpi=130, bbox_inches='tight')
         plt.close(fig)

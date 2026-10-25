@@ -19,7 +19,7 @@ from panels.shared.atom_dictionary import BANDS, FS, atom_templates, band_of, pe
 from panels.shared.atom_readout import _signed_topo
 from panels.shared.eval_windows import batches, eval_windows
 
-PRESETS = set()
+PRESETS = {'standard'}
 CLASSES = ('brain', 'muscle', 'eye', 'heart', 'line noise', 'channel noise', 'other')   # mne_icalabel's column order
 UV = 10.0                      # shortcut: stand-in for microvolts per z-score unit (a typical EEG standard deviation)
 

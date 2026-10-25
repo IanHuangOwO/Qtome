@@ -21,14 +21,22 @@ def cross_task_cosine(ce):
     per_seed = np.nanmean(cos, axis=-1)                         # [a, c, seed, group]
     eye = np.eye(ce.shape[0], dtype=bool)[:, :, None, None]
     per_seed = np.where(eye, np.nan, per_seed)
-    return np.nanmean(per_seed, axis=2), np.nanstd(per_seed, axis=2)
+    mean, std = np.nanmean(per_seed, axis=2), np.nanstd(per_seed, axis=2)
+    K = ce.shape[2]                                             # diagonal: one task, different batches (the ceiling a pair of tasks can reach)
+    own = np.einsum('asbgd,ascgd->asgbc', ce, ce)               # [task, seed, group, batch, batch']
+    own = np.where(np.eye(K, dtype=bool), np.nan, own).reshape(*own.shape[:3], -1)
+    own = np.nanmean(own, axis=-1)                              # [task, seed, group]
+    for a in range(ce.shape[0]):
+        mean[a, a], std[a, a] = np.nanmean(own[a], axis=0), np.nanstd(own[a], axis=0)
+    return mean, std
 
 
 def compute(ctx):
     for g in ctx.groups:
         z = gp.gradients(ctx, g)
         mean, std = cross_task_cosine(z['ce'])
-        save_npz(ctx.numbers(f'gradient_correlation_{g}.npz'), mean=mean, std=std, tasks=z['tasks'], groups=z['groups'])
+        save_npz(ctx.numbers(f'gradient_correlation_{g}.npz'), mean=mean, std=std, tasks=z['tasks'], groups=z['groups'],
+                 floor=np.array(1 / np.sqrt(z['ce'].shape[-1])))
 
 
 def draw(ctx):
@@ -36,8 +44,10 @@ def draw(ctx):
         z = load_npz(ctx.numbers(f'gradient_correlation_{g}.npz'))
         tasks, groups = [str(t) for t in z['tasks']], [str(x) for x in z['groups']]
         lim = max(0.2, float(np.nanmax(np.abs(z['mean']))))
+        fl = float(z['floor'])
         out = ctx.figure(f'gradient_correlation_{g}.png')
         matrix_row(out, [z['mean'][..., i] for i in range(len(groups))], [z['std'][..., i] for i in range(len(groups))], groups,
-                   tasks, tasks, -lim, lim, 'RdBu_r', f'{g}: cross-task gradient correlation (cosine of classification gradients, mean ± std over probe repeats)',
-                   'cosine')
+                   tasks, tasks, -lim, lim, 'RdBu_r', f'{g}: cross-task gradient correlation (cosine of classification gradients, mean ± std over probe repeats)\n'
+                   f'outlined diagonal = the same task on other batches (ceiling); dashed on the colour bar = ±{fl:.3f}, the spread of random directions',
+                   'cosine', marks=(-fl, fl), outline_diag=True)
         print(f'  -> {out}')
