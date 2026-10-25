@@ -8,7 +8,7 @@
     add --redraw to draw again from the saved numbers (no recompute)
 
 `--panel <name> --help` shows that panel's own options. Pretrain: numbers in output/Qtome/<backbone>/pretrain/analysis/, figures in
-output/Qtome/<backbone>/analysis/pretrain/. Finetune: --out, default output/analysis/<group names>/. Writing a panel:
+output/Qtome/<backbone>/analysis/pretrain/. Finetune: --out, default output/Qtome/<common name of the backbones>_analysis/. Writing a panel:
 docs/agents/adding-a-panel.md.
 """
 import sys

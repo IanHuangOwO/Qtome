@@ -93,7 +93,17 @@ def add_stage_flags(p, stage):
                        help='a backbone to compare (repeatable, report order)')
         p.add_argument('--ref', help='the reference group (tests against it)')
         p.add_argument('--head', default='frozen_learned', help='finetune label: output/Qtome/<backbone>/finetune/<head>/')
-        p.add_argument('--out', help='output dir (default output/analysis/<group names>/)')
+        p.add_argument('--out', help='output dir (default output/Qtome/<common name of the backbones>_analysis/)')
+
+
+def default_analysis_dir(groups):
+    """Where the analysis of several backbones goes, at the level of the backbones: output/Qtome/<name>_analysis, name = what the backbones'
+    names have in common (qtome_small_v4flat_onephase_s1/s2/s3 -> qtome_small_v4flat_onephase), a lone backbone's own name, else the group names."""
+    bbs = sorted(set(groups.values()))
+    parts = [b.split('_') for b in bbs]
+    k = next((i for i, t in enumerate(zip(*parts)) if len(set(t)) > 1), min(map(len, parts)))   # leading name parts all share (whole parts: _s1 / _s2 differ)
+    name = bbs[0] if len(bbs) == 1 else '_'.join(parts[0][:k]) if k >= 2 else '_'.join(groups)
+    return os.path.join(QTOME_OUTPUT, f'{name}_analysis')
 
 
 def make_ctx(stage, args, panel_modules, error):
@@ -103,7 +113,7 @@ def make_ctx(stage, args, panel_modules, error):
         groups = dict(g.split('=', 1) for g in args.group)
         if args.ref and args.ref not in groups:
             error(f'--ref {args.ref!r} is not a group name ({list(groups)})')
-        out = args.out or os.path.join('output', 'analysis', '_'.join(groups))
+        out = args.out or default_analysis_dir(groups)
         os.makedirs(out, exist_ok=True)
         return Ctx(stage, args, out, out, device=device, groups=groups, ref=args.ref, head=args.head, redraw=args.redraw)
 

@@ -122,7 +122,7 @@ output/Qtome/<backbone>/          # every Qtome run; archive/ beside the backbon
   finetune/<head>/<dataset>_<split>/
     artifacts/group_eval.json     # per-subject balanced accuracy (tail = mean of the last 10 epochs)
 output/EEGNet/finetune/compass/<dataset>_<mode>_seed<k>/   # from-scratch baseline (train_baseline.py)
-output/analysis/                  # generated multi-backbone analysis (curated write-ups: docs/reports/)
+output/Qtome/<name>_analysis/       # generated multi-backbone analysis (name = what the backbones' names share) (curated write-ups: docs/reports/)
 output/Qtome/archive/<date>_<topic>/     # superseded experiments, grouped by topic
 ```
 

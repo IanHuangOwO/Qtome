@@ -51,7 +51,7 @@ python analyze.py list                                                  # every 
 python analyze.py check                                                 # every panel imports, flags consistent (no data; run after editing a panel)
 python analyze.py pretrain --run <backbone> [--preset quick] [--panel <name> ...] [--redraw]
 python analyze.py pretrain --panel profile [--train]                    # parameter counts + timing, no checkpoint
-# Finetune = several backbones under one head label -> output/analysis/<groups>/ (standard: summary, report, gradient_correlation, subspace_affinity, pretrain_alignment, atom_seed_match (skipped with one group); others
+# Finetune = several backbones under one head label -> output/Qtome/<common name of the backbones>_analysis/ (--out overrides; standard: summary, report, gradient_correlation, subspace_affinity, pretrain_alignment, atom_seed_match (skipped with one group); others
 # on request; training_dashboard: one figure per fold -> <backbone>/analysis/finetune/<head>/<cell>/). Run backbone_eval first.
 python analyze.py finetune --group base=<backbone> --group X=<backbone> --ref base [--head frozen_learned] [--panel <name> ...]
 # Cross-task gradient panels (standard finetune preset; EEG-FM-Bench Figs. 3, 4, 8): backbone gradients of each finetune cell's trained head, shared probe cached as gradient_probe_<group>.npz
@@ -240,10 +240,10 @@ of the last 10 epochs' balanced accuracy, `last`, kappa; `finetune/run_<fold>/` 
 logs, numbers and checkpoints only: **every figure lives in `output/Qtome/<backbone>/analysis/`** (`pretrain/` = the
 pretrain panels, incl. `training_dashboard.png`, `snapshot/`; `filter/` = the task-filter panels; `finetune/<head>/<cell>/<fold>_training_dashboard.png`),
 drawn afterwards from the stored numbers by the analysis panels (`--panel training_dashboard`, `--panel snapshot`);
-training draws nothing. `output/analysis/` holds generated multi-backbone analysis (regenerable),
+training draws nothing. `output/Qtome/<name>_analysis/` (name = what the backbones' names share, e.g. `qtome_small_v4flat_onephase_analysis`) holds generated multi-backbone analysis (regenerable),
 `output/queue/` queue state, `output/Qtome/archive/<date>_<topic>/` superseded experiments. Once a result is final, write it up
 in `docs/reports/` (fixed format and index in `docs/reports/README.md`; copy the figures, tables and
-pipeline scripts it cites) and delete the generated `output/analysis/` and queue folders.
+pipeline scripts it cites) and delete the generated `*_analysis/` and queue folders.
 
 ## Data
 
