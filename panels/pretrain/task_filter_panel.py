@@ -1,5 +1,5 @@
 """task_filter_panel: the filter (--filter-source) applied to each --target dataset it never saw, before and after, at --share. Numbers ->
-analysis/task_filter/<source>/filter_<target>_<share>.npz, figure -> analysis/pretrain/task_filter/<source>/filter_<target>_<share>.png (drawn
+pretrain/analysis/filter/<source>/filter_<target>_<share>.npz, figure -> analysis/filter/<source>/filter_<target>_<share>.png (drawn
 from the saved numbers). Builds the filter first if it is not saved.
 
 A task filter (panels/shared/task_filter/fit.py) applied to one dataset it
@@ -266,11 +266,11 @@ def compute(ctx):
     _, tf = filter_context(ctx, ctx.args.filter_source)
     src, share = ctx.args.filter_source, ctx.args.share
     for dst in ctx.args.target:
-        panel_numbers(tf, dst, share, ctx.numbers('task_filter', src, f'filter_{dst}_{share:g}.npz'))
+        panel_numbers(tf, dst, share, ctx.numbers('filter', src, f'filter_{dst}_{share:g}.npz'))
 
 
 def draw(ctx):
     src, share = ctx.args.filter_source, ctx.args.share
     for dst in ctx.args.target:
-        draw_figure(ctx.numbers('task_filter', src, f'filter_{dst}_{share:g}.npz'),
-                    ctx.figure('task_filter', src, f'filter_{dst}_{share:g}.png'))
+        draw_figure(ctx.numbers('filter', src, f'filter_{dst}_{share:g}.npz'),
+                    ctx.figure_in('filter', src, f'filter_{dst}_{share:g}.png'))

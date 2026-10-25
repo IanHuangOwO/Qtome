@@ -365,27 +365,6 @@ def plot_atom_identity_consistency(out_path, within, between, per_atom_ids, per_
           f"separation {sep:+.3f}")
 
 
-def plot_fingerprint_similarity(out_path, matrix, unit_label='Atom'):
-    """Q x Q cosine similarity between each unit's own raw decoder template (content-free,
-    no data dependence — see BaseCodebookChecker.decoder_fingerprint_matrix) — the direct
-    structural redundancy check: two units with near-1 similarity here learned the same
-    shape regardless of when/where they fire."""
-    Q = matrix.shape[0]
-    fig, ax = plt.subplots(figsize=(max(6, 0.08 * Q + 3), max(5, 0.08 * Q + 3)))
-    im = ax.imshow(matrix, vmin=-1, vmax=1, cmap='RdBu_r')
-    ax.set_title(f'{unit_label} Fingerprint Similarity (raw template cosine)',
-                 fontsize=11, fontweight='bold')
-    ax.set_xlabel(f'{unit_label} id'); ax.set_ylabel(f'{unit_label} id')
-    fig.colorbar(im, ax=ax, fraction=0.046, pad=0.04)
-    fig.tight_layout()
-    fig.savefig(out_path, dpi=120, bbox_inches='tight')
-    plt.close(fig)
-    off_diag = matrix[~np.eye(Q, dtype=bool)]
-    print(f"  [codebook] -> {out_path}")
-    print(f"    off-diagonal cosine: mean {off_diag.mean():.3f} | max {off_diag.max():.3f} "
-          f"(near-1 = two atoms learned the same shape, the nested loss should keep this low)")
-
-
 def plot_atom_phase_consistency(out_path, circ_var, fire_count, unit_label='Atom',
                                   min_fires=5):
     """Per-unit circular variance (1 - |mean(exp(i*phase))|, over all of that unit's occurrences'
@@ -427,7 +406,7 @@ def plot_topography_distance(out_path, matrices, unit_label='Atom'):
     every unit that fired at least a few times in that dataset -- see
     QtomeCodebookChecker._render_identity_consistency, which already computes the
     coherent per-occurrence (a,b) average this reuses). Complements
-    plot_fingerprint_similarity (raw waveform shape, dataset-independent): two units can
+    the template similarity of atom_duplicates (raw waveform shape, dataset-independent): two units can
     have very different D_i templates yet project to a similar scalp pattern, or vice
     versa -- this is the only panel that shows that pairing directly. Computed per
     dataset only (not pooled): different datasets map to different channel subsets, so a

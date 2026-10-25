@@ -34,13 +34,6 @@ def extract_usage(model, x_in, c_in, t_in, vc_in):
     return model.encode_atoms(x_in, c_in, time_idx=t_in, valid_channels=vc_in).h.cpu().numpy()
 
 
-def decoder_fingerprint_matrix(model):
-    """Pairwise cosine similarity of the unit templates D_s (content-free: D never depends on
-    input) -- the check on template diversity that the nested loss is meant to keep."""
-    D = model.atoms.templates()[0].detach().cpu().numpy()        # [n_atoms, patch_len], unit rows
-    return D @ D.T
-
-
 @torch.no_grad()
 def sample_usage(model, datasets_by_name, max_trials_per_dataset=200, seed=0):
     """-> (usage_by_dataset {ds: [M_total, Q]}, labels_by_dataset, trial_usage_by_dataset {ds: [n_trials, Q]}, trial_labels_by_dataset,

@@ -1,5 +1,5 @@
 """task_filter_eval: tests of the filter (--filter-source) on unseen datasets, --filter-test mi / p300 / noise (default all three) on --target
-(default per test) -> analysis/task_filter/<source>/eval_<test>_<target>.json and .log. Builds the filter first if it is not saved."""
+(default per test) -> pretrain/analysis/filter/<source>/eval_<test>_<target>.json and .log. Builds the filter first if it is not saved."""
 from panels.shared.task_filter.context import filter_context, write_table
 from panels.shared.task_filter.tests import DEFAULT_TARGETS, TESTS
 

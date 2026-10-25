@@ -1,4 +1,4 @@
-"""task_filter_build: fit the task filter of --filter-source (multi, or one dataset) and save it again -> analysis/task_filter/<source>/filter.pt.
+"""task_filter_build: fit the task filter of --filter-source (multi, or one dataset) and save it again -> pretrain/analysis/filter/<source>/filter.pt.
 Needs the backbone's loso cells on imputed 64-channel gains (docs: panels/shared/task_filter/fit.py)."""
 from panels.shared.task_filter.context import filter_context
 

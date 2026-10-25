@@ -67,6 +67,12 @@ class Ctx:
         os.makedirs(os.path.dirname(path), exist_ok=True)
         return path
 
+    def figure_in(self, stage, *parts):
+        """A path under the sibling figure folder <analysis>/<stage>/ (e.g. 'filter'); its folder is created."""
+        path = os.path.join(os.path.dirname(self.fig_dir), stage, *parts)
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        return path
+
     def figure(self, *parts):
         """A path under fig_dir; its folder is created."""
         path = os.path.join(self.fig_dir, *parts)

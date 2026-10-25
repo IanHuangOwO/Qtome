@@ -1,8 +1,9 @@
 """codebook: cross-dataset Q-atom-usage diagnostics -> analysis/pretrain/codebook/. One dataset per pretrain entry (usage stays
 attributable to its source), real trials with their labels, each capped at --max-trials trials (shared/trials.cap_subjects).
-Figures: embedding scatters (per patch and per trial, by dataset and by target), dataset relation, usage by dataset, template
-similarity, Q-atom phase / topography / identity consistency, patch-position consistency and event dynamics per dataset.
-Options: --datasets, --max-trials."""
+Figures: dataset relation, usage by dataset, Q-atom phase / topography / identity consistency; each with its own flag: the
+embedding scatters per patch and per trial (--embedding-scatter: by dataset, by target, per dataset), patch-position consistency
+(--patch-position) and event-locked Q-atom dynamics (--event-dynamics) per dataset.
+Options: --datasets, --max-trials, --embedding-scatter, --patch-position, --event-dynamics."""
 import copy
 import glob
 import os
@@ -24,6 +25,9 @@ UNIT = 'Atom'
 def add_args(flags):
     flags.add('--datasets', nargs='+', help='these pretrain datasets (default: every one)')
     flags.add('--max-trials', type=int, default=1000, help='trials per dataset')
+    flags.add('--embedding-scatter', action='store_true', help='also draw the embedding scatters, per patch and per trial (by dataset, by target, per dataset)')
+    flags.add('--patch-position', action='store_true', help='also draw the patch-position consistency per dataset')
+    flags.add('--event-dynamics', action='store_true', help='also compute and draw the event-locked Q-atom dynamics per dataset')
 
 
 def compute(ctx):
@@ -44,8 +48,7 @@ def compute(ctx):
     model, device, seed = ctx.model, next(ctx.model.parameters()).device, 0
 
     usage, labels, t_usage, t_labels, records = readout.sample_usage(model, by_name, max_trials, seed)
-    arrays = {'fingerprint': readout.decoder_fingerprint_matrix(model),
-              'datasets': np.array(list(by_name))}
+    arrays = {'datasets': np.array(list(by_name))}
     for i, ds in enumerate(by_name):
         trials = [t for t in records if t['dataset'] == ds]
         arrays.update({f'usage_{i}': usage[ds], f'labels_{i}': labels[ds], f'trial_usage_{i}': t_usage[ds],
@@ -64,7 +67,7 @@ def compute(ctx):
             arrays.update({f'mat_{j}': mat, f'mat_ids_{j}': np.array(sids)})
     save_npz(ctx.numbers('codebook', 'consistency.npz'), **arrays)
 
-    for i, ds in enumerate(by_name):
+    for i, ds in enumerate(by_name if ctx.args.event_dynamics else []):
         ev = readout.event_dynamics_numbers([t for t in records if t['dataset'] == ds], ds, model, device, seed, ctx.config)
         if ev is not None:
             ev = dict(ev, onset_sec=np.array(np.nan if ev['onset_sec'] is None else ev['onset_sec']))
@@ -81,17 +84,13 @@ def draw(ctx):
     t_labels = {d: z[f'trial_labels_{i}'] for i, d in enumerate(names)}
     seed, max_points = 0, 3000
 
-    plots.plot_fingerprint_similarity(out('atom_fingerprint_similarity.png'), z['fingerprint'], unit_label=UNIT)
-    plots.plot_embedding_scatter_by_dataset(out('patch_embedding_scatter_by_dataset.png'), usage, unit_label=UNIT,
-                                            max_points=max_points, random_state=seed)
-    plots.plot_embedding_scatter_by_target(out('patch_embedding_scatter_by_target.png'),
-                                           out('patch_embedding_scatter_per_dataset.png'), usage, labels,
-                                           unit_label=UNIT, max_points=max_points, random_state=seed)
-    plots.plot_embedding_scatter_by_dataset(out('trial_embedding_scatter_by_dataset.png'), t_usage, unit_label=UNIT,
-                                            max_points=max_points, random_state=seed)
-    plots.plot_embedding_scatter_by_target(out('trial_embedding_scatter_by_target.png'),
-                                           out('trial_embedding_scatter_per_dataset.png'), t_usage, t_labels,
-                                           unit_label=UNIT, max_points=max_points, random_state=seed)
+    if ctx.args.embedding_scatter:
+        for kind, u, lab in (('patch', usage, labels), ('trial', t_usage, t_labels)):
+            plots.plot_embedding_scatter_by_dataset(out(f'{kind}_embedding_scatter_by_dataset.png'), u, unit_label=UNIT,
+                                                    max_points=max_points, random_state=seed)
+            plots.plot_embedding_scatter_by_target(out(f'{kind}_embedding_scatter_by_target.png'),
+                                                   out(f'{kind}_embedding_scatter_per_dataset.png'), u, lab,
+                                                   unit_label=UNIT, max_points=max_points, random_state=seed)
 
     c = load_npz(ctx.numbers('codebook', 'consistency.npz'))
     plots.plot_atom_phase_consistency(out('atom_phase_consistency.png'), c['circ_var'], c['fire_count'], unit_label=UNIT)
@@ -111,10 +110,11 @@ def draw(ctx):
     # dataset's own trial length/patch_len), and the event-locked dynamics.
     for i, ds in enumerate(names):
         lens = np.cumsum(z[f'rec_len_{i}'])[:-1]
-        trials = [dict(usage=u, dataset=ds, subject=int(s))
-                  for u, s in zip(np.split(z[f'rec_usage_{i}'], lens), z[f'rec_subject_{i}'])]
-        plots.plot_patch_position_consistency(out(f'patch_position_consistency_{ds}.png'), trials, unit_label=UNIT, seed=seed,
-                                              event_patch=event_onset_patch(ctx.config, ds) if ctx.config else None)
+        if ctx.args.patch_position:
+            trials = [dict(usage=u, dataset=ds, subject=int(s))
+                      for u, s in zip(np.split(z[f'rec_usage_{i}'], lens), z[f'rec_subject_{i}'])]
+            plots.plot_patch_position_consistency(out(f'patch_position_consistency_{ds}.png'), trials, unit_label=UNIT, seed=seed,
+                                                  event_patch=event_onset_patch(ctx.config, ds) if ctx.config else None)
         path = ctx.numbers('codebook', f'event_dynamics_{ds}.npz')
         if os.path.exists(path):
             e = load_npz(path)

@@ -1,6 +1,6 @@
 """task_filter_filter: the filter of --filter-source alone, applied to nothing, at --share: power kept of white input, effective rank and the
-importance of each channel for each Q-atom. Numbers -> analysis/task_filter/<source>/filter_analysis_<share>.npz, figure ->
-analysis/pretrain/task_filter/<source>/filter_analysis_<share>.png (drawn from the saved numbers). Builds the filter first if it is not saved."""
+importance of each channel for each Q-atom. Numbers -> pretrain/analysis/filter/<source>/filter_analysis_<share>.npz, figure ->
+analysis/filter/<source>/filter_analysis_<share>.png (drawn from the saved numbers). Builds the filter first if it is not saved."""
 import matplotlib
 
 matplotlib.use('Agg')
@@ -60,10 +60,10 @@ def draw_filter(path, out_path, log=print):
 def compute(ctx):
     _, tf = filter_context(ctx, ctx.args.filter_source)
     src, share = ctx.args.filter_source, ctx.args.share
-    filter_numbers(tf, share, ctx.numbers('task_filter', src, f'filter_analysis_{share:g}.npz'))
+    filter_numbers(tf, share, ctx.numbers('filter', src, f'filter_analysis_{share:g}.npz'))
 
 
 def draw(ctx):
     src, share = ctx.args.filter_source, ctx.args.share
-    draw_filter(ctx.numbers('task_filter', src, f'filter_analysis_{share:g}.npz'),
-                ctx.figure('task_filter', src, f'filter_analysis_{share:g}.png'))
+    draw_filter(ctx.numbers('filter', src, f'filter_analysis_{share:g}.npz'),
+                ctx.figure_in('filter', src, f'filter_analysis_{share:g}.png'))

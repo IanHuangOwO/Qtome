@@ -1,5 +1,5 @@
 """task_filter_compare: the multi-task filter (and, with --single <dataset>, that dataset's single-task filter) on each --target with injected
-artifacts, against ASR and ICLabel -> analysis/task_filter/compare/compare_<target>.json and .log, analysis/pretrain/task_filter/compare/
+artifacts, against ASR and ICLabel -> pretrain/analysis/filter/compare/compare_<target>.json and .log, analysis/filter/compare/
 compare_<target>.png. Builds either filter first if it is not saved.
 
 The figure: One
@@ -97,7 +97,7 @@ def compute(ctx):
         lines = []
         log = lambda s: (print(s, flush=True), lines.append(s))
         rows = compare(ctxs, dst, log=log)
-        stem = ctx.numbers('task_filter', 'compare', f'compare_{dst}')
+        stem = ctx.numbers('filter', 'compare', f'compare_{dst}')
         write_table(stem, rows, lines)
         with open(stem + '.meta.json', 'w') as f:        # what the figure's legend and title need besides the rows
             json.dump({'sources': {**({'single-task': ctx.args.single} if ctx.args.single else {}), 'multi-task': ' + '.join(sources)},
@@ -106,6 +106,6 @@ def compute(ctx):
 
 def draw(ctx):
     for dst in ctx.args.target:
-        stem = ctx.numbers('task_filter', 'compare', f'compare_{dst}')
+        stem = ctx.numbers('filter', 'compare', f'compare_{dst}')
         rows, meta = json.load(open(stem + '.json')), json.load(open(stem + '.meta.json'))
-        draw_figure(rows, dst, meta['sources'], ctx.figure('task_filter', 'compare', f'compare_{dst}.png'), seen=meta['seen'])
+        draw_figure(rows, dst, meta['sources'], ctx.figure_in('filter', 'compare', f'compare_{dst}.png'), seen=meta['seen'])

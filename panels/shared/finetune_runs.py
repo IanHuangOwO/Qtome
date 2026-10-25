@@ -1,5 +1,5 @@
 """Reading finetune runs: a run dir's group_eval.json as {subject: score} (summary, seed_equivalence and report all read runs this way), and
-the cells of a head label under the groups' backbones (atom_maps, probe_maps, time_weights)."""
+the cells of a head label under the groups' backbones (atom_maps, probe_maps)."""
 import glob
 import json
 import os

@@ -51,7 +51,7 @@ python analyze.py list                                                  # every 
 python analyze.py check                                                 # every panel imports, flags consistent (no data; run after editing a panel)
 python analyze.py pretrain --run <backbone> [--preset quick] [--panel <name> ...] [--redraw]
 python analyze.py pretrain --panel profile [--train]                    # parameter counts + timing, no checkpoint
-# Finetune = several backbones under one head label -> output/analysis/<groups>/ (standard: summary, report, time_weights; others
+# Finetune = several backbones under one head label -> output/analysis/<groups>/ (standard: summary, report; others
 # on request; training_dashboard: one figure per fold -> <backbone>/analysis/finetune/<head>/<cell>/). Run backbone_eval first.
 python analyze.py finetune --group base=<backbone> --group X=<backbone> --ref base [--head frozen_learned] [--panel <name> ...]
 python -m panels.finetune.summary 'output/Qtome/<backbone>/finetune/<head>/*' [--ref <backbone>:<head>] [--rank N]   # standalone table
@@ -59,8 +59,8 @@ python -m panels.finetune.summary 'output/Qtome/<backbone>/finetune/<head>/*' [-
 # Task filter: a reconstruction keeping only what classification heads use (panels/shared/task_filter/fit.py). Panels of
 # analyze.py pretrain, run on request (not in a preset). --filter-source 'multi' (multi-task filter: MI + P300 + SSVEP
 # heads) or one dataset (single-task filter); needs loso cells <ds>_impute64_loso_seed1 (impute_missing_channels=true).
-# Numbers: output/Qtome/<backbone>/pretrain/analysis/task_filter/<source>/ (filter.pt, eval_*) and .../compare/; figures
-# (filter_analysis_*, filter_<ds>_*, compare_*.png): output/Qtome/<backbone>/analysis/pretrain/task_filter/<source>/ and .../compare/
+# Numbers: output/Qtome/<backbone>/pretrain/analysis/filter/<source>/ (filter.pt, eval_*) and .../compare/; figures
+# (filter_analysis_*, filter_<ds>_*, compare_*.png): output/Qtome/<backbone>/analysis/filter/<source>/ and .../compare/
 python analyze.py pretrain --run <backbone> --panel task_filter_build               # fit and save the filter (again)
 python analyze.py pretrain --run <backbone> --panel task_filter_filter [--share 0.1]   # the filter alone: importance maps, power kept of white input
 python analyze.py pretrain --run <backbone> --panel task_filter_eval [--filter-test mi p300 noise] [--target <ds> ...]
@@ -235,7 +235,7 @@ fingerprint) and `output/Qtome/<backbone>/finetune/<head>/<cell>/` (`artifacts/g
 of the last 10 epochs' balanced accuracy, `last`, kappa; `finetune/run_<fold>/` = `head.pth`, `history.json` (curves, lr, per-subject bal. acc. and kappa every epoch), `predictions.npz`
 (eval trial indices, labels, last-epoch logits)). Runs store
 logs, numbers and checkpoints only: **every figure lives in `output/Qtome/<backbone>/analysis/`** (`pretrain/` = the
-pretrain panels, incl. `training_dashboard.png`, `snapshot/`, `task_filter/`; `finetune/<head>/<cell>/<fold>_training_dashboard.png`),
+pretrain panels, incl. `training_dashboard.png`, `snapshot/`; `filter/` = the task-filter panels; `finetune/<head>/<cell>/<fold>_training_dashboard.png`),
 drawn afterwards from the stored numbers by the analysis panels (`--panel training_dashboard`, `--panel snapshot`);
 training draws nothing. `output/analysis/` holds generated multi-backbone analysis (regenerable),
 `output/queue/` queue state, `output/Qtome/archive/<date>_<topic>/` superseded experiments. Once a result is final, write it up

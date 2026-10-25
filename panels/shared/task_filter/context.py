@@ -11,13 +11,13 @@ from panels.shared.task_filter.fit import SOURCES, build
 
 def filter_context(ctx, source, rebuild=False):
     """(out dir, test context) of one filter source ('multi' or a dataset) for an analyze.py pretrain run: the saved
-    filter <analysis>/task_filter/<source>/filter.pt, built first if missing (or rebuilt). The backbone is
+    filter <analysis>/filter/<source>/filter.pt, built first if missing (or rebuilt). The backbone is
     output/Qtome/<backbone>, three levels above the checkpoint (<backbone>/pretrain/checkpoint/last.pth)."""
     bb = os.path.dirname(os.path.dirname(os.path.dirname(ctx.checkpoint)))
     if not hasattr(ctx, '_tf_backbone'):
         ctx._tf_backbone = Backbone(bb)
     sources = ctx.args.filter_sources or list(SOURCES)
-    out = f'{ctx.numbers_dir}/task_filter/{source}'; os.makedirs(out, exist_ok=True); path = f'{out}/filter.pt'
+    out = f'{ctx.numbers_dir}/filter/{source}'; os.makedirs(out, exist_ok=True); path = f'{out}/filter.pt'
     if rebuild or not os.path.exists(path):
         filt = build(bb, source, ctx._tf_backbone, sources)
         torch.save(filt, path); print(f'filter saved: {path}')
