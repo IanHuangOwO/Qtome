@@ -29,7 +29,7 @@ from sklearn.metrics import balanced_accuracy_score, roc_auc_score
 from sklearn.model_selection import StratifiedKFold, cross_val_predict
 
 from panels.shared.task_filter.backbone import imputed_encoder
-from panels.shared.task_filter.cells import CHANNELS, FS, MONT, gains, names
+from panels.shared.task_filter.cells import CHANNELS, FS, MONT, gains, names, slot_map
 
 POWER = 0.5                                                               # noise: artifact power as a share of the trial's
 KINDS = ('noisy channel', 'blink', 'muscle')
@@ -170,7 +170,7 @@ def table(rows, title, pairs, log):
 
 
 def _setup(ctx, dst):
-    dst_r, dst_c = names(dst); sel = [CHANNELS.index(n) for n in dst_c]
+    dst_r, dst_c = names(dst); dst_c = [n for n in dst_c if n in CHANNELS]; sel = [slot_map(dst)[1][n] for n in dst_c]   # the montage's own channels
     encode = imputed_encoder(ctx.bb, dst, ctx.backbone.model, ctx.filt['coords64'])
     return dst_r, dst_c, sel, encode, {q: o[:, sel] for q, o in ctx.filt['filters'].items()}   # [S, C_dst, 64]
 

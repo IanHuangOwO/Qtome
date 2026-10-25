@@ -28,11 +28,18 @@ def gains(bb, ds, C, N):
     raise FileNotFoundError(f'no feature cache of {ds} with N {N}, C {C} under {bb}: run a finetune cell of it first')
 
 
+def slot_map(ds):
+    """{label: slot} of a dataset's channels (labels of the 10-10 montage in its own case: SEED's FP1 is Fp1, as IO/dataset.py matches them);
+    a channel outside the montage takes the next free slot, as IO/dataset.py does."""
+    canon = {m.upper(): m for m in CHANNELS}
+    lab = [canon.get(v['label'].strip().upper(), v['label']) for v in json.load(open(f'datas/finetune/{ds}/metadata.json'))['data_metadata']['channels'].values() if isinstance(v, dict)]
+    free = iter(i for i, m in enumerate(CHANNELS) if m not in lab)
+    return lab, {n: CHANNELS.index(n) if n in CHANNELS else next(free) for n in lab}
+
+
 def names(ds):
     """A dataset's channel labels in recording order and in gain order (slot order)."""
-    lab = [v['label'] for v in json.load(open(f'datas/finetune/{ds}/metadata.json'))['data_metadata']['channels'].values() if isinstance(v, dict)]
-    free = iter(i for i, m in enumerate(CHANNELS) if m not in lab)        # as IO/dataset.py: a channel outside
-    slot = {n: CHANNELS.index(n) if n in CHANNELS else next(free) for n in lab}   # the montage takes the next free slot
+    lab, slot = slot_map(ds)
     return lab, sorted(lab, key=slot.get)
 
 

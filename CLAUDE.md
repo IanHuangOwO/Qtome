@@ -43,17 +43,19 @@ python -m tools.misc.run_queue output/queue/<plan>.plan --max-parallel 2 --threa
 # output/Qtome/<backbone>/pretrain/analysis/, figures in output/Qtome/<backbone>/analysis/pretrain/ (standard: backbone_eval,
 # attention_range, atom_usage, ridge_probe, atom_vs_raw, atom_templates, atom_duplicates, snapshot,
 # training_dashboard; quick: attention_range, atom_usage, ridge_probe, atom_vs_raw, atom_templates, atom_duplicates; on request: atom_distribution, codebook (each loads every pretrain dataset: ~20-30 min),
-# coord_robustness, long_context, profile, task_filter_*; finetune: atom_maps,
-# probe_maps, class_snapshots, seed_equivalence, training_dashboard). Judge each change by its own mechanism metric, not finetuning
+# coord_robustness, long_context, profile, atom_labels (ICLabel class, topography and spectrum of each atom), task_filter_*; finetune: atom_maps,
+# probe_maps, class_snapshots, seed_equivalence, training_dashboard, atom_seed_match (needs >= 2 --group seeds)). Judge each change by its own mechanism metric, not finetuning
 # (ADR 0020). `--redraw` draws again from the saved numbers; `--panel <name> --help` shows a panel's own options. Writing a panel:
 # docs/agents/adding-a-panel.md.
 python analyze.py list                                                  # every panel, its presets and one-line description
 python analyze.py check                                                 # every panel imports, flags consistent (no data; run after editing a panel)
 python analyze.py pretrain --run <backbone> [--preset quick] [--panel <name> ...] [--redraw]
 python analyze.py pretrain --panel profile [--train]                    # parameter counts + timing, no checkpoint
-# Finetune = several backbones under one head label -> output/analysis/<groups>/ (standard: summary, report; others
+# Finetune = several backbones under one head label -> output/analysis/<groups>/ (standard: summary, report, gradient_correlation, subspace_affinity, pretrain_alignment; others
 # on request; training_dashboard: one figure per fold -> <backbone>/analysis/finetune/<head>/<cell>/). Run backbone_eval first.
 python analyze.py finetune --group base=<backbone> --group X=<backbone> --ref base [--head frozen_learned] [--panel <name> ...]
+# Cross-task gradient panels (standard finetune preset; EEG-FM-Bench Figs. 3, 4, 8): backbone gradients of each finetune cell's trained head, shared probe cached as gradient_probe_<group>.npz
+python analyze.py finetune --group base=<backbone> --head <head> --panel gradient_correlation --panel subspace_affinity --panel pretrain_alignment [--cells <cell> ...]
 python -m panels.finetune.summary 'output/Qtome/<backbone>/finetune/<head>/*' [--ref <backbone>:<head>] [--rank N]   # standalone table
 
 # Task filter: a reconstruction keeping only what classification heads use (panels/shared/task_filter/fit.py). Panels of
@@ -65,6 +67,7 @@ python analyze.py pretrain --run <backbone> --panel task_filter_build           
 python analyze.py pretrain --run <backbone> --panel task_filter_filter [--share 0.1]   # the filter alone: importance maps, power kept of white input
 python analyze.py pretrain --run <backbone> --panel task_filter_eval [--filter-test mi p300 noise] [--target <ds> ...]
 python analyze.py pretrain --run <backbone> --panel task_filter_panel --target <ds> [--share 0.1]
+python analyze.py pretrain --run <backbone> --panel task_filter_blinks [--target SEED_V]   # the filter on real blinks (Fp1/Fp2-detected) against ASR / ICLabel, nothing added
 python analyze.py pretrain --run <backbone> --panel task_filter_compare --target <ds> [--single <source ds>]   # multi-task filter vs ASR / ICLabel (single-task filter only with --single: it lost)
 ```
 

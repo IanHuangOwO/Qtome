@@ -7,7 +7,7 @@ from model.factory import build_from_checkpoint
 from model.Qtome.atom_bank import AtomBank
 from model.Qtome.head.extractor import AtomExtractor
 from model.Qtome.patches import overlap_add_patches
-from panels.shared.task_filter.cells import CHANNELS, FS, layout, names
+from panels.shared.task_filter.cells import CHANNELS, FS, layout, names, slot_map
 
 
 class Backbone:
@@ -32,8 +32,10 @@ class Backbone:
 def imputed_encoder(bb, ds, model, coords64):
     """encode(w [B, C, T] of ds's real channels in gain order, impute) -> gains in trial units [B, N, C or 64, S, 2]: of
     the real channels only, or (impute) of all 64 slots, the missing ones as mask tokens at their template coordinates."""
-    valid, coords, pp = layout(bb, ds); idx = torch.nonzero(valid).flatten()
-    assert [CHANNELS[i] for i in idx.tolist()] == names(ds)[1] and torch.allclose(coords[idx], coords64[idx], atol=1e-5)
+    valid, coords, pp = layout(bb, ds); lab, slot = slot_map(ds)
+    idx = torch.tensor(sorted(slot[n] for n in lab if n in CHANNELS))      # the montage's own channels only: another channel sits in a
+    valid = torch.zeros_like(valid); valid[idx] = True                      # free slot at its own position, which the filter does not know
+    assert idx.tolist() == [slot[n] for n in names(ds)[1] if n in CHANNELS] and torch.allclose(coords[idx], coords64[idx], atol=1e-5)
     ext, ext64 = AtomExtractor(model, idx.tolist()).eval(), AtomExtractor(model, list(range(64))).eval()
 
     def encode(w, impute):
