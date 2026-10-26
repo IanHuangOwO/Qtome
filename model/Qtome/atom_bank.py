@@ -26,9 +26,14 @@ class AtomBank(nn.Module):
     (no per-token shape warping). A free [patch_len] template's frequency content is
     bound to the patch_len FFT grid (Df = fs/patch_len); oscillator atoms were withdrawn (0010).
     """
-    def __init__(self, dim, patch_len, n_atoms=16, hidden_width=16):
+    def __init__(self, dim, patch_len, n_atoms=16, hidden_width=16, phase='free'):
         super().__init__()
+        assert phase in ('free', 'fixed'), phase
         self.n_atoms = n_atoms
+        # 'fixed' (docs/cards/2026-10-25-fixed-phase-atoms.md): one gain a per channel, recon = a*D; the amp keeps its
+        # [.., 2] shape with b = 0, so consumers (decode, head entries, panels) run unchanged.
+        self.phase = phase
+        n_gain = 2 if phase == 'free' else 1
         # Normalizes z before it's used (z inherits whatever scale the encoder drifts to).
         self.input_norm = nn.LayerNorm(dim)
         # amp_s(z): per-atom MLP z -> hidden (GELU) -> quadrature gain pair (a, b). Because H is derived
@@ -36,8 +41,8 @@ class AtomBank(nn.Module):
         self.W_down = nn.Parameter(torch.empty(n_atoms, dim, hidden_width))
         self.b_down = nn.Parameter(torch.zeros(n_atoms, hidden_width))
         nn.init.kaiming_uniform_(self.W_down, a=math.sqrt(5))
-        self.w_amp = nn.Parameter(torch.empty(n_atoms, hidden_width, 2))
-        self.b_amp = nn.Parameter(torch.zeros(n_atoms, 2))
+        self.w_amp = nn.Parameter(torch.empty(n_atoms, hidden_width, n_gain))
+        self.b_amp = nn.Parameter(torch.zeros(n_atoms, n_gain))
         nn.init.kaiming_uniform_(self.w_amp, a=math.sqrt(5))
         # D_s: the Q-atom's waveform template, used unit-normalized; the raw parameter's norm is irrelevant.
         self.D = nn.Parameter(torch.randn(n_atoms, patch_len) * 0.02)
@@ -46,7 +51,8 @@ class AtomBank(nn.Module):
         """z: [G, C, D] ALREADY input_norm'd tokens -> per-channel quadrature gains [G, C, n_atoms, 2],
         no rms. GELU between the two maps: without it they collapse into one of rank <= 2."""
         hidden = F.gelu(torch.einsum('gcd,hdk->gchk', z, self.W_down) + self.b_down)
-        return torch.einsum('gchk,hkp->gchp', hidden, self.w_amp) + self.b_amp
+        amp = torch.einsum('gchk,hkp->gchp', hidden, self.w_amp) + self.b_amp
+        return amp if self.phase == 'free' else F.pad(amp, (0, 1))          # fixed: b = 0
 
     @staticmethod
     def _quadrature(D):
@@ -119,3 +125,22 @@ class AtomBank(nn.Module):
             ranked = contrib.gather(2, order[:, None, :, None].expand_as(contrib))
 
         return SimpleNamespace(recon=recon, amp=amp, h=h, ranked=ranked)
+
+
+def _selfcheck_fixed_phase():
+    """fixed phase: b == 0, decode sums to recon, every parameter group gets gradient (free mode is checked bit-identical
+    against main by diffing outputs of the old file; see docs/cards/2026-10-25-fixed-phase-atoms.md)."""
+    torch.manual_seed(0)
+    bank = AtomBank(32, 100, n_atoms=8, hidden_width=4, phase='fixed')
+    z, rms = torch.randn(6, 5, 32), torch.rand(6, 5, 1) + 0.5
+    out = bank(z, rms=rms, rank=True)
+    assert out.amp.shape == (6, 5, 8, 2) and bool((out.amp[..., 1] == 0).all())
+    assert torch.allclose(bank.decode(out.amp).sum(2), out.recon, atol=1e-5)
+    assert torch.allclose(out.ranked.sum(2), out.recon, atol=1e-5)
+    out.recon.pow(2).sum().backward()
+    assert all(p.grad is not None and p.grad.abs().sum() > 0 for p in (bank.W_down, bank.w_amp, bank.D)), 'no gradient'
+    print('fixed-phase AtomBank ok')
+
+
+if __name__ == '__main__':
+    _selfcheck_fixed_phase()
