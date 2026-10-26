@@ -42,8 +42,8 @@ python -m tools.misc.run_queue output/queue/<plan>.plan --max-parallel 2 --threa
 # other panels; presets are tagged in each panel's PRESETS). Pretrain = one backbone -> numbers in
 # output/Qtome/<backbone>/pretrain/analysis/, figures in output/Qtome/<backbone>/analysis/pretrain/ (standard: backbone_eval,
 # attention_range, atom_usage, ridge_probe, atom_vs_raw, atom_templates, atom_duplicates, atom_labels, snapshot,
-# training_dashboard; quick: attention_range, atom_usage, ridge_probe, atom_vs_raw, atom_templates, atom_duplicates; on request: atom_distribution, codebook (each loads every pretrain dataset: ~20-30 min),
-# coord_robustness, long_context, profile, task_filter_*; finetune: atom_maps,
+# training_dashboard, task_filter_artifacts (skipped without the three loso impute64 cells; TUAR eye / muscle / electrode / line-noise test of the multi-task filter); quick: attention_range, atom_usage, ridge_probe, atom_vs_raw, atom_templates, atom_duplicates; on request: atom_distribution, codebook (each loads every pretrain dataset: ~20-30 min),
+# coord_robustness, long_context, profile, other task_filter_*; finetune: atom_maps,
 # probe_maps, class_snapshots, seed_equivalence, training_dashboard). Judge each change by its own mechanism metric, not finetuning
 # (ADR 0020). `--redraw` draws again from the saved numbers; `--panel <name> --help` shows a panel's own options. Writing a panel:
 # docs/agents/adding-a-panel.md.
@@ -67,7 +67,7 @@ python analyze.py pretrain --run <backbone> --panel task_filter_build           
 python analyze.py pretrain --run <backbone> --panel task_filter_filter [--share 0.1]   # the filter alone: importance maps, power kept of white input
 python analyze.py pretrain --run <backbone> --panel task_filter_eval [--filter-test mi p300 noise] [--target <ds> ...]
 python analyze.py pretrain --run <backbone> --panel task_filter_panel --target <ds> [--share 0.1]
-python analyze.py pretrain --run <backbone> --panel task_filter_blinks [--target SEED_V]   # the filter on real blinks (Fp1/Fp2-detected) against ASR / ICLabel, nothing added
+python analyze.py pretrain --run <backbone> --panel task_filter_artifacts [--art-shares 0.5 0.1]   # the filter on TUAR's annotated eye movement / muscle / electrode artifacts and its real 60 Hz line noise, each with a clean-window control, against ASR / ICLabel, nothing added
 python analyze.py pretrain --run <backbone> --panel task_filter_compare --target <ds> [--single <source ds>]   # multi-task filter vs ASR / ICLabel (single-task filter only with --single: it lost)
 ```
 
