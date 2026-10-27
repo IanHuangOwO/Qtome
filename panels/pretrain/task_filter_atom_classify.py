@@ -16,6 +16,7 @@ import torch
 
 from panels.core.numbers import load_npz, save_npz
 from panels.pretrain.task_filter_artifacts import ATOM_COLORS, ATOM_GROUPS
+from panels.shared.task_filter.atom_asr import atom_asr
 from panels.shared.task_filter.context import filter_context
 from panels.shared.task_filter.tests import _setup, lda, lda_auc, loso, mi_features, p300_features, subjects
 
@@ -60,6 +61,10 @@ def compute(ctx):
                     sig[f'multi-task {q:g}'] = dec(torch.einsum('scd,bndsx->bncsx', o, g))[..., :T]
             for n, m in atom_keep.items():
                 sig[n] = dec(g[:, :, sel] * m.to(g.device, g.dtype).view(1, 1, 1, -1, 1))[..., :T]
+            if 'atoms -line' in atom_keep:                                         # ASR in the Q-atom space (task_filter_atom_asr), calibrated on the subject's own windows
+                ga, _ = atom_asr(g[:, :, sel], torch.arange(len(x)), 1.5)
+                sig['ASR atoms 1.5'] = dec(ga)[..., :T]
+                sig['ASR atoms 1.5 + atoms -line'] = dec(ga * atom_keep['atoms -line'].view(1, 1, 1, -1, 1))[..., :T]
             if ctx.args.cls_methods:
                 sig = {m: w for m, w in sig.items() if m in ctx.args.cls_methods}
             ys.append(y)

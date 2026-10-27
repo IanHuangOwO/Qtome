@@ -32,6 +32,7 @@ from panels.core.numbers import load_npz, save_npz
 from IO.channels import get_standard_coords
 from panels.shared.atom_dictionary import atom_templates, peak_freq
 from panels.shared.task_filter import artifact_views as views
+from panels.shared.task_filter.atom_asr import atom_asr
 from panels.shared.task_filter.cells import FS, cell_dir
 from panels.shared.task_filter.context import filter_context
 from panels.shared.task_filter.fit import SOURCES
@@ -167,6 +168,10 @@ def compute(ctx):
             sig[f'multi-task {q:g}'] = dec(torch.einsum('scd,bndsx->bncsx', op, g))[..., :T]
         for n, m in atom_keep.items():
             sig[n] = dec(g[:, :, sel] * m.to(g.device, g.dtype).view(1, 1, 1, -1, 1))[..., :T]
+        if 'atoms -line' in atom_keep:                                             # ASR in the Q-atom space (task_filter_atom_asr), calibrated on the patient's clean windows
+            ga, _ = atom_asr(g[:, :, sel], torch.as_tensor(pos['clean']), 1.5)
+            sig['ASR atoms 1.5'] = dec(ga)[..., :T]
+            sig['ASR atoms 1.5 + atoms -line'] = dec(ga * atom_keep['atoms -line'].view(1, 1, 1, -1, 1))[..., :T]
         calib = x[pos['clean']].astype(np.float32) * 1e-5
         sig['ASR'] = asr_clean(x.astype(np.float32) * 1e-5, calib, dst_c).astype(np.float64) * 1e5
         sig['ICLabel'] = iclabel_clean(x.astype(np.float32) * 1e-5, dst_c)[0].astype(np.float64) * 1e5
@@ -257,7 +262,7 @@ def draw(ctx):
     se = lambda key, m: float(np.nanstd(col(key, m), ddof=1) / np.sqrt(np.sum(~np.isnan(col(key, m)))))
     mean_db = lambda key, m: float(db(mean(key, m)))
     err = lambda key, m: [mean_db(key, m) - db(mean(key, m) - se(key, m)), db(mean(key, m) + se(key, m)) - mean_db(key, m)]
-    points = {m: v for m, v in {'backbone64': ('#555555', '^'), 'ASR': ('#1baf7a', '*'), 'ICLabel': ('#eda100', 'D'), **ATOM_COLORS}.items() if m in methods}
+    points = {m: v for m, v in {'backbone64': ('#555555', '^'), 'ASR': ('#1baf7a', '*'), 'ICLabel': ('#eda100', 'D'), **ATOM_COLORS, 'ASR atoms 1.5': ('#e377c2', 'o'), 'ASR atoms 1.5 + atoms -line': ('#d62728', 'o')}.items() if m in methods}
     what = {'eye left': 'frontal 1-10 Hz power', 'muscle left': '30-90 Hz power', 'peak left': 'peak amplitude, squared', 'line left': '59-61 Hz power'}
     name = {'eyem': 'eye movement (eyem)', 'musc': 'muscle (musc)', 'elec': 'electrode (elec)', 'eyem_musc': 'mixed eyem_musc', 'musc_elec': 'mixed musc_elec', None: 'line noise (real)'}
     cols = [(k if k else 'line', sc) for k, sc in COLUMNS if f'{k or "line"}__{sc}'.replace(' ', '_') in z]

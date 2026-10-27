@@ -15,8 +15,8 @@ from panels.shared.groups import bar_legend, mean_se, numbers_path, recipes
 
 PRESETS = {'standard'}
 HATCH = ('', '//', '..', 'xx')
-MCOL = {'raw': '#222222', 'backbone64': '#555555', 'multi-task 0.5': '#eb6834', 'multi-task 0.1': '#b3410f', **{m: c for m, (c, _) in ATOM_COLORS.items()}}
-SHOW = ('raw', 'backbone64', 'multi-task 0.5', 'multi-task 0.1', 'atoms -eye', 'atoms -muscle', 'atoms -line', 'atoms -artifacts', 'atoms -brain', 'atoms brain only')    # the methods of noise_removal
+MCOL = {'raw': '#222222', 'ASR atoms 1.5': '#e377c2', 'ASR atoms 1.5 + atoms -line': '#d62728', 'backbone64': '#555555', 'multi-task 0.5': '#eb6834', 'multi-task 0.1': '#b3410f', **{m: c for m, (c, _) in ATOM_COLORS.items()}}
+SHOW = ('raw', 'backbone64', 'multi-task 0.5', 'multi-task 0.1', 'atoms -eye', 'atoms -muscle', 'atoms -line', 'atoms -artifacts', 'atoms -brain', 'atoms brain only', 'ASR atoms 1.5', 'ASR atoms 1.5 + atoms -line')    # the methods of noise_removal
 
 
 def load(path):
@@ -26,6 +26,15 @@ def load(path):
         if os.path.exists(f):
             z = load_npz(f); targets = [str(t) for t in z['targets']]
             out.update({k: z[k] for k in z if k != 'targets'}); out['targets'] = np.array(list(dict.fromkeys([*(str(t) for t in out.get('targets', [])), *targets])))
+    extra = path.replace('.npz', '_asr.npz')                                  # a partial run of the atom-space ASR methods: its rows are added to each target
+    if os.path.exists(extra):
+        e = load_npz(extra)
+        for t in map(str, e['targets']):
+            have = [str(m) for m in out.get(f'{t}__methods', [])]; rows = [i for i, m in enumerate(map(str, e[f'{t}__methods'])) if m not in have]
+            if rows and f'{t}__methods' in out:
+                for q in ('within', 'loso'):
+                    out[f'{t}__{q}'] = np.concatenate([out[f'{t}__{q}'], e[f'{t}__{q}'][rows]])
+                out[f'{t}__methods'] = np.array([*have, *(str(e[f'{t}__methods'][i]) for i in rows)])
     return out
 
 

@@ -1,6 +1,7 @@
 """noise_removal_synthetic: artificial noise (eye, muscle, electrode, 60 Hz line) added to a clean dataset at TUAR's strength, per recipe: noise left (1 = untouched) and
 signal kept (1 = all), known exactly because the clean signal and the noise are known; mean +- SE over the seeds of each recipe -> noise_removal_synthetic.png and
 noise_removal_synthetic.md. Needs the pretrain panel task_filter_noise_removal_synthetic on each backbone (--syn-dataset names the dataset, default PhysionetMI)."""
+import os
 import textwrap
 
 import matplotlib
@@ -16,7 +17,7 @@ PRESETS = {'standard'}
 MARKERS = ('o', 's', '^', 'D')
 HATCH = ('', '//', '..', 'xx')
 SYN = 'a clean dataset'
-SHOW = ('backbone64', 'multi-task 0.5', 'multi-task 0.1', 'atoms -eye', 'atoms -muscle', 'atoms -line', 'atoms -artifacts', 'atoms brain only', 'ASR', 'ICLabel')
+SHOW = ('backbone64', 'multi-task 0.5', 'multi-task 0.1', 'atoms -eye', 'atoms -muscle', 'atoms -line', 'atoms -artifacts', 'atoms brain only', 'ASR', 'ICLabel', 'ASR atoms 1.5', 'ASR atoms 1.5 + atoms -line')
 KINDS = ('eye', 'muscle', 'electrode', 'line')
 WHAT = {'eye': 'frontal 1-10 Hz power', 'muscle': '30-90 Hz power', 'electrode': 'peak amplitude²', 'line': '59-61 Hz power'}
 
@@ -26,8 +27,18 @@ def add_args(flags):
 
 
 def load(path):
-    z = load_npz(path)
-    return {k: z[k] for k in z}
+    """synthetic_<ds>.npz plus the rows of synthetic_<ds>_asr.npz (a partial run of the atom-space ASR methods) that it does not have."""
+    z = load_npz(path); out = {k: z[k] for k in z}
+    extra = path.replace('.npz', '_asr.npz')
+    if os.path.exists(extra):
+        e = load_npz(extra); em = [str(m) for m in e['methods']]; have = [str(m) for m in out['methods']]; rows = [i for i, m in enumerate(em) if m not in have]
+        if rows:
+            for k in out:
+                if k not in ('methods', 'levels') and k in e and out[k].ndim == 2:
+                    n = max(out[k].shape[1], e[k].shape[1]); pad = lambda a: np.pad(a, ((0, 0), (0, n - a.shape[1])), constant_values=np.nan)
+                    out[k] = np.concatenate([pad(out[k]), pad(e[k][rows])])
+            out['methods'] = np.array([*have, *(em[i] for i in rows)])
+    return out
 
 
 def compute(ctx):
@@ -56,7 +67,7 @@ def draw(ctx):
     except FileNotFoundError:
         return
     methods, recs = [str(m) for m in z['methods']], [str(r) for r in z['recipes']]; col = color_of(recs); n = len(recs); x = np.arange(len(methods)); w = 0.8 / n
-    mcol = {'backbone64': '#555555', 'ASR': '#1baf7a', 'ICLabel': '#eda100', 'multi-task 0.5': '#eb6834', 'multi-task 0.1': '#b3410f', **{m: c for m, (c, _) in ATOM_COLORS.items()}}
+    mcol = {'backbone64': '#555555', 'ASR': '#1baf7a', 'ICLabel': '#eda100', 'ASR atoms 1.5': '#e377c2', 'ASR atoms 1.5 + atoms -line': '#d62728', 'multi-task 0.5': '#eb6834', 'multi-task 0.1': '#b3410f', **{m: c for m, (c, _) in ATOM_COLORS.items()}}
     fig, ax = plt.subplots(3, len(KINDS), figsize=(3.9 * len(KINDS), 13.5), squeeze=False)
     for j, kind in enumerate(KINDS):
         a = ax[0, j]                                                          # row 1 as in noise_removal: removal against damage; the damage is the exact signal kept

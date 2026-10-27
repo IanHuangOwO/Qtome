@@ -3,6 +3,8 @@
 Guidance for Claude Code in this repository. Canonical terms: `CONTEXT.md`. Design history: `docs/adr/` (decisions),
 `docs/cards/` (pre-registered experiments), `docs/reports/` (results) -- kept locally, not tracked in git.
 
+**Name:** the model is called **Qlet** in prose since 2026-10-27 (partial rename; it was Qtome). Code, paths (`model/Qtome/`, `configs/Qtome/`, `output/Qtome/`), `model_params.Qtome`, `QtomePretrain` and run names (`qtome_*`) stay Qtome until the full rename, which waits for the running jobs. The phoneme-like framing is dropped (qlets act as a filterbank).
+
 ## Environment
 
 Run everything with the `qtome` conda env: `/home/mamechin/anaconda3/envs/qtome/bin/python` (torch, mne,
@@ -120,7 +122,7 @@ Key fields (templates show defaults):
   their results stay in their output dirs; `time_idx` is still passed but unused by Qtome; block order is sequential,
   temporal -> spatial -> FFN: parallel attention was screened and rejected 2026-10-07),
   `spatial_heads`, `moe_ffn`, `atom_bank` (`n_atoms`, `hidden_width`), `loss` (the nested reconstruction loss, the only one since 2026-10-17:
-  per patch, the error of the strongest 3 / 6 / 12 / 24 Q-atoms weighted 1/8, 1/8, 1/4, 1/2 -- `nested_sizes` /
+  per patch, the error of the strongest 3 / 6 / 12 / 24 qlets weighted 1/8, 1/8, 1/4, 1/2 -- `nested_sizes` /
   `nested_weights`; it replaced the MP loss, removed with `mp_weight`, docs/adr/0018; spectral whitening of the error
   was tested and removed 2026-10-18), `spatial_embedding` (true: Fourier electrode-coordinate
   embedding + per-block directional relative spatial bias; false: neither -- the spatial ablation).
@@ -161,7 +163,7 @@ Key fields (templates show defaults):
   EEG-FM-Compass calibration); all take `sessions` and `seed`, per-subject types also `purge` (P300 overlap);
   unknown keys are rejected. Plus LR fields, `epochs`, `class_weight` (`balanced`), `batch_size`, `seed`.
   `fit`: `sgd` (default) or `closed_form` (`model/Qtome/head/closed_form.py`, no SGD). Few-shot always uses the closed-form
-  structured head: the all-atom head's own factors (spatial filter x Q-atom weights x time course) set in closed
+  structured head: the all-atom head's own factors (spatial filter x qlet weights x time course) set in closed
   form, one head for every paradigm, signed half at full time resolution (the protocols set it;
   docs/reports/2026-10-06-structured-fewshot-head.md); since 2026-10-15 both halves use the Fisher score and full time
   rank (`power_score` / `signed_score` `fisher`, `time_rank` / `signed_time_rank` `full`; DEV +4.6, Nakanishi2015
@@ -182,11 +184,11 @@ A new pretrained backbone follows `docs/agents/adding-a-model.md` (plugin); a ne
 
 ## Architecture
 
-**Qtome**: an EEG tokenizer. A TSA encoder feeds a static Q-atom dictionary (AtomBank: every Q-atom active at
+**Qtome**: an EEG tokenizer. A TSA encoder feeds a static qlet dictionary (AtomBank: every qlet active at
 every patch; each reconstructs a patch as `a*D + b*H`, D a template and H its quadrature partner), trained by
-masked reconstruction (nested loss: Q-atoms ranked per patch by strength, docs/adr/0018). Routed (top-k) Q-atoms were removed (docs/adr/0022; code on the `routed-stamps`
-branch). The default downstream head reads only the Q-atoms: Q-atom power (`atom_power`, induced band power: MI) and the
-signed Q-atom gains (`signed_ab`: phase-locked / P300). The stronger head swaps `signed_ab` for the signed encoder
+masked reconstruction (nested loss: qlets ranked per patch by strength, docs/adr/0018). Routed (top-k) qlets were removed (docs/adr/0022; code on the `routed-stamps`
+branch). The default downstream head reads only the qlets: qlet power (`atom_power`, induced band power: MI) and the
+signed qlet gains (`signed_ab`: phase-locked / P300). The stronger head swaps `signed_ab` for the signed encoder
 output z (`latent_signed`, PCA): level on loso, better on MI few-shot (BNCI2014004 +3.5)
 (docs/reports/2026-10-02-head-ablation.md, docs/reports/2026-09-29-combined-head.md). Plugged in via `model/Qtome/plugin.py` (`model/factory.py`
 `MODEL_REGISTRY`, docs/adr/0004).
@@ -208,7 +210,7 @@ datas/<split>/<Name>/loader.py  compile time only; MOABB datasets have none (met
 - Backbone, one file each in `model/Qtome/`: `embeddings.py` (`SpatialTemporalEmbeddings`, `RelativeSpatialBias`, FoPE), `ffn.py` (MoE FFN),
   `encoder.py` (`TSABlock`: temporal attention -> spatial attention -> MoE FFN, LayerScale; `TSAEncoder`: 8 blocks at full patch
   resolution, no pooling; padded channels and padded tail patches are masked out of attention), `atom_bank.py` (`AtomBank`),
-  `patches.py` (overlap-add, fold). Finetune side in `model/Qtome/head/`: `extractor.py` (`AtomExtractor`: Q-atom codes and optionally z
+  `patches.py` (overlap-add, fold). Finetune side in `model/Qtome/head/`: `extractor.py` (`AtomExtractor`: qlet codes and optionally z
   from the frozen backbone), `entries.py` (the `ENTRY_TYPES` registry), `config.py` (defaults, validation, widths), `pooling.py`,
   `feature_head.py` (`FeatureHead`).
 - `Qtome.py`: `QtomePretrain` (phases, per-sample masked loss: a sample counts as masked only if every patch
@@ -221,8 +223,8 @@ datas/<split>/<Name>/loader.py  compile time only; MOABB datasets have none (met
   cohort (`metadata.json` `data_metadata.cohort`) and independent of dataset order; a subject's near-flat
   channels (std < 0.10 x median, dead electrodes / the recording reference) are treated as padding.
 
-**Sparsity budget, a hard ceiling:** each active Q-atom gives two free scalars per channel, so keep
-`2 * n_atoms < patch_len` with margin (template: 24 Q-atoms since 2026-10-09, 48 < 100; 16 / 24 / 32 compared over 3
+**Sparsity budget, a hard ceiling:** each active qlet gives two free scalars per channel, so keep
+`2 * n_atoms < patch_len` with margin (template: 24 qlets since 2026-10-09, 48 < 100; 16 / 24 / 32 compared over 3
 seeds in docs/cards/2026-10-08-atoms-32.md: 24 keeps most of 32's hidden-channel and high-frequency gain at half its
 SSVEP cost). Past it, the active slots fit any patch
 regardless of the templates and it stops being sparse coding (measured at DOF 56 > 50: recon MSE ~0 on every

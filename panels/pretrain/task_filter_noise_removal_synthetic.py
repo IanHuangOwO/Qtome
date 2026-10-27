@@ -22,6 +22,7 @@ from scipy.signal import butter, sosfiltfilt
 from panels.core.numbers import load_npz, save_npz
 from panels.pretrain.task_filter_artifacts import ATOM_COLORS, ATOM_GROUPS, HIGH, LINE, SLOW
 from panels.shared.task_filter.cells import FS, MONT
+from panels.shared.task_filter.atom_asr import apply as atom_asr_apply, fit as atom_asr_fit
 from panels.shared.task_filter.context import filter_context
 from panels.shared.task_filter.tests import _setup, asr_clean, hann_at, iclabel_clean, kept, subjects
 
@@ -35,6 +36,8 @@ OTHER = {'ASR': ('#1baf7a', '*'), 'ICLabel': ('#eda100', 'D'), 'backbone64': ('#
 
 
 def add_args(flags):
+    flags.add('--syn-methods', nargs='+', help='task_filter_noise_removal_synthetic: only these methods (default all), e.g. "ASR atoms 1.5" "ASR atoms 1.5 + atoms -line"')
+    flags.add('--syn-tag', default='', help='task_filter_noise_removal_synthetic: suffix of the output numbers file, to keep a partial run apart')
     flags.add('--filter-source', default='multi', help="'multi' or a dataset name")
     flags.add('--filter-sources', nargs='+', help='the datasets whose heads build the multi filter (default: task_filter/fit.py SOURCES)')
     flags.add('--syn-dataset', default='PhysionetMI', help='task_filter_noise_removal_synthetic: the clean dataset the noise is added to (not one the filter was built from)')
@@ -106,13 +109,22 @@ def compute(ctx):
         atom_keep = {n: torch.tensor([t not in g for t in top], dtype=torch.float32) for n, g in ATOM_GROUPS.items() if n in ('atoms -eye', 'atoms -muscle', 'atoms -line', 'atoms -artifacts', 'atoms brain only')}
     shares = [q for q in ops if any(abs(q - a) < 1e-9 for a in (0.5, 0.1))]
 
-    def clean_all(xin):                                                        # xin [N, C, T] -> {method: output}
+    wanted = ctx.args.syn_methods; want = lambda m: not wanted or m in wanted
+    asr_fit = {}
+
+    def clean_all(xin, own=False):                                             # xin [N, C, T] -> {method: output}; own: calibrate the atom-space ASR on these (clean) windows
         T = xin.shape[-1]; g = encode(xin, True); sig = {'backbone64': dec(g[:, :, sel])[..., :T]}
         for q in shares:
             sig[f'multi-task {q:g}'] = dec(torch.einsum('scd,bndsx->bncsx', ops[q], g))[..., :T]
         for n, m in atom_keep.items():
             sig[n] = dec(g[:, :, sel] * m.to(g.device, g.dtype).view(1, 1, 1, -1, 1))[..., :T]
-        return sig
+        if 'atoms -line' in atom_keep:                                         # ASR in the Q-atom space (task_filter_atom_asr), calibrated on the clean copies
+            if own:
+                asr_fit['m'] = atom_asr_fit(g[:, :, sel])
+            ga, _ = atom_asr_apply(g[:, :, sel], asr_fit['m'], 1.5)
+            sig['ASR atoms 1.5'] = dec(ga)[..., :T]
+            sig['ASR atoms 1.5 + atoms -line'] = dec(ga * atom_keep['atoms -line'].view(1, 1, 1, -1, 1))[..., :T]
+        return {m: w for m, w in sig.items() if want(m)}
 
     files = subjects(dst); order = np.argsort((np.arange(len(files)) * 0.6180339887) % 1)[:ctx.args.syn_subjects]
     rng = np.random.default_rng(0); res = {}
@@ -120,17 +132,21 @@ def compute(ctx):
         z = np.load(f); T = int(z['valid_end'][0]); data = z['data'].astype(np.float64)[:, [dst_r.index(n) for n in dst_c], :T]
         x = data[rng.permutation(len(data))[:ctx.args.syn_windows]]; x = x / x.std((1, 2), keepdims=True)
         calib = x.astype(np.float32) * 1e-5
-        clean = clean_all(x)
-        clean['ASR'] = asr_clean(calib, calib, dst_c).astype(np.float64) * 1e5
-        clean['ICLabel'] = iclabel_clean(calib, dst_c)[0].astype(np.float64) * 1e5
+        clean = clean_all(x, own=True)
+        if want('ASR'):
+            clean['ASR'] = asr_clean(calib, calib, dst_c).astype(np.float64) * 1e5
+        if want('ICLabel'):
+            clean['ICLabel'] = iclabel_clean(calib, dst_c)[0].astype(np.float64) * 1e5
         print(f'  {dst} subject {os.path.basename(f).split("_")[0]}: {len(x)} windows', flush=True)
         for kind in NOISE:
             n0 = shapes(kind, len(x), len(dst_c), T, xyz, rng)
             for db in ctx.args.syn_levels:
                 n = scale(kind, x, n0, db, fp); w1 = x + n
                 sig = clean_all(w1)
-                sig['ASR'] = asr_clean(w1.astype(np.float32) * 1e-5, calib, dst_c).astype(np.float64) * 1e5
-                sig['ICLabel'] = iclabel_clean(w1.astype(np.float32) * 1e-5, dst_c)[0].astype(np.float64) * 1e5
+                if want('ASR'):
+                    sig['ASR'] = asr_clean(w1.astype(np.float32) * 1e-5, calib, dst_c).astype(np.float64) * 1e5
+                if want('ICLabel'):
+                    sig['ICLabel'] = iclabel_clean(w1.astype(np.float32) * 1e-5, dst_c)[0].astype(np.float64) * 1e5
                 qin, qx = quantity(kind, w1, fp).mean(), quantity(kind, x, fp).mean()
                 for m, w in sig.items():
                     s_, a_ = kept(w, x, n); sc_, _ = kept(clean[m], x, np.zeros_like(x))
@@ -143,7 +159,7 @@ def compute(ctx):
         for db in ctx.args.syn_levels:
             for k in ('artifact', 'control', 'signal', 'leak', 'signal_clean'):
                 arrays[f'{kind}__{db:g}__{k}'] = np.array([res[(kind, db, m)][k] for m in methods])
-    save_npz(ctx.numbers('filter', ctx.args.filter_source, f'synthetic_{dst}.npz'), methods=np.array(methods), levels=np.array(ctx.args.syn_levels), **arrays)
+    save_npz(ctx.numbers('filter', ctx.args.filter_source, f'synthetic_{dst}{ctx.args.syn_tag}.npz'), methods=np.array(methods), levels=np.array(ctx.args.syn_levels), **arrays)
     mid = ctx.args.syn_levels[len(ctx.args.syn_levels) // 2]
     d = lambda v: 10 * np.log10(max(float(np.mean(v)), 1e-4))
     for kind in NOISE:

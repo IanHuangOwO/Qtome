@@ -27,7 +27,7 @@ def load(path):
     out = {k: z[k] for k in z if '__' in k or k in ('methods', 'brain_kept')}
     extra = path.replace('artifacts_TUAR.npz', 'atom_asr_TUAR_combo.npz')
     if extra != path and os.path.exists(extra):
-        e = load_npz(extra); em = [str(m) for m in e['methods']]; rows = [em.index(m) for m in ATOM_ASR if m in em]
+        e = load_npz(extra); em = [str(m) for m in e['methods']]; have = [str(m) for m in out['methods']]; rows = [em.index(m) for m in ATOM_ASR if m in em and m not in have]
         if rows:
             for k in out:
                 if k != 'methods' and k in e:

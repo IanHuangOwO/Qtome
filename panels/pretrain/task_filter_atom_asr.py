@@ -20,6 +20,7 @@ from scipy.signal import sosfiltfilt
 from panels.core.numbers import load_npz, save_npz
 from panels.pretrain.task_filter_artifacts import ATOM_GROUPS, BRAIN, COLUMNS, KINDS, LINE, SCORE_KIND, power, ratios
 from panels.pretrain.task_filter_zsubspace import dst_windows, stack
+from panels.shared.task_filter.atom_asr import atom_asr
 from panels.shared.task_filter.context import filter_context
 from panels.shared.task_filter.tests import _setup, asr_clean, subjects
 
@@ -35,21 +36,6 @@ def add_args(flags):
     flags.add('--asr-tag', default='', help='task_filter_atom_asr: suffix of the output file, to keep variants apart')
     flags.add('--asr-combo', type=float, nargs='*', default=[1.5, 2], help='task_filter_atom_asr: cutoffs also combined with atoms -line and the multi-task filter (ASR first)')
     flags.add('--asr-cutoffs', type=float, nargs='+', default=[3, 5, 10, 20], help='task_filter_atom_asr: removal thresholds in clean standard deviations')
-
-
-def atom_asr(g, calib, cutoff):
-    """g [B, N, C, S, 2] gains, calib: indices of the clean windows -> (gains with the outlying components of every Q-atom set to zero, share of components removed per window [B])."""
-    B, N, C, S, _ = g.shape
-    x = g.permute(3, 0, 1, 4, 2).reshape(S, B, N * 2, C).double()          # per Q-atom: the [C] vectors of every patch's a and b
-    out, removed = torch.empty_like(x), torch.zeros(B, dtype=torch.float64)
-    for s in range(S):
-        cal = x[s, calib].reshape(-1, C); cov = cal.T @ cal / len(cal)
-        ev, V = torch.linalg.eigh(cov); sd = ev.clamp_min(1e-20).sqrt()
-        comp = x[s] @ V                                                      # [B, 2N, C]
-        bad = comp.pow(2).mean(1) > (cutoff * sd) ** 2                       # [B, C]: a component much stronger than it ever was in the clean windows
-        out[s] = (comp * (~bad)[:, None, :]) @ V.T
-        removed += bad.double().mean(1) / S
-    return out.reshape(S, B, N, 2, C).permute(1, 2, 4, 0, 3).float(), removed.numpy()
 
 
 def compute(ctx):
