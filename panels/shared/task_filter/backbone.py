@@ -38,12 +38,14 @@ def imputed_encoder(bb, ds, model, coords64):
     assert idx.tolist() == [slot[n] for n in names(ds)[1] if n in CHANNELS] and torch.allclose(coords[idx], coords64[idx], atol=1e-5)
     ext, ext64 = AtomExtractor(model, idx.tolist()).eval(), AtomExtractor(model, list(range(64))).eval()
 
-    def encode(w, impute):
+    def encode(w, impute, want_z=False):                                   # want_z: also the encoder output z [B, N, C or 64, D] the Q-atoms read
         w = torch.from_numpy(w).float(); mu, s_ = w.mean((1, 2), keepdim=True), w.std((1, 2), keepdim=True)
         x = torch.zeros(len(w), len(valid), w.shape[-1]); x[:, idx] = (w - mu) / s_; out = []
         with torch.no_grad():
             for i in range(0, len(w), 64):
                 xp, _ = slice_patches(x[i:i + 64], pp['patch_length'], pp['patch_stride']); b, P = xp.shape[0], xp.shape[2]
-                out.append((ext64 if impute else ext)(xp, coords64[None].expand(b, -1, -1), torch.arange(P)[None].expand(b, P), valid[None].expand(b, -1), impute_missing=impute))
+                out.append((ext64 if impute else ext)(xp, coords64[None].expand(b, -1, -1), torch.arange(P)[None].expand(b, P), valid[None].expand(b, -1), impute_missing=impute, return_z=want_z))
+        if want_z:
+            return torch.cat([o[0] for o in out]) * s_[:, :, :, None, None], torch.cat([o[1] for o in out])
         return torch.cat(out) * s_[:, :, :, None, None]
     return encode
