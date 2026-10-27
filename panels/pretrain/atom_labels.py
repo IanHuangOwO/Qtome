@@ -87,7 +87,7 @@ def iclabel_probabilities(names, topo, sources):
 
 
 def compute(ctx):
-    model, device = ctx.model, ctx.device
+    device = ctx.device; model = ctx.model.to(device)                      # backbone_eval leaves the shared model on the CPU
     names64 = resolve_canonical_channels(ctx.config['preprocess_params']['canonical_channels'])
     ds, keep, common = select_windows(ctx)
     if not keep:
