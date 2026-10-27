@@ -11,7 +11,7 @@ and the docstring's first line is its description in `analyze.py list`."""
 import importlib
 import os
 
-STAGES = ('pretrain', 'finetune')
+STAGES = ('pretrain', 'group')
 _ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 

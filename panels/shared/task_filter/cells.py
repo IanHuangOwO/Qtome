@@ -58,7 +58,8 @@ def layout(bb, ds):
     if os.path.exists(path):
         cfg = json.load(open(path))
     else:
-        cfg = json.load(open(f'{bb}/finetune/allatom/BNCI2014009_loso_seed1/artifacts/config.json'))
+        ref = next(p for p in (f'{bb}/finetune/allatom/BNCI2014009_loso_seed1/artifacts/config.json', f'{cell_dir(bb, "BNCI2014009")}/artifacts/config.json') if os.path.exists(p))
+        cfg = json.load(open(ref))
         cfg['dataset_params']['finetune'] = {ds: {'dataset_path': f'datas/finetune/{ds}', 'subject_to_use': ['1'], 'channels_to_use': ['all']}}
     return _layout(cfg, ds)
 

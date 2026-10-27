@@ -8,11 +8,12 @@ matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import numpy as np
 
+from panels.shared.groups import own_figure, own_numbers
 from panels.core.numbers import load_npz, save_npz
 from panels.kit.matrix import annotated_matrix, colorbar_marks
 from panels.shared import gradient_probe as gp
 
-PRESETS = {'standard'}
+PRESETS = set()                                  # on request: heavy (backbone gradients of every finetune cell); numbers and figures stay with each backbone
 
 
 def add_args(flags):
@@ -30,13 +31,13 @@ def compute(ctx):
     for g in ctx.groups:
         z = gp.gradients(ctx, g)
         cm, cs, pm, ps = alignment(z['ce'], z['rec'])
-        save_npz(ctx.numbers(f'pretrain_alignment_{g}.npz'), cos_mean=cm, cos_std=cs, conflict_mean=pm, conflict_std=ps,
+        save_npz(own_numbers(ctx, g, 'pretrain_alignment.npz'), cos_mean=cm, cos_std=cs, conflict_mean=pm, conflict_std=ps,
                  tasks=z['tasks'], groups=z['groups'], floor=np.array(1 / np.sqrt(z['ce'].shape[-1])))
 
 
 def draw(ctx):
     for g in ctx.groups:
-        z = load_npz(ctx.numbers(f'pretrain_alignment_{g}.npz'))
+        z = load_npz(own_numbers(ctx, g, 'pretrain_alignment.npz'))
         tasks, groups = [str(t) for t in z['tasks']], [str(x) for x in z['groups']]
         fig, (a1, a2) = plt.subplots(1, 2, figsize=(2.0 * len(groups) + 3, 0.5 * len(tasks) + 3.4))
         lim = max(0.2, float(np.nanmax(np.abs(z['cos_mean'])))); fl = float(z['floor'])
@@ -49,7 +50,7 @@ def draw(ctx):
         fig.text(0.5, -0.02, 'How to read: left, the cosine between the reconstruction-loss gradient and the classification-loss gradient on the same trials (> 0: reconstruction also helps classification; 0: unrelated; < 0: opposed).\n'
                  'A pretrained backbone sits near a reconstruction minimum, so that gradient is mostly noise: values inside the dashed lines cannot be told from random. Right, how often the cosine is negative (0.5 = chance).',
                  ha='center', va='top', fontsize=8, color='#333333')
-        out = ctx.figure(f'pretrain_alignment_{g}.png')
+        out = own_figure(ctx, g, 'pretrain_alignment.png')
         fig.savefig(out, dpi=130, bbox_inches='tight')
         plt.close(fig)
         print(f'  -> {out}')

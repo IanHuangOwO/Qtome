@@ -1,6 +1,6 @@
 """task_filter_artifacts: the task filter (--filter-source) on the artifacts annotated in TUAR (eye movement `eyem`, muscle `musc`, electrode `elec`,
 and the mixed labels `eyem_musc` and `musc_elec`) and on TUAR's real 60 Hz line noise, against ASR and ICLabel ->
-pretrain/analysis/filter/<source>/artifacts_TUAR.npz, analysis/filter/<source>/artifacts_TUAR.png. Builds the filter first if it is not saved.
+pretrain/analysis/filter/<source>/artifacts_TUAR.npz, (figures only with --redraw; the group panel noise_removal draws the all-seed ones). Builds the filter first if it is not saved.
 Nothing is added to the recordings.
 
 Windows are TUAR's own 5 s windows (datas/finetune/TUAR, annotation files in the loader's layout, checked against the cache's artifact label
@@ -18,6 +18,7 @@ A method that only smooths or low-passes lowers the control as much as the artif
 the artifact score and leaves the control. Figure rows: removal against damage; artifact score against its control in dB; the same in linear ratio."""
 import json
 import os
+import textwrap
 
 import matplotlib
 
@@ -43,9 +44,17 @@ LINE = butter(4, [59, 61], btype='band', fs=FS, output='sos')
 BRAIN = butter(4, [8, 30], btype='band', fs=FS, output='sos')
 KINDS = ('eyem', 'musc', 'elec', 'eyem_musc', 'musc_elec')                 # the TUAR labels with a window set
 SETS = (*KINDS, 'clean')
+TUEV_KINDS = {'eyem': 3, 'musc_elec': 4}                                   # TUEV event codes: eyem, and artf (a generic artifact, scored on muscle and peak amplitude); code 5 = background = clean
 BANDS = ((1, 4), (4, 8), (8, 13), (13, 20), (20, 30), (30, 45), (45, 70), (70, 100))   # the decodability features: log band power per channel
 COLUMNS = (('eyem', 'eye left'), ('musc', 'muscle left'), ('elec', 'peak left'), ('eyem_musc', 'eye left'), ('eyem_musc', 'muscle left'),
            ('musc_elec', 'muscle left'), ('musc_elec', 'peak left'), (None, 'line left'))     # (window set, score) per figure column
+ATOM_GROUPS = {'atoms -eye': ('eye',), 'atoms -muscle': ('muscle',), 'atoms -line': ('line noise', 'channel noise'),
+               'atoms -artifacts': ('eye', 'muscle', 'heart', 'line noise', 'channel noise'),
+               'atoms -other': ('other',), 'atoms -brain': ('brain',),
+               'atoms brain only': ('eye', 'muscle', 'heart', 'line noise', 'channel noise', 'other')}    # atom removal: drop the atoms whose top ICLabel class is in the group
+ATOM_COLORS = {'atoms -eye': ('#2a78d6', 'o'), 'atoms -muscle': ('#7fb0ea', 'o'), 'atoms -line': ('#0b3d7a', 'o'), 'atoms -artifacts': ('#9a5fd0', 'P'),
+               'atoms -other': ('#c9a000', 'X'), 'atoms -brain': ('#2d8a4e', 'v'),
+               'atoms brain only': ('#8c2d6b', 'h')}
 SCORE_KIND = {'eye left': 'eyem', 'muscle left': 'musc', 'peak left': 'elec', 'line left': None}     # which measure a score is
 
 
@@ -54,6 +63,8 @@ def add_args(flags):
     flags.add('--filter-sources', nargs='+', help='the datasets whose heads build the multi filter (default: task_filter/fit.py SOURCES)')
     flags.add('--art-patients', type=int, default=8, help='task_filter_artifacts: TUAR patients wanted per artifact type (patients tried in a spread-out order)')
     flags.add('--art-shares', type=float, nargs='+', default=[0.5, 0.1], help='task_filter_artifacts: the multi-task filter shares tested')
+    flags.add('--art-dataset', default='TUAR', choices=['TUAR', 'TUEV'], help='task_filter_artifacts: TUAR (annotated artifact types, real line noise) or TUEV (eyem and artf events against background windows)')
+    flags.add('--art-views', action='store_true', default=False, help='task_filter_artifacts: also draw the detail views (spectrum, dose, atoms, decode, maps, patients; examples are always drawn for TUAR)')
     flags.add('--art-windows', type=int, default=20, help='task_filter_artifacts: windows per artifact type and patient (clean: 1.5 x this)')
 
 
@@ -84,6 +95,11 @@ def tuar_coverage(sub):
     return {k: np.array(v) for k, v in cov.items()}, np.array(anyc)
 
 
+def tuev_coverage(labels):
+    """TUEV windows carry one event code each: ({kind: 1 on a window of that kind}, 1 on every window that is not background)."""
+    return {k: (labels == c).astype(float) for k, c in TUEV_KINDS.items()}, (labels != 5).astype(float)
+
+
 def power(a):
     return (a ** 2).mean()
 
@@ -106,27 +122,36 @@ def compute(ctx):
     if missing and not os.path.exists(f'{ctx.numbers_dir}/filter/{ctx.args.filter_source}/filter.pt'):
         print(f'  skipped: no loso impute64 cell for {missing} (the filter needs them; see task_filter_build)'); return
     out, tf = filter_context(ctx, ctx.args.filter_source)
-    dst = 'TUAR'
+    dst = ctx.args.art_dataset; kinds = KINDS if dst == 'TUAR' else tuple(TUEV_KINDS)
+    columns = [(k, sc) for k, sc in COLUMNS if k is None or k in kinds]
     dst_r, dst_c, sel, encode, ops = _setup(tf, dst); dec = tf.backbone.decode
     up = [n.upper() for n in dst_c]; fp = [up.index(n) for n in ('FP1', 'FP2')]
+    atom_keep = {}                                                            # atom_labels.npz (panel atom_labels) -> which atoms each removal group keeps
+    lab = ctx.numbers('atom_labels.npz')
+    if os.path.exists(lab):
+        zl = load_npz(lab); top = [str(zl['classes'][i]) for i in zl['probs'].argmax(1)]
+        atom_keep = {n: torch.tensor([t not in g for t in top], dtype=torch.float32) for n, g in ATOM_GROUPS.items()}
+        print('  atom removal: ' + ', '.join(f'{n} drops {int((1 - m).sum())}/{len(m)}' for n, m in atom_keep.items()))
+    else:
+        print('  atom removal skipped: run the atom_labels panel first')
     files = subjects(dst); order = np.argsort((np.arange(len(files)) * 0.6180339887) % 1)[:150]
-    methods, per, cnt = None, {}, {k: 0 for k in (*KINDS, 'clean')}
-    nwin = {k: 0 for k in KINDS}
+    methods, per, cnt = None, {}, {k: 0 for k in (*kinds, 'clean')}
+    nwin = {k: 0 for k in kinds}
     ex = {'feat': {}, 'psd': {}, 'chan': {}, 'q': {}, 'atom_out': {}, 'atom_in': [], 'set': [], 'patient': [], 'example': {}}
     san = lambda m: m.replace(' ', '_')
     ex_ch = [dst_c.index(n) for n in ('Fp1', 'Cz', 'T7', 'T3', 'C3') if n in dst_c][:3]
     for f in (files[i] for i in order):
-        if all(cnt[k] >= ctx.args.art_patients for k in KINDS):
+        if all(cnt[k] >= ctx.args.art_patients for k in kinds):
             break
         z = np.load(f); T = int(z['valid_end'][0]); sub = int(os.path.basename(f).split('_')[0])
         raw = z['data'].astype(np.float64)[:, [dst_r.index(n) for n in dst_c], :T]
-        cov, anyc = tuar_coverage(sub)
-        if len(anyc) != len(raw) or not np.array_equal((anyc >= 0.5).astype(int), z['labels']):
-            print(f'  TUAR patient {sub}: annotation layout does not match the cache: left out'); continue
+        cov, anyc = tuar_coverage(sub) if dst == 'TUAR' else tuev_coverage(z['labels'])
+        if dst == 'TUAR' and (len(anyc) != len(raw) or not np.array_equal((anyc >= 0.5).astype(int), z['labels'])):
+            print(f'  {dst} patient {sub}: annotation layout does not match the cache: left out'); continue
         rng = np.random.default_rng(sub); nw = ctx.args.art_windows
-        idx = {k: rng.permutation(np.flatnonzero((cov[k] >= 0.5) & (anyc - cov[k] < 0.1)))[:nw] for k in KINDS}
+        idx = {k: rng.permutation(np.flatnonzero((cov[k] >= 0.5) & (anyc - cov[k] < 0.1)))[:nw] for k in kinds}
         idx['clean'] = rng.permutation(np.flatnonzero(anyc == 0))[:int(1.5 * nw)]
-        want = [k for k in KINDS if len(idx[k]) >= 5 and cnt[k] < ctx.args.art_patients]
+        want = [k for k in kinds if len(idx[k]) >= 5 and cnt[k] < ctx.args.art_patients]
         if len(idx['clean']) < 8 or not want:
             continue
         pos, allidx = {}, []
@@ -140,6 +165,8 @@ def compute(ctx):
             if not any(abs(q - a) < 1e-9 for a in ctx.args.art_shares):
                 continue
             sig[f'multi-task {q:g}'] = dec(torch.einsum('scd,bndsx->bncsx', op, g))[..., :T]
+        for n, m in atom_keep.items():
+            sig[n] = dec(g[:, :, sel] * m.to(g.device, g.dtype).view(1, 1, 1, -1, 1))[..., :T]
         calib = x[pos['clean']].astype(np.float32) * 1e-5
         sig['ASR'] = asr_clean(x.astype(np.float32) * 1e-5, calib, dst_c).astype(np.float64) * 1e5
         sig['ICLabel'] = iclabel_clean(x.astype(np.float32) * 1e-5, dst_c)[0].astype(np.float64) * 1e5
@@ -164,7 +191,7 @@ def compute(ctx):
                                                        np.percentile(np.abs(w).reshape(N, -1), 99.9, axis=1) ** 2], 1))
         for m, w in sig.items():
             d = per.setdefault(m, {})
-            for k, score in COLUMNS:
+            for k, score in columns:
                 if k in want:
                     d.setdefault(f'{k}__{score}', []).append(float(ratios(w, x, pos[k], SCORE_KIND[score], fp)))
                     d.setdefault(f'{k}__{score}__control', []).append(float(ratios(w, x, cl, SCORE_KIND[score], fp)))
@@ -177,7 +204,7 @@ def compute(ctx):
             cnt[k] += 1; nwin[k] += len(pos[k])
         cnt['clean'] += 1
     if not per:
-        raise RuntimeError('no TUAR patient qualified: lower --art-windows or raise --art-patients')
+        raise RuntimeError(f'no {dst} patient qualified: lower --art-windows or raise --art-patients')
     keys = list(next(iter(per.values())))
     arrays = {}
     for k in keys:                                                            # one row per method; patients vary by label, NaN pads
@@ -193,9 +220,9 @@ def compute(ctx):
     for m, v in ex['atom_out'].items():
         extra[f'atom_out__{san(m)}'] = cat(v)
     save_npz(ctx.numbers('filter', ctx.args.filter_source, f'artifacts_{dst}.npz'), methods=np.array(methods), keys=np.array(keys), **arrays, **extra)
-    print(f'\n{dst}: patients per label ' + ', '.join(f'{k} {cnt[k]} ({nwin[k]} windows)' for k in KINDS) + f', clean {cnt["clean"]}' + '; mean +- SE over patients (artifact score | control)')
+    print(f'\n{dst}: patients per label ' + ', '.join(f'{k} {cnt[k]} ({nwin[k]} windows)' for k in kinds) + f', clean {cnt["clean"]}' + '; mean +- SE over patients (artifact score | control)')
     se = lambda v: np.std(v, ddof=1) / np.sqrt(len(v)) if len(v) > 1 else 0
-    for k, score in (*COLUMNS[:-1], ('line', 'line left')):
+    for k, score in (*columns[:-1], ('line', 'line left')):
         key = f'{k}__{score}'
         if key not in per[methods[0]]:
             continue
@@ -214,7 +241,10 @@ def db(r):
 
 
 def draw(ctx):
-    path = ctx.numbers('filter', ctx.args.filter_source, 'artifacts_TUAR.npz')
+    if not ctx.redraw:                                                      # numbers only: the group panels draw the figures; a single backbone's on request (--redraw)
+        return
+    tag = ctx.args.art_dataset
+    path = ctx.numbers('filter', ctx.args.filter_source, f'artifacts_{tag}.npz')
     if not os.path.exists(path):
         return
     z = load_npz(path)
@@ -227,10 +257,12 @@ def draw(ctx):
     se = lambda key, m: float(np.nanstd(col(key, m), ddof=1) / np.sqrt(np.sum(~np.isnan(col(key, m)))))
     mean_db = lambda key, m: float(db(mean(key, m)))
     err = lambda key, m: [mean_db(key, m) - db(mean(key, m) - se(key, m)), db(mean(key, m) + se(key, m)) - mean_db(key, m)]
-    points = {'backbone64': ('#555555', '^'), 'ASR': ('#1baf7a', '*'), 'ICLabel': ('#eda100', 'D')}
+    points = {m: v for m, v in {'backbone64': ('#555555', '^'), 'ASR': ('#1baf7a', '*'), 'ICLabel': ('#eda100', 'D'), **ATOM_COLORS}.items() if m in methods}
     what = {'eye left': 'frontal 1-10 Hz power', 'muscle left': '30-90 Hz power', 'peak left': 'peak amplitude, squared', 'line left': '59-61 Hz power'}
     name = {'eyem': 'eye movement (eyem)', 'musc': 'muscle (musc)', 'elec': 'electrode (elec)', 'eyem_musc': 'mixed eyem_musc', 'musc_elec': 'mixed musc_elec', None: 'line noise (real)'}
-    cols = [(k if k else 'line', sc) for k, sc in COLUMNS]
+    cols = [(k if k else 'line', sc) for k, sc in COLUMNS if f'{k or "line"}__{sc}'.replace(' ', '_') in z]
+    if tag == 'TUEV':
+        name['musc_elec'] = 'artifact (artf)'
     fig, ax = plt.subplots(3, len(cols), figsize=(3.7 * len(cols), 13.2))
     for j, (k, s) in enumerate(cols):
         key = f'{k}__{s}'; n = int(np.sum(~np.isnan(col(key, 'input'))))
@@ -260,28 +292,31 @@ def draw(ctx):
         c_.axhline(1, color='k', lw=.6); c_.set_ylabel('output power / input power (1 = unchanged)'); c_.set_title('same as the row above, linear scale', fontsize=7)
         for t in (b, c_):
             t.set_xticks(x); t.set_xticklabels(shown, rotation=40, ha='right', fontsize=7)
-    fig.suptitle(f'TUAR artifacts: {ctx.args.filter_source} task filter ({", ".join(f"{a:g}" for a in ctx.args.art_shares)}) against ASR and ICLabel. Every score is output power / input power. '
-                 f'Rows: removal against damage; artifact score against its control in dB (floor {DB_FLOOR:g} dB); the same in linear ratio. A mixed label has a column per score.', fontweight='bold', fontsize=10)
+    fig.suptitle(textwrap.fill(f'{tag} artifacts: {ctx.args.filter_source} task filter ({", ".join(f"{a:g}" for a in ctx.args.art_shares)}) against ASR and ICLabel. Every score is output power / input power. '
+                 f'Rows: removal against damage; artifact score against its control in dB (floor {DB_FLOOR:g} dB); the same in linear ratio. A mixed label has a column per score.', width=int(22 * len(cols))), fontweight='bold', fontsize=10)
     fig.tight_layout(rect=(0, 0, 1, 0.965))
-    out = ctx.figure_in('filter', ctx.args.filter_source, 'artifacts_TUAR.png')
+    out = ctx.figure_in('filter', ctx.args.filter_source, f'artifacts_{tag}.png')
     fig.savefig(out, dpi=110); plt.close(fig)
     print(f'  -> {out}')
     if 'win_set' not in z:
         print('  (numbers from an older run: the extra views need a fresh run)')
         return
-    colors = {'input': '#000000', 'backbone64': '#555555', 'ASR': '#1baf7a', 'ICLabel': '#eda100'}
+    colors = {'input': '#000000', 'backbone64': '#555555', 'ASR': '#1baf7a', 'ICLabel': '#eda100', **{m: c for m, (c, _) in ATOM_COLORS.items()}}
     for m, c in zip(shares, ('#eb6834', '#6d1d05', '#9c2f0a')):
         colors[m] = c
     fig_in = lambda name: ctx.figure_in('filter', ctx.args.filter_source, name)
-    print(f'  -> {views.spectrum(z, shown, colors, fig_in("artifacts_TUAR_spectrum.png"))}')
-    print(f'  -> {views.dose(z, shown, colors, fig_in("artifacts_TUAR_dose.png"))}')
-    print(f'  -> {views.atoms(z, shares, fig_in("artifacts_TUAR_atoms.png"))}')
-    path, res = views.decode(z, shown, colors, fig_in('artifacts_TUAR_decode.png'))
-    print(f'  -> {path}')
-    for k in views.LABELS:
-        if (k, 'input') in res:
-            print(f'     AUC {k:10s} ' + ', '.join(f'{m} {res[(k, m)]:.2f}' for m in ('input', *shown)))
-    print(f'  -> {views.maps(z, shares, fig_in("artifacts_TUAR_maps.png"))}')
-    print(f'  -> {views.examples(z, [m for m in shown if m in (*shares, "ASR", "ICLabel")], colors, fig_in("artifacts_TUAR_examples.png"))}')
-    keys = [(f'{k}__{sc}', f'{name[None if k == "line" else k]}: {what[sc]}') for k, sc in cols]
-    print(f'  -> {views.patients(z, shown, colors, keys, fig_in("artifacts_TUAR_patients.png"))}')
+    if ctx.args.art_views:                                                    # the detail views: on request, the main figure and the examples are what is kept
+        print(f'  -> {views.spectrum(z, shown, colors, fig_in(f"artifacts_{tag}_spectrum.png"))}')
+        print(f'  -> {views.dose(z, shown, colors, fig_in(f"artifacts_{tag}_dose.png"))}')
+        print(f'  -> {views.atoms(z, shares, fig_in(f"artifacts_{tag}_atoms.png"))}')
+        path, res = views.decode(z, shown, colors, fig_in(f'artifacts_{tag}_decode.png'))
+        print(f'  -> {path}')
+        for k in views.LABELS:
+            if (k, 'input') in res:
+                print(f'     AUC {k:10s} ' + ', '.join(f'{m} {res[(k, m)]:.2f}' for m in ('input', *shown)))
+        print(f'  -> {views.maps(z, shares, fig_in(f"artifacts_{tag}_maps.png"))}')
+    if tag == 'TUAR' or ctx.args.art_views:
+        print(f'  -> {views.examples(z, [m for m in shown if m in (*shares, "ASR", "ICLabel", "atoms -artifacts")], colors, fig_in(f"artifacts_{tag}_examples.png"))}')
+    if ctx.args.art_views:
+        keys = [(f'{k}__{sc}', f'{name[None if k == "line" else k]}: {what[sc]}') for k, sc in cols]
+        print(f'  -> {views.patients(z, shown, colors, keys, fig_in(f"artifacts_{tag}_patients.png"))}')

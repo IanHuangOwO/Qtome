@@ -1,6 +1,6 @@
 """The context every panel receives: the run's config and paths, the lazily built model, the device and the parsed options.
 Numbers go under ctx.numbers_dir, figures under ctx.fig_dir (pretrain: <backbone>/pretrain/analysis and <backbone>/analysis/pretrain;
-finetune: both are --out)."""
+group: both are --out)."""
 import json
 import os
 from dataclasses import dataclass, field
@@ -45,7 +45,7 @@ class Ctx:
     config: dict = field(default_factory=dict)
     device: object = None
     checkpoint: Optional[str] = None   # pretrain
-    groups: dict = field(default_factory=dict)   # finetune: {name: backbone}
+    groups: dict = field(default_factory=dict)   # group: {name: backbone}
     ref: Optional[str] = None
     head: Optional[str] = None
     redraw: bool = False
@@ -109,7 +109,7 @@ def default_analysis_dir(groups):
 def make_ctx(stage, args, panel_modules, error):
     """panel_modules: the selected panel modules (for NEEDS_CHECKPOINT). error: argparse's parser.error."""
     device = torch.device(args.device)
-    if stage == 'finetune':
+    if stage == 'group':
         groups = dict(g.split('=', 1) for g in args.group)
         if args.ref and args.ref not in groups:
             error(f'--ref {args.ref!r} is not a group name ({list(groups)})')

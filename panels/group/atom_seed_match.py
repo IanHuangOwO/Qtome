@@ -84,7 +84,8 @@ def compute(ctx):
         T[g] = (D, H)
     n, length = T[names[0]][0].shape
     rng = np.random.default_rng(0)
-    null = np.concatenate([match(cross_similarity(T[names[0]], random_dictionary(n, length, rng)))[2] for _ in range(ctx.args.null_draws)])
+    rand = lambda: random_dictionary(n, length, rng)
+    null = np.concatenate([match(cross_similarity(T[names[0]], rand()))[2] for _ in range(ctx.args.null_draws)])
     out = dict(groups=np.array(names), null=null, D=np.stack([T[g][0] for g in names]), H=np.stack([T[g][1] for g in names]),
                freq=np.stack([peak_freq(T[g][0]) for g in names]))
     for a, b in itertools.combinations(range(len(names)), 2):
@@ -119,14 +120,14 @@ def draw(ctx):
     pairs = list(itertools.combinations(range(len(names)), 2))
     thr, null = float(z['threshold']), z['null']
     n = z['D'].shape[1]
-    fig, (ax1, ax2, ax3) = plt.subplots(1, 3, figsize=(16, 4.6))
-    a, b = pairs[0]                                                      # (a) the matching matrix of the first pair, reordered
-    S, r, c = z[f'S_{a}_{b}'], z[f'rows_{a}_{b}'], z[f'cols_{a}_{b}']
-    order = np.argsort(-z[f'matched_{a}_{b}'])
-    im = ax1.imshow(S[np.ix_(r[order], c[order])], vmin=0, vmax=1, cmap='magma')
-    ax1.set_xlabel(f'{names[b]} atoms (matched order)'); ax1.set_ylabel(f'{names[a]} atoms (matched order)')
-    ax1.set_title(f'(a) similarity, {names[a]} vs {names[b]}, best match on the diagonal', fontsize=9, fontweight='bold')
-    fig.colorbar(im, ax=ax1, fraction=0.046)
+    ncol = max(len(pairs), 3); fig = plt.figure(figsize=(5.3 * ncol, 9.6)); gs = fig.add_gridspec(2, ncol)
+    for k, (a, b) in enumerate(pairs):                                   # (a) the matching matrix of every pair, reordered
+        axk = fig.add_subplot(gs[0, k]); S, r, c = z[f'S_{a}_{b}'], z[f'rows_{a}_{b}'], z[f'cols_{a}_{b}']
+        order = np.argsort(-z[f'matched_{a}_{b}'])
+        im = axk.imshow(S[np.ix_(r[order], c[order])], vmin=0, vmax=1, cmap='magma')
+        axk.set_xlabel(f'{names[b]} atoms (matched order)'); axk.set_ylabel(f'{names[a]} atoms (matched order)')
+        axk.set_title(f'(a{k + 1}) similarity, {names[a]} vs {names[b]}', fontsize=9, fontweight='bold'); fig.colorbar(im, ax=axk, fraction=0.046)
+    ax2, ax3, ax4 = (fig.add_subplot(gs[1, k]) for k in range(3))
     ax2.axhspan(0, np.percentile(null, 99), color='#cccccc', alpha=0.6, label='random dictionary (99th percentile)')
     ax2.axhline(thr, color='k', ls='--', lw=0.8, label=f'same atom ({thr:g})')
     for k, (a, b) in enumerate(pairs):                                   # (b) sorted matched similarity per pair
@@ -144,6 +145,15 @@ def draw(ctx):
     ax3.plot([0, lim], [0, lim], 'k:', lw=0.8)
     ax3.set_xlabel('peak frequency of an atom (Hz)'); ax3.set_ylabel('peak frequency of its match (Hz)')
     ax3.set_title('(c) matched atoms sit at the same frequency', fontsize=9, fontweight='bold'); ax3.legend(fontsize=7)
+    M = np.full((len(names), len(names)), np.nan)                          # (d) every seed against every other: atoms matched at >= the threshold
+    for a, b in pairs:
+        M[a, b] = M[b, a] = (z[f'matched_{a}_{b}'] >= thr).mean()
+    np.fill_diagonal(M, 1.0)
+    im = ax4.imshow(M, vmin=0, vmax=1, cmap='magma'); ax4.set_xticks(range(len(names))); ax4.set_xticklabels(names); ax4.set_yticks(range(len(names))); ax4.set_yticklabels(names)
+    for a in range(len(names)):
+        for b in range(len(names)):
+            ax4.text(b, a, f'{M[a, b]:.2f}', ha='center', va='center', color='white' if M[a, b] < 0.6 else 'black', fontsize=10)
+    ax4.set_title(f'(d) share of atoms matched at >= {thr:g}, every seed pair', fontsize=9, fontweight='bold'); fig.colorbar(im, ax=ax4, fraction=0.046)
     fig.suptitle('Do independently trained backbones learn the same Q-atoms?', fontweight='bold')
     out = ctx.figure('atom_seed_match.png')
     fig.tight_layout(); fig.savefig(out, dpi=130); plt.close(fig)

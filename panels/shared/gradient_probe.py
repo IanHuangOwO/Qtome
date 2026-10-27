@@ -21,6 +21,7 @@ from IO.preprocessing import slice_patches
 from model.Qtome.finetune.feature_cache import subjects_of
 from model.Qtome.atom_bank import AtomBank
 from model.factory import load_finetune_checkpoint
+from panels.shared.groups import own_numbers
 from panels.core.numbers import load_npz, save_npz
 from panels.shared.eval_windows import make_mask
 from panels.shared.finetune_runs import cell_names, cell_run_dirs, head_files
@@ -215,7 +216,7 @@ def gradients(ctx, group):
     cells = a.cells or default_cells(bb, ctx.head)
     settings = dict(bb=bb, head=ctx.head, cells=cells, seeds=a.probe_seeds, batches=a.probe_batches, batch_size=a.probe_batch_size,
                     sketch_dim=a.sketch_dim, subjects=a.probe_subjects, fold=a.probe_fold)
-    path = ctx.numbers(f'gradient_probe_{group}.npz')
+    path = own_numbers(ctx, group, 'gradient_probe.npz')
     cache = getattr(ctx, '_gradients', None)
     if cache is None:
         cache = ctx._gradients = {}

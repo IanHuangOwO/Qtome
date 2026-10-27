@@ -91,8 +91,8 @@ python -m tools.misc.run_queue output/queue/<plan>.plan --max-parallel 2 --threa
 python analyze.py list                                            # every panel
 python analyze.py pretrain --run <backbone> [--preset quick] [--panel <name> ...] [--redraw]
 python analyze.py pretrain --panel profile [--train]              # parameter counts + timing
-python analyze.py finetune --group base=<backbone> --group X=<backbone> --ref base
-python -m panels.finetune.summary 'output/Qtome/<backbone>/finetune/<head>/*'
+python analyze.py group --group base=<backbone> --group X=<backbone> --ref base
+python -m panels.group.summary 'output/Qtome/<backbone>/finetune/<head>/*'
 ```
 
 The files in `configs/*.template.json` are starting points and are never run directly. Real run
@@ -132,7 +132,7 @@ output/Qtome/archive/<date>_<topic>/     # superseded experiments, grouped by to
 |---|---|
 | `train_pretrain.py`, `train_finetune.py` | Training entry points |
 | `cache_dataset.py`, `cache_feature.py` | Dataset compilation and frozen-backbone feature caching |
-| `analyze.py`, `panels/` | Analysis entry point and its panels: one file per analysis (`panels/pretrain/`, `panels/finetune/`, `shared/`, `kit/`) |
+| `analyze.py`, `panels/` | Analysis entry point and its panels: one file per analysis (`panels/pretrain/`, `panels/group/`, `shared/`, `kit/`) |
 | `model/Qtome/` | `embeddings.py`, `ffn.py`, `encoder.py` (`TSABlock`, `TSAEncoder`), `atom_bank.py`, `patches.py`, `head/` (finetune `FeatureHead`, entries, config, `AtomExtractor`), `Qtome.py` (`QtomePretrain`, losses, `FinetuneModel`), `plugin.py` (registry glue, trainer) |
 | `model/` | Plugin base classes and `factory.py` (`MODEL_REGISTRY`, `build_from_checkpoint`) |
 | `IO/` | Loading, preprocessing (windowing, patching, normalization), masking |

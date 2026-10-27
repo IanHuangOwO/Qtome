@@ -242,7 +242,7 @@ def backbone_eval_rows(allg):
     return masks, abl, struct
 
 
-PRESETS = {'standard'}
+PRESETS = set()                                  # on request: built for the old A/B/AB hypotheses and cells; backbone_eval, summary and the noise panels replace it
 
 
 def compute(ctx):

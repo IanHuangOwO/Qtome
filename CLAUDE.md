@@ -51,12 +51,16 @@ python analyze.py list                                                  # every 
 python analyze.py check                                                 # every panel imports, flags consistent (no data; run after editing a panel)
 python analyze.py pretrain --run <backbone> [--preset quick] [--panel <name> ...] [--redraw]
 python analyze.py pretrain --panel profile [--train]                    # parameter counts + timing, no checkpoint
-# Finetune = several backbones under one head label -> output/Qtome/<common name of the backbones>_analysis/ (--out overrides; standard: summary, report, gradient_correlation, subspace_affinity, pretrain_alignment, atom_seed_match (skipped with one group); others
-# on request; training_dashboard: one figure per fold -> <backbone>/analysis/finetune/<head>/<cell>/). Run backbone_eval first.
-python analyze.py finetune --group base=<backbone> --group X=<backbone> --ref base [--head frozen_learned] [--panel <name> ...]
-# Cross-task gradient panels (standard finetune preset; EEG-FM-Bench Figs. 3, 4, 8): backbone gradients of each finetune cell's trained head, shared probe cached as gradient_probe_<group>.npz
-python analyze.py finetune --group base=<backbone> --head <head> --panel gradient_correlation --panel subspace_affinity --panel pretrain_alignment [--cells <cell> ...]
-python -m panels.finetune.summary 'output/Qtome/<backbone>/finetune/<head>/*' [--ref <backbone>:<head>] [--rank N]   # standalone table
+# Group = several backbones compared in one folder -> output/Qtome/<common name of the backbones>_analysis/ (--out overrides). A group name is <recipe>_s<seed> (s1, small_s2) or a bare s1;
+# the recipe is the name without the seed, so one run can hold a recipe's seeds (qtome_tiny_v4flat_onephase_analysis) or several recipes (mean +- SE over each recipe's seeds).
+# The stage was called `finetune` until 2026-10-27 (that name still works). Standard panels: summary, atom_seed_match (all seed pairs; skipped with one group), and from the numbers the pretrain panels saved under each backbone: backbone_eval (masked MSE per mask), atom_labels
+# (ICLabel classes per seed and their agreement across seeds), noise_removal (TUAR / TUEV artifacts and brain kept), noise_removal_synthetic (artificial noise at TUAR strength), noise_classify (accuracy after
+# removal); on request: report, gradient_correlation, subspace_affinity, pretrain_alignment. The noise panels need the pretrain panels backbone_eval, atom_labels, task_filter_artifacts (--art-dataset TUAR and TUEV), task_filter_noise_removal_synthetic and task_filter_atom_classify run on every
+# backbone first (the last three are on request, about 2 h per backbone together). Figures that describe one backbone stay in <backbone>/analysis/; figures that compare backbones or seeds live here. The three noise panels on a backbone (task_filter_artifacts, task_filter_noise_removal_synthetic, task_filter_atom_classify) save numbers only; `--redraw` draws a single backbone's figure from them.
+python analyze.py group --group base=<backbone> --group X=<backbone> --ref base [--head frozen_learned] [--panel <name> ...]
+# Cross-task gradient panels (on request, per backbone; EEG-FM-Bench Figs. 3, 4, 8): backbone gradients of each finetune cell's trained head, shared probe cached as gradient_probe_<group>.npz
+python analyze.py group --group base=<backbone> --head <head> --panel gradient_correlation --panel subspace_affinity --panel pretrain_alignment [--cells <cell> ...]
+python -m panels.group.summary 'output/Qtome/<backbone>/finetune/<head>/*' [--ref <backbone>:<head>] [--rank N]   # standalone table
 
 # Task filter: a reconstruction keeping only what classification heads use (panels/shared/task_filter/fit.py). Panels of
 # analyze.py pretrain, run on request (not in a preset). --filter-source 'multi' (multi-task filter: MI + P300 + SSVEP

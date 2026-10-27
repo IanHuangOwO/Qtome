@@ -4,11 +4,11 @@
     python analyze.py check                                             # every panel imports and its flags are consistent (no data)
     python analyze.py pretrain --run <backbone> [--preset quick] [--panel snapshot ...] [panel options]
     python analyze.py pretrain --panel profile [--train]                # no checkpoint: the pretrain template
-    python analyze.py finetune --group base=<bb> --group X=<bb> --ref base [--head frozen_learned] [--panel summary ...]
+    python analyze.py group --group base=<bb> --group X=<bb> --ref base [--head frozen_learned] [--panel summary ...]   # several backbones (seeds / recipes); `finetune` is the old name
     add --redraw to draw again from the saved numbers (no recompute)
 
 `--panel <name> --help` shows that panel's own options. Pretrain: numbers in output/Qtome/<backbone>/pretrain/analysis/, figures in
-output/Qtome/<backbone>/analysis/pretrain/. Finetune: --out, default output/Qtome/<common name of the backbones>_analysis/. Writing a panel:
+output/Qtome/<backbone>/analysis/pretrain/. Group: --out, default output/Qtome/<common name of the backbones>_analysis/. Writing a panel:
 docs/agents/adding-a-panel.md.
 """
 import sys
@@ -36,6 +36,8 @@ def main():
         print('\n'.join(problems) or 'all panels ok')
         return 1 if problems else 0
     stage, rest = argv[0], argv[1:]
+    if stage == 'finetune':                                         # the stage was renamed (2026-10-27): old command lines keep working
+        stage = 'group'
     if stage not in registry.STAGES:
         print(f'unknown stage {stage!r}; use one of {registry.STAGES} or list', file=sys.stderr)
         return 2

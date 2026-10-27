@@ -24,7 +24,6 @@ def build_model(bp, num_channels):
         spatial_embedding=bp.get('spatial_embedding', True),
         n_atoms=sb.get('n_atoms', 16),
         atom_hidden_width=sb.get('hidden_width', 16),
-        atom_phase=sb.get('phase', 'free'),
         n_routed_ffn_experts=moe_ffn.get('n_routed_experts', 4),
         n_shared_ffn_experts=moe_ffn.get('n_shared_experts', 1),
         ffn_top_k=moe_ffn.get('top_k', 2),

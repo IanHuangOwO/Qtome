@@ -5,10 +5,10 @@ the saved numbers, so `--redraw` never recomputes. (This replaced `tools/analysi
 `docs/plans/2026-10-24-analysis-restructure.md`.)
 
 ```
-analyze.py                 python analyze.py list | pretrain ... | finetune ...
+analyze.py                 python analyze.py list | pretrain ... | group ...   (`finetune` = the old name of group)
 panels/core/               registry (discovery by filename), context (Ctx), flags, numbers (save_json / save_npz), runner
 panels/pretrain/<name>.py  one analysis of one backbone (a folder <name>/ with __init__.py when it outgrows ~250 lines)
-panels/finetune/<name>.py  one analysis across backbones' finetune runs (--group NAME=BACKBONE ...)
+panels/group/<name>.py     one analysis across backbones (--group NAME=BACKBONE ...: seeds / recipes): their finetune runs or the numbers the pretrain panels saved (panels/shared/groups.py)
 panels/shared/<topic>.py   code used by two or more panels (rule of two; until then it stays in its panel); a topic that grows
                            several files becomes a folder (shared/task_filter/: cells, backbone, fit, context, tests)
 panels/kit/                generic drawing primitives (topomap, timeseries, channel order); no analysis logic

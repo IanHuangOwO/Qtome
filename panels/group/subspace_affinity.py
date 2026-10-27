@@ -4,11 +4,12 @@ subspaces overlap -> subspace_affinity_<group>.png. Each task's probe-batch grad
 orthogonal), mean +- std over --probe-seeds repeats. Probe: panels/shared/gradient_probe.py."""
 import numpy as np
 
+from panels.shared.groups import own_figure, own_numbers
 from panels.core.numbers import load_npz, save_npz
 from panels.kit.matrix import matrix_row
 from panels.shared import gradient_probe as gp
 
-PRESETS = {'standard'}
+PRESETS = set()                                  # on request: heavy (backbone gradients of every finetune cell); numbers and figures stay with each backbone
 
 
 def add_args(flags):
@@ -53,15 +54,15 @@ def compute(ctx):
         mean, std = affinity(z['ce'], ctx.args.affinity_rank)
         rank = min(ctx.args.affinity_rank, z['ce'].shape[2] - 1)
         chance = chance_affinity(z['ce'].shape[2], rank, z['ce'].shape[-1])
-        save_npz(ctx.numbers(f'subspace_affinity_{g}.npz'), mean=mean, std=std, tasks=z['tasks'], groups=z['groups'],
+        save_npz(own_numbers(ctx, g, 'subspace_affinity.npz'), mean=mean, std=std, tasks=z['tasks'], groups=z['groups'],
                  rank=np.array(rank), chance=np.array(chance))
 
 
 def draw(ctx):
     for g in ctx.groups:
-        z = load_npz(ctx.numbers(f'subspace_affinity_{g}.npz'))
+        z = load_npz(own_numbers(ctx, g, 'subspace_affinity.npz'))
         tasks, groups = [str(t) for t in z['tasks']], [str(x) for x in z['groups']]
-        out = ctx.figure(f'subspace_affinity_{g}.png')
+        out = own_figure(ctx, g, 'subspace_affinity.png')
         matrix_row(out, [z['mean'][..., i] for i in range(len(groups))], [z['std'][..., i] for i in range(len(groups))], groups,
                    tasks, tasks, 0.0, 1.0, 'YlGnBu',
                    f'{g}: cross-task subspace affinity (rank-{int(z["rank"])} gradient subspaces, mean ± std over probe repeats)\n'

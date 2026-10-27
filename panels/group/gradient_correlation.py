@@ -4,11 +4,12 @@ mean +- std over --probe-seeds repeats -> gradient_correlation_<group>.png. Near
 layer); near 0: unrelated (task-specific). Probe, settings and parameter groups: panels/shared/gradient_probe.py."""
 import numpy as np
 
+from panels.shared.groups import own_figure, own_numbers
 from panels.core.numbers import load_npz, save_npz
 from panels.kit.matrix import matrix_row
 from panels.shared import gradient_probe as gp
 
-PRESETS = {'standard'}
+PRESETS = set()                                  # on request: heavy (backbone gradients of every finetune cell); numbers and figures stay with each backbone
 
 
 def add_args(flags):
@@ -35,17 +36,17 @@ def compute(ctx):
     for g in ctx.groups:
         z = gp.gradients(ctx, g)
         mean, std = cross_task_cosine(z['ce'])
-        save_npz(ctx.numbers(f'gradient_correlation_{g}.npz'), mean=mean, std=std, tasks=z['tasks'], groups=z['groups'],
+        save_npz(own_numbers(ctx, g, 'gradient_correlation.npz'), mean=mean, std=std, tasks=z['tasks'], groups=z['groups'],
                  floor=np.array(1 / np.sqrt(z['ce'].shape[-1])))
 
 
 def draw(ctx):
     for g in ctx.groups:
-        z = load_npz(ctx.numbers(f'gradient_correlation_{g}.npz'))
+        z = load_npz(own_numbers(ctx, g, 'gradient_correlation.npz'))
         tasks, groups = [str(t) for t in z['tasks']], [str(x) for x in z['groups']]
         lim = max(0.2, float(np.nanmax(np.abs(z['mean']))))
         fl = float(z['floor'])
-        out = ctx.figure(f'gradient_correlation_{g}.png')
+        out = own_figure(ctx, g, 'gradient_correlation.png')
         matrix_row(out, [z['mean'][..., i] for i in range(len(groups))], [z['std'][..., i] for i in range(len(groups))], groups,
                    tasks, tasks, -lim, lim, 'RdBu_r', f'{g}: cross-task gradient correlation (cosine of classification gradients, mean ± std over probe repeats)\n'
                    f'outlined diagonal = the same task on other batches (ceiling); dashed on the colour bar = ±{fl:.3f}, the spread of random directions',
