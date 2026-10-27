@@ -93,6 +93,8 @@ METHOD_TEXT = {
     'atoms brain only': 'keeps only the Q-atoms labelled brain',
     'ASR': 'artifact subspace reconstruction, calibrated on the same patient\'s clean windows',
     'ICLabel': 'ICA, then components labelled as artifact by ICLabel are removed',
+    'ASR atoms 1.5': 'ASR on the Q-atom gains: per atom, channel components stronger than 1.5 x the patient\'s clean rms are set to zero',
+    'ASR atoms 1.5 + atoms -line': 'that ASR, then without the Q-atoms labelled line noise or channel noise',
 }
 
 

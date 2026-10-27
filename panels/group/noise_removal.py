@@ -2,6 +2,8 @@
 each recipe -> noise_removal_<dataset>.png and noise_removal.md. Bars: artifact power change in dB (0 = unchanged, lower = more removed) next to grey bars: the control (the
 same method on clean windows: a method that removes the artifact and the control equally is a frequency filter); top row: brain kept (correlation with the
 clean windows) against the artifact power change, one marker shape per recipe; bottom row: the same on a linear scale (output power / input power). Needs the pretrain panel task_filter_artifacts (TUAR and TUEV) and, for atom removal, atom_labels on each backbone."""
+import os
+
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
@@ -14,14 +16,25 @@ from panels.shared.groups import bar_legend, color_of, describe, db, grouped_bar
 PRESETS = {'standard'}
 MARKERS = ('o', 's', '^', 'D')
 HATCH = ('', '//', '..', 'xx')
-SHOW = ('backbone64', 'multi-task 0.5', 'multi-task 0.1', 'atoms -eye', 'atoms -muscle', 'atoms -line', 'atoms -artifacts', 'atoms -brain', 'atoms brain only', 'ASR', 'ICLabel')
+ATOM_ASR = ('ASR atoms 1.5', 'ASR atoms 1.5 + atoms -line')                # from the pretrain panel task_filter_atom_asr (--asr-tag _combo), same patients as task_filter_artifacts
+SHOW = ('backbone64', 'multi-task 0.5', 'multi-task 0.1', 'atoms -eye', 'atoms -muscle', 'atoms -line', 'atoms -artifacts', 'atoms -brain', 'atoms brain only', 'ASR', 'ICLabel', *ATOM_ASR)
 WHAT = {'eye left': 'frontal 1-10 Hz power', 'muscle left': '30-90 Hz power', 'peak left': 'peak amplitude²', 'line left': '59-61 Hz power (real line noise)'}
 NAME = {'eyem': 'eye movement', 'musc': 'muscle', 'elec': 'electrode', 'eyem_musc': 'eyem + musc', 'musc_elec': 'musc + elec', None: 'line noise'}
 
 
 def load(path):
     z = load_npz(path)
-    return {k: z[k] for k in z if '__' in k or k in ('methods', 'brain_kept')}
+    out = {k: z[k] for k in z if '__' in k or k in ('methods', 'brain_kept')}
+    extra = path.replace('artifacts_TUAR.npz', 'atom_asr_TUAR_combo.npz')
+    if extra != path and os.path.exists(extra):
+        e = load_npz(extra); em = [str(m) for m in e['methods']]; rows = [em.index(m) for m in ATOM_ASR if m in em]
+        if rows:
+            for k in out:
+                if k != 'methods' and k in e:
+                    n = max(out[k].shape[1], e[k].shape[1]); pad = lambda a: np.pad(a, ((0, 0), (0, n - a.shape[1])), constant_values=np.nan)
+                    out[k] = np.concatenate([pad(out[k]), pad(e[k][rows])])
+            out['methods'] = np.array([*(str(m) for m in out['methods']), *(em[i] for i in rows)])
+    return out
 
 
 def compute(ctx):
@@ -59,7 +72,7 @@ def draw(ctx):
         except FileNotFoundError:
             continue
         methods, cols, recs = [str(m) for m in z['methods']], [str(c) for c in z['cols']], [str(r) for r in z['recipes']]; col = color_of(recs); n = len(recs)
-        mcol = {'backbone64': '#555555', 'ASR': '#1baf7a', 'ICLabel': '#eda100', 'multi-task 0.5': '#eb6834', 'multi-task 0.1': '#b3410f', **{m: c for m, (c, _) in ATOM_COLORS.items()}}
+        mcol = {'backbone64': '#555555', 'ASR': '#1baf7a', 'ICLabel': '#eda100', 'multi-task 0.5': '#eb6834', 'multi-task 0.1': '#b3410f', **{m: c for m, (c, _) in ATOM_COLORS.items()}, 'ASR atoms 1.5': '#e377c2', 'ASR atoms 1.5 + atoms -line': '#d62728'}
         fig, ax = plt.subplots(3, len(cols), figsize=(3.6 * len(cols), 13.5), squeeze=False); x = np.arange(len(methods)); w = 0.8 / n
         for j, key in enumerate(cols):
             k, sc = key.split('__', 1); a = ax[0, j]
