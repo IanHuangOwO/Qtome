@@ -2,7 +2,7 @@
 --run the pretrain template).
 
 Model profiling: parameter counts and per-component forward-pass timing, from a fresh
-untrained model (configs/Qtome/pretrain.template.json's architecture) -- no checkpoint, no dataset. Moved
+untrained model (configs/Qlet/pretrain.template.json's architecture) -- no checkpoint, no dataset. Moved
 from the old standalone profile_model.py; the report is printed by compute().
 Option: --train (train-mode timing)."""
 import logging
@@ -97,7 +97,7 @@ def run_profile(config, device, train_mode=False):
     component-by-component via forward hooks. No checkpoint, no dataset -- dummy input
     shaped from preprocess_params. Returns a ProfileResult; printing the report is the
     caller's (panel_profile.py's) job, not this function's."""
-    model_type = config['training_params']['pretrain'].get('model_type', 'Qtome')
+    model_type = config['training_params']['pretrain'].get('model_type', 'Qlet')
     preprocess = config['preprocess_params']
 
     B, C = 16, 64

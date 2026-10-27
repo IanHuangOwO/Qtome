@@ -1,7 +1,7 @@
-"""Figures of the codebook panel (panels/pretrain/codebook/__init__.py): cross-dataset Q-atom usage, embedding scatters, identity /
+"""Figures of the codebook panel (panels/pretrain/codebook/__init__.py): cross-dataset qlet usage, embedding scatters, identity /
 phase / topography consistency and event dynamics.
 usage_by_dataset: dict of dataset_name -> np.ndarray [M, Q] (M patches sampled from that dataset, Q
-units: each Q-atom's strength h at that patch) built by the checker's extract_usage() hook.
+units: each qlet's strength h at that patch) built by the checker's extract_usage() hook.
 """
 
 import math
@@ -65,7 +65,7 @@ def plot_usage_and_activity(out_path, strength, categories, category_order,
 
 def plot_embedding_scatter_by_dataset(out_path, usage_by_dataset, unit_label='Atom',
                                        max_points=3000, random_state=0):
-    """PCA + t-SNE of each patch's Q-atom strengths (all units concatenated), colored by
+    """PCA + t-SNE of each patch's qlet strengths (all units concatenated), colored by
     the source dataset's paradigm. t-SNE runs on a PCA-reduced pre-projection for speed, standard practice
     at this corpus size."""
     from sklearn.decomposition import PCA
@@ -312,13 +312,13 @@ def plot_dataset_relation(out_path, usage_by_dataset, unit_label='Atom'):
 
 def plot_atom_identity_consistency(out_path, within, between, per_atom_ids, per_atom_within,
                                      unit_label='Atom'):
-    """Does a Q-atom id mean the same thing at every occurrence?
+    """Does a qlet id mean the same thing at every occurrence?
 
-    The waveform half of that question is trivially yes — a Q-atom's template D_i is a
+    The waveform half of that question is trivially yes — a qlet's template D_i is a
     fixed parameter, so its temporal shape is identical at every occurrence up to
     amplitude and phase. The open half is the TOPOGRAPHY: the mixing column is
     recomputed per (channel, patch) from the data, and nothing in the architecture ties
-    one occurrence to the next. If Q-atom identity carries topographic meaning, two occurrences of
+    one occurrence to the next. If qlet identity carries topographic meaning, two occurrences of
     the same id should be more alike than two occurrences of different ids.
 
     within/between: 1-D arrays of cosine similarities between per-occurrence mixing
@@ -328,7 +328,7 @@ def plot_atom_identity_consistency(out_path, within, between, per_atom_ids, per_
     toward 1 regardless of structure, and comparing individual columns against averaged
     ones makes the averaged side look artificially self-similar. The separation
     (within - between) is the real readout: ~0 means the id predicts nothing about
-    topography, i.e. the Q-atom is a waveform type rather than a source.
+    topography, i.e. the qlet is a waveform type rather than a source.
 
     per_atom_ids/per_atom_within: per-id mean within-consistency, for the bar panel.
     """
@@ -369,7 +369,7 @@ def plot_atom_phase_consistency(out_path, circ_var, fire_count, unit_label='Atom
                                   min_fires=5):
     """Per-unit circular variance (1 - |mean(exp(i*phase))|, over all of that unit's occurrences'
     channel-summed phase atan2(b,a)) of the quadrature phase every occurrence carries but
-    nothing in the loss ever reads directly (see CONTEXT.md's Q-atom definition —
+    nothing in the loss ever reads directly (see CONTEXT.md's qlet definition —
     contribution is a*D + b*H, amplitude sqrt(a^2+b^2), phase atan2(b,a)). Low variance
     (near 0) = phase-locked -- plausible for a genuine oscillatory source (e.g. line
     noise) that really does arrive at a consistent phase relative to the patch window.
@@ -404,7 +404,7 @@ def plot_topography_distance(out_path, matrices, unit_label='Atom'):
     """One heatmap per dataset of pairwise cosine distance (1 - cosine similarity) between
     units' MEAN mixing column (the signed, coherently-averaged per-channel topography of
     every unit that fired at least a few times in that dataset -- see
-    QtomeCodebookChecker._render_identity_consistency, which already computes the
+    QletCodebookChecker._render_identity_consistency, which already computes the
     coherent per-occurrence (a,b) average this reuses). Complements
     the template similarity of atom_duplicates (raw waveform shape, dataset-independent): two units can
     have very different D_i templates yet project to a similar scalp pattern, or vice
@@ -446,7 +446,7 @@ def plot_topography_distance(out_path, matrices, unit_label='Atom'):
 
 def plot_event_atom_dynamics(out_path, t_sec, amp_mean, pow_mean, pow_std, onset_sec=None,
                               unit_label='Atom', title_suffix='', n_movers=15):
-    """Event-locked Q-atom-strength / power trajectory for an epoch-structured dataset.
+    """Event-locked qlet-strength / power trajectory for an epoch-structured dataset.
 
     Trials are onset-aligned (one epoch each), so a fixed time offset within the trial means the
     same thing across trials. The caller has done a sliding-window evaluation (re-patchify each raw

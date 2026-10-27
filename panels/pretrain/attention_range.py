@@ -20,7 +20,7 @@ import math
 import torch
 import torch.nn.functional as F
 
-from model.Qtome.embeddings import _rotate_half
+from model.Qlet.embeddings import _rotate_half
 from panels.shared.eval_windows import batches, eval_windows
 
 

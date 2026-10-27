@@ -8,7 +8,7 @@ from typing import Optional
 
 import torch
 
-from IO.config import QTOME_OUTPUT, resolve_output_dir
+from IO.config import QLET_OUTPUT, resolve_output_dir
 
 
 def deep_merge(base: dict, override: dict) -> dict:
@@ -84,7 +84,7 @@ def add_stage_flags(p, stage):
     p.add_argument('--device', default='cuda' if torch.cuda.is_available() else 'cpu')
     if stage == 'pretrain':
         src = p.add_mutually_exclusive_group()
-        src.add_argument('--run', help='backbone name: output/Qtome/<run>/pretrain/checkpoint/last.pth')
+        src.add_argument('--run', help='backbone name: output/Qlet/<run>/pretrain/checkpoint/last.pth')
         src.add_argument('--checkpoint', help='a pretrain checkpoint .pth')
         p.add_argument('--config', help='JSON overlay deep-merged onto the run config')
         p.add_argument('--threads', type=int, help="torch CPU threads (default: torch's)")
@@ -92,18 +92,18 @@ def add_stage_flags(p, stage):
         p.add_argument('--group', action='append', required=True, metavar='NAME=BACKBONE',
                        help='a backbone to compare (repeatable, report order)')
         p.add_argument('--ref', help='the reference group (tests against it)')
-        p.add_argument('--head', default='frozen_learned', help='finetune label: output/Qtome/<backbone>/finetune/<head>/')
-        p.add_argument('--out', help='output dir (default output/Qtome/<common name of the backbones>_analysis/)')
+        p.add_argument('--head', default='frozen_learned', help='finetune label: output/Qlet/<backbone>/finetune/<head>/')
+        p.add_argument('--out', help='output dir (default output/Qlet/<common name of the backbones>_analysis/)')
 
 
 def default_analysis_dir(groups):
-    """Where the analysis of several backbones goes, at the level of the backbones: output/Qtome/<name>_analysis, name = what the backbones'
-    names have in common (qtome_small_v4flat_onephase_s1/s2/s3 -> qtome_small_v4flat_onephase), a lone backbone's own name, else the group names."""
+    """Where the analysis of several backbones goes, at the level of the backbones: output/Qlet/<name>_analysis, name = what the backbones'
+    names have in common (qlet_small_v4flat_onephase_s1/s2/s3 -> qlet_small_v4flat_onephase), a lone backbone's own name, else the group names."""
     bbs = sorted(set(groups.values()))
     parts = [b.split('_') for b in bbs]
     k = next((i for i, t in enumerate(zip(*parts)) if len(set(t)) > 1), min(map(len, parts)))   # leading name parts all share (whole parts: _s1 / _s2 differ)
     name = bbs[0] if len(bbs) == 1 else '_'.join(parts[0][:k]) if k >= 2 else '_'.join(groups)
-    return os.path.join(QTOME_OUTPUT, f'{name}_analysis')
+    return os.path.join(QLET_OUTPUT, f'{name}_analysis')
 
 
 def make_ctx(stage, args, panel_modules, error):
@@ -119,11 +119,11 @@ def make_ctx(stage, args, panel_modules, error):
 
     if args.threads:
         torch.set_num_threads(args.threads)
-    checkpoint = args.checkpoint or (f'{QTOME_OUTPUT}/{args.run}/pretrain/checkpoint/last.pth' if args.run else None)
+    checkpoint = args.checkpoint or (f'{QLET_OUTPUT}/{args.run}/pretrain/checkpoint/last.pth' if args.run else None)
     if checkpoint:
         config = json.load(open(os.path.join(os.path.dirname(os.path.dirname(checkpoint)), 'artifacts', 'config.json')))
     elif all(not getattr(m, 'NEEDS_CHECKPOINT', True) for m in panel_modules):
-        config = json.load(open('configs/Qtome/pretrain.template.json'))
+        config = json.load(open('configs/Qlet/pretrain.template.json'))
     else:
         error('--run or --checkpoint is required (only panels with NEEDS_CHECKPOINT = False run without one)')
     if args.config:

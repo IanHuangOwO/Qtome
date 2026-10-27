@@ -1,6 +1,6 @@
-"""What the codebook panel measures (numbers only; plots.py draws them): per-patch Q-atom usage over sampled trials of each dataset,
-the identity / phase / topography consistency of the Q-atoms, and their event-locked dynamics. Moved from the model-side
-BaseCodebookChecker / QtomeCodebookChecker (removed 2026-10-24 with the plugin hooks)."""
+"""What the codebook panel measures (numbers only; plots.py draws them): per-patch qlet usage over sampled trials of each dataset,
+the identity / phase / topography consistency of the qlets, and their event-locked dynamics. Moved from the model-side
+BaseCodebookChecker / QletCodebookChecker (removed 2026-10-24 with the plugin hooks)."""
 import random
 from collections import defaultdict
 
@@ -9,7 +9,7 @@ import torch
 
 from panels.shared.event_onset import lookup_event_onset_sample
 from IO.preprocessing import slice_patches
-from model.Qtome.patches import overlap_add_patches
+from model.Qlet.patches import overlap_add_patches
 from panels.shared.atom_readout import extract_atom_psd_by_patch
 
 
@@ -29,7 +29,7 @@ def subject_id(dataset, trial_idx):
 
 @torch.no_grad()
 def extract_usage(model, x_in, c_in, t_in, vc_in):
-    """[N, n_atoms] usage, one row per PATCH POSITION: each Q-atom's post-rms amp magnitude
+    """[N, n_atoms] usage, one row per PATCH POSITION: each qlet's post-rms amp magnitude
     (AtomBank.forward's h; G = N for a B=1 trial)."""
     return model.encode_atoms(x_in, c_in, time_idx=t_in, valid_channels=vc_in).h.cpu().numpy()
 
@@ -71,17 +71,17 @@ def sample_usage(model, datasets_by_name, max_trials_per_dataset=200, seed=0):
 
 @torch.no_grad()
 def identity_numbers(trial_records, model, device, seed=0):
-    """Identity, phase and topography consistency of the Q-atoms on a subsample (60) of trials.
+    """Identity, phase and topography consistency of the qlets on a subsample (60) of trials.
 
-    Does one Q-atom id mean one thing across patches/trials? The waveform half is trivially yes (D_s is a fixed parameter), so the
+    Does one qlet id mean one thing across patches/trials? The waveform half is trivially yes (D_s is a fixed parameter), so the
     identity measure is the TOPOGRAPHY: every occurrence's mixing column, compared within-id vs between-id. Nothing in the
-    architecture ties a Q-atom's topography across patches, so this is a real open question, not a formality.
+    architecture ties a qlet's topography across patches, so this is a real open question, not a formality.
     Returns {'circ_var', 'fire_count'} always, plus {'mats' {ds: (matrix, ids)}, 'within', 'between', 'ids', 'per_atom'} unless too few
     atoms repeat (then 'mats' is None)."""
     rng = random.Random(seed)
     sample = trial_records if len(trial_records) <= 60 else rng.sample(trial_records, 60)
 
-    # Keyed by (dataset, Q-atom id): channel-validity differs per dataset (e.g. Nakanishi2015
+    # Keyed by (dataset, qlet id): channel-validity differs per dataset (e.g. Nakanishi2015
     # maps 8 of 64 channels, BETA_4s 58), so mixing columns from different datasets
     # have different lengths AND live in different channel subspaces — comparing
     # them would be meaningless even if the shapes matched. Statistics are computed
@@ -171,13 +171,13 @@ def identity_numbers(trial_records, model, device, seed=0):
 
 @torch.no_grad()
 def event_dynamics_numbers(ds_trials, ds_name, model, device, seed, config):
-    """Event-locked Q-atom-strength / power trajectory of one dataset -> dict(t_axis, am, pm, ps, onset_sec, n_trials, n_off, fine),
+    """Event-locked qlet-strength / power trajectory of one dataset -> dict(t_axis, am, pm, ps, onset_sec, n_trials, n_off, fine),
     or None when nothing was evaluated.
 
-    The tokenizer was trained at one patch stride; to read Q-atom strength/power on a finer time axis WITHOUT an out-of-distribution
+    The tokenizer was trained at one patch stride; to read qlet strength/power on a finer time axis WITHOUT an out-of-distribution
     token spacing, this does a sliding-window eval: for each sub-stride offset it re-patchifies the raw trial at the NATIVE stride
-    (every forward pass in-distribution), runs the Q-atom bank, and places each patch's result at its true sample time. Pooled over
-    trials x offsets -> per-time-bin Q-atom strength h and power. Trials are onset-aligned (assemble_trials=False in the analysis
+    (every forward pass in-distribution), runs the qlet bank, and places each patch's result at its true sample time. Pooled over
+    trials x offsets -> per-time-bin qlet strength h and power. Trials are onset-aligned (assemble_trials=False in the analysis
     path), so a fixed time within the trial is comparable across trials.
 
     Event onset per dataset: this dataset's own metadata.json event_onset_sample (panels.shared.event_onset.lookup_event_onset_sample); absent

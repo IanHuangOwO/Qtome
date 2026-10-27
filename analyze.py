@@ -7,8 +7,8 @@
     python analyze.py group --group base=<bb> --group X=<bb> --ref base [--head frozen_learned] [--panel summary ...]   # several backbones (seeds / recipes); `finetune` is the old name
     add --redraw to draw again from the saved numbers (no recompute)
 
-`--panel <name> --help` shows that panel's own options. Pretrain: numbers in output/Qtome/<backbone>/pretrain/analysis/, figures in
-output/Qtome/<backbone>/analysis/pretrain/. Group: --out, default output/Qtome/<common name of the backbones>_analysis/. Writing a panel:
+`--panel <name> --help` shows that panel's own options. Pretrain: numbers in output/Qlet/<backbone>/pretrain/analysis/, figures in
+output/Qlet/<backbone>/analysis/pretrain/. Group: --out, default output/Qlet/<common name of the backbones>_analysis/. Writing a panel:
 docs/agents/adding-a-panel.md.
 """
 import sys

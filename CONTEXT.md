@@ -1,6 +1,6 @@
 # EEG Tokenizer
 
-An EEG foundation model: **Qlet** (called Qtome before 2026-10-27, MeSAE before 2026-10-06; code, folders and run names still say Qtome until the full rename) turns multi-channel EEG into per-patch sparse qlet codes, pretrained by
+An EEG foundation model: **Qlet** (called Qtome before 2026-10-27, MeSAE before 2026-10-06) turns multi-channel EEG into per-patch sparse qlet codes, pretrained by
 masked reconstruction, then read by a small head on a frozen backbone. The retired MeFSQ model (discrete
 FSQ codes; terms Expert, Code, Codebook, Expert View, pre-/post-VQ feature) is documented in
 `docs/adr/0001`, `0002`, `0013` -- only relevant when reading those.
@@ -60,7 +60,7 @@ the residual the higher ranks leave (detached), so duplicate atoms earn nothing.
 
 **Stage** (removed 2026-10-13): a group of encoder blocks at one temporal resolution, with the patch axis pooled by
 2 between stages and upsampled back through gated skips. The encoder is now one stack at full patch resolution; the
-pooled backbones (up to `qtome_tiny_v4tr2`) can no longer be rebuilt.
+pooled backbones (up to `qlet_tiny_v4tr2`) can no longer be rebuilt.
 
 **z**: the encoder output before the AtomBank, `[N', C, 100]`. The qlet codes on visible input are close
 to a fixed projection of each patch onto the templates, so a head on qlet codes sees little of the
@@ -103,9 +103,9 @@ windows).
 **tail**: a run's score -- balanced accuracy averaged over the last 10 epochs, per subject, then over
 subjects. Differences within +-3 points are ties at one pretrain seed.
 
-## Current Qtome defaults
+## Current Qlet defaults
 
-What `configs/Qtome/pretrain.template.json` builds (2.26M parameters; the same at every corpus size):
+What `configs/Qlet/pretrain.template.json` builds (2.26M parameters; the same at every corpus size):
 
 | module | params | what |
 |---|---|---|
@@ -119,4 +119,4 @@ visible samples weighted 0.1 in the masked phase. Removed: trial MSE (ADR 0021),
 + channel subsampling. Channels: native layout, MNE template positions. Finetune head: atom_power + signed_ab (all-atom; atom_power + latent_signed is the stronger head).
 
 **Unit**: umbrella term in shared tooling (`model/base_*`, `tools/`) for whatever a model codes per patch --
-a qlet for Qtome. Plugins: `model/<Name>/plugin.py`, docs/adr/0004.
+a qlet for Qlet. Plugins: `model/<Name>/plugin.py`, docs/adr/0004.

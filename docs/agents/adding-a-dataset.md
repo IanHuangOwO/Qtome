@@ -376,7 +376,7 @@ try/excepts around each task and just skips it with a printed warning.
 
 ## Shortcut: datasets MOABB covers
 
-If MOABB (`moabb` in the `qtome` env, 1.5.0) has the dataset, skip Steps 3-6's hand-written
+If MOABB (`moabb` in the `qlet` env, 1.5.0) has the dataset, skip Steps 3-6's hand-written
 parsing and use `IO/loader.py` (MoabbLoader, write_moabb_metadata):
 
 - No `loader.py`: `resolve_dataset_loader` returns `MoabbLoader` for a dataset whose `metadata.json` has the
@@ -482,7 +482,7 @@ your config JSON:
 python -c "
 import json
 from IO.dataset import build_dataset_from_config
-config = json.load(open('configs/Qtome/pretrain.template.json'))
+config = json.load(open('configs/Qlet/pretrain.template.json'))
 config['dataset_params']['pretrain'] = {
     'MyDataset': {'dataset_path': 'datas/MyDataset', 'subject_to_use': ['all'], 'channels_to_use': ['all']}
 }

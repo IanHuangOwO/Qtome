@@ -2,8 +2,8 @@
 analysis/ridge_probe.json (the latent feature cache is built on first use). A deterministic readout of how linearly usable the
 representation is, without SGD head training (the finetune heads' run-to-run noise).
 
-Per dataset, Compass LOSO split (the protocol's session selection, configs/finetune_protocols.json incl. _dataset_split, Qtome heads
-in configs/Qtome/protocol_heads.json). Per held-out subject: PCA of the training trials' z tokens (D -> n_pca, like latent_proj
+Per dataset, Compass LOSO split (the protocol's session selection, configs/finetune_protocols.json incl. _dataset_split, Qlet heads
+in configs/Qlet/protocol_heads.json). Per held-out subject: PCA of the training trials' z tokens (D -> n_pca, like latent_proj
 'pca'), flatten [patches, channels, n_pca], standardise on the training trials, ridge classifier (balanced class weights; alpha by
 leave-one-subject-out over the training subjects). Score: balanced accuracy on the held-out subject, mean over subjects. Same inputs
 -> same number: differences between backbones are not head-training noise. A relative ruler between backbones, not a Compass
@@ -20,10 +20,10 @@ from sklearn.linear_model import RidgeClassifier
 from sklearn.model_selection import GridSearchCV, LeaveOneGroupOut
 from sklearn.metrics import balanced_accuracy_score
 
-from model.Qtome.finetune.feature_cache import CachedAtomDataset, get_atom_cache
+from model.Qlet.finetune.feature_cache import CachedAtomDataset, get_atom_cache
 from IO.splits import load_sessions, make_runs
 from panels.shared.ridge import ALPHAS, DATASETS, _features, _pca_axes
-from model.Qtome.finetune.protocol import apply_protocol
+from model.Qlet.finetune.protocol import apply_protocol
 
 
 PRESETS = {'standard', 'quick'}
@@ -31,8 +31,8 @@ PRESETS = {'standard', 'quick'}
 
 def ridge_probe(config, checkpoint, out_path, n_pca=8, datasets=DATASETS, pool=1, feature='z'):
     """pool > 1: average `pool` adjacent z tokens first (train_finetune.pool_tokens). feature: 'z' or
-    'atom_hidden' (the probe reads every Q-atom's MLP hidden instead of z; same PCA pipeline)."""
-    from model.Qtome.finetune.sources import pool_tokens
+    'atom_hidden' (the probe reads every qlet's MLP hidden instead of z; same PCA pipeline)."""
+    from model.Qlet.finetune.sources import pool_tokens
     res = {}
     for ds, proto in datasets:
         ds_args = {'dataset_path': f'datas/finetune/{ds}', 'subject_to_use': ['all'], 'channels_to_use': ['all']}
@@ -40,7 +40,7 @@ def ridge_probe(config, checkpoint, out_path, n_pca=8, datasets=DATASETS, pool=1
         cfg['dataset_params']['finetune'] = {ds: ds_args}
         cfg['training_params']['finetune'] = {'pretrained_checkpoint': checkpoint, 'protocol': proto,
                                               'split': {'type': 'loso'}}
-        cfg['model_params'].setdefault('Qtome', {}).setdefault('finetune', {})
+        cfg['model_params'].setdefault('Qlet', {}).setdefault('finetune', {})
         cfg = apply_protocol(cfg)
         sessions = cfg['training_params']['finetune']['split'].get('sessions')
         subs = list(json.load(open(f"{ds_args['dataset_path']}/metadata.json"))['data_structure'])
@@ -85,7 +85,7 @@ def fewshot_ridge(config, checkpoint, out_path, n_pca=8, n_seg=4, datasets=FEWSH
     probe instead of a trained head: RidgeClassifierCV, its shrinkage picked by efficient leave-one-out on the
     subject's calibration trials only. Two compact fixed feature sets per trial: 'z' = z tokens projected on
     n_pca principal axes (fit on the calibration tokens), averaged over n_seg time segments; 'z_power' = log mean
-    square of the same projections per segment (power, what MI carries); 'Q-atom' = log Q-atom
+    square of the same projections per segment (power, what MI carries); 'Qlet' = log qlet
     power (a^2 + b^2) averaged over the same segments. -> {dataset: {feature: {mean, per_subject}}}."""
     from sklearn.linear_model import RidgeClassifierCV
     res = {}
@@ -95,7 +95,7 @@ def fewshot_ridge(config, checkpoint, out_path, n_pca=8, n_seg=4, datasets=FEWSH
         cfg['dataset_params']['finetune'] = {ds: ds_args}
         cfg['training_params']['finetune'] = {'pretrained_checkpoint': checkpoint, 'protocol': proto,
                                               'split': {'type': 'fewshot', 'train_fraction': 0.3}}
-        cfg['model_params'].setdefault('Qtome', {}).setdefault('finetune', {})
+        cfg['model_params'].setdefault('Qlet', {}).setdefault('finetune', {})
         cfg = apply_protocol(cfg)
         split = cfg['training_params']['finetune']['split']
         subs = list(json.load(open(f"{ds_args['dataset_path']}/metadata.json"))['data_structure'])

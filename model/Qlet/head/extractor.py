@@ -1,11 +1,11 @@
-"""Q-atom codes (and optionally z) from the frozen backbone: what the finetune head reads."""
+"""Qlet codes (and optionally z) from the frozen backbone: what the finetune head reads."""
 import torch
 import torch.nn as nn
 
 
 class AtomExtractor(nn.Module):
-    """Everything that needs the frozen backbone: Q-atom code (a, b) per patch, channel and
-    Q-atom, scaled by patch RMS. Output [B, N', C_valid, S, 2] float32, padded channels dropped."""
+    """Everything that needs the frozen backbone: qlet code (a, b) per patch, channel and
+    qlet, scaled by patch RMS. Output [B, N', C_valid, S, 2] float32, padded channels dropped."""
     def __init__(self, backbone, channel_idx):
         super().__init__()
         self.backbone = backbone
@@ -13,11 +13,11 @@ class AtomExtractor(nn.Module):
 
     @torch.no_grad()
     def forward(self, x, coords, time_idx=None, valid_channels=None, impute_missing=False, return_z=False):
-        """return_z: False, True / 'output' (the encoder output the Q-atoms read) or 'bottleneck' (the
+        """return_z: False, True / 'output' (the encoder output the qlets read) or 'bottleneck' (the
         deepest stage, linearly upsampled back to the patch grid)."""
         """impute_missing (experiment, 2026-09-25): feed every missing channel as the pretrain
         mask_token at its own coordinate (coords must hold real positions for them), so spatial
-        attention fills it in, and scale its Q-atom code by the mean patch RMS of its 3 nearest
+        attention fills it in, and scale its qlet code by the mean patch RMS of its 3 nearest
         real channels (its own RMS is 0). Every channel then counts as valid."""
         B, C, N, L = x.shape
         vmask = (valid_channels if valid_channels is not None

@@ -1,4 +1,4 @@
-"""atom_labels: what is each Q-atom, in the language of EEG? Per atom: peak frequency and classical band, scalp topography, power spectrum
+"""atom_labels: what is each qlet, in the language of EEG? Per atom: peak frequency and classical band, scalp topography, power spectrum
 and ICLabel class probabilities (brain, muscle, eye, heart, line noise, channel noise, other) -> analysis/pretrain/atom_labels.png.
 
 An atom is read as an ICA-style component x_c(t) = w_c s(t) on held-out dense-cap windows (>= --label-min-channels real channels, the
@@ -13,7 +13,7 @@ import numpy as np
 import torch
 
 from IO.channels import get_standard_coords, resolve_canonical_channels
-from model.Qtome.patches import overlap_add_patches
+from model.Qlet.patches import overlap_add_patches
 from panels.core.numbers import load_npz, save_npz
 from panels.shared.atom_dictionary import BANDS, FS, atom_templates, band_of, peak_freq
 from panels.shared.atom_readout import _signed_topo
@@ -145,7 +145,7 @@ def draw(ctx):
     axes[-1, 1].set_xlabel('Hz', fontsize=7)
     handles = [plt.Rectangle((0, 0), 1, 1, color=c) for c in colors]
     fig.legend(handles, CLASSES, ncol=7, loc='lower center', fontsize=7, frameon=False)
-    fig.suptitle(f'Q-atoms as EEG components (atoms ordered by peak frequency; {int(z["n_windows"])} held-out dense-cap windows)', fontweight='bold')
+    fig.suptitle(f'Qlets as EEG components (atoms ordered by peak frequency; {int(z["n_windows"])} held-out dense-cap windows)', fontweight='bold')
     fig.tight_layout(rect=(0, 0.02, 0.93, 0.98))
     out = ctx.figure('atom_labels.png')
     fig.savefig(out, dpi=130); plt.close(fig)

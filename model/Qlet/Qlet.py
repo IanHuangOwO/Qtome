@@ -3,13 +3,13 @@ from types import SimpleNamespace
 import torch
 import torch.nn as nn
 
-from model.Qtome.atom_bank import AtomBank
-from model.Qtome.embeddings import RelativeSpatialBias, SpatialTemporalEmbeddings
-from model.Qtome.encoder import TSAEncoder
-from model.Qtome.head.config import make_head_checkpoint, needs_atom, needs_raw, needs_latent
-from model.Qtome.head.extractor import AtomExtractor
-from model.Qtome.head.feature_head import FeatureHead
-from model.Qtome.patches import fold_sum
+from model.Qlet.atom_bank import AtomBank
+from model.Qlet.embeddings import RelativeSpatialBias, SpatialTemporalEmbeddings
+from model.Qlet.encoder import TSAEncoder
+from model.Qlet.head.config import make_head_checkpoint, needs_atom, needs_raw, needs_latent
+from model.Qlet.head.extractor import AtomExtractor
+from model.Qlet.head.feature_head import FeatureHead
+from model.Qlet.patches import fold_sum
 
 
 def _ema_update(buf, val, decay=0.99):
@@ -32,9 +32,9 @@ def _restore_phase(module, incompatible_keys):
         module.enter_tokenizer_phase()
 
 
-class QtomePretrain(nn.Module):
+class QletPretrain(nn.Module):
     """
-    Spatiotemporal Q-atom-dictionary EEG tokenizer. Goal is explainable, per-patch embeddings (not a discrete vocabulary):
+    Spatiotemporal qlet-dictionary EEG tokenizer. Goal is explainable, per-patch embeddings (not a discrete vocabulary):
     channel-count invariant (cross-dataset unification still matters) but NOT
     length-invariant (each patch keeps its own embedding, for temporal localization of
     events within a trial).
@@ -42,13 +42,13 @@ class QtomePretrain(nn.Module):
     Pipeline: encoder -> AtomBank (dictionary of fixed per-atom waveform templates, each
     presented at a per-channel, per-atom amplitude/phase read off that atom's own
     bottleneck) -> reconstruction, summed directly in patch space (no separate decoder
-    stage); the dictionary is static (every Q-atom active everywhere).
+    stage); the dictionary is static (every qlet active everywhere).
 
     Trains in two phases of one run (train_pretrain.py, CONTEXT.md:
     Tokenizer stage / Masked stage):
     - enter_tokenizer_phase(): every block runs with temporal mixing only (spatial
       attention and the coordinate embedding off), no masking (bool_masked_pos=None) —
-      encoder + AtomBank train jointly on single-channel features, so the Q-atom dictionary
+      encoder + AtomBank train jointly on single-channel features, so the qlet dictionary
       isn't built from cross-channel-mixed input.
     - enter_masked_phase(freeze_atoms): every block runs, spatial attention + coord
       embedding on, bool_masked_pos set. AtomBank optionally frozen.
@@ -115,7 +115,7 @@ class QtomePretrain(nn.Module):
         own architecture was fixed, because per-channel content already differentiates
         channels enough for that stage's loss without it).
 
-        Was originally meant to let amp_i(z_c) become position-aware even while Q-atoms
+        Was originally meant to let amp_i(z_c) become position-aware even while qlets
         stay single-channel (AtomBank can't otherwise tell "alpha at Oz" from "alpha at
         Fz" when the raw content happens to coincide) — a real idea, just not one the
         Tokenizer stage's own reconstruction objective rewards learning. enable_spatial
@@ -158,7 +158,7 @@ class QtomePretrain(nn.Module):
     def update_ffn_router_metrics(self, ffn_router_entropy, ffn_router_load_std, ffn_gate_entropy):
         """EMA smoothing of the FFN MoE router health — see TSAEncoder.forward (encoder.py) for where these three
         already-averaged-across-blocks values come from. Called from
-        QtomeTrainer.update_diagnostics with out.ffn_router_entropy/out.ffn_router_load_std/
+        QletTrainer.update_diagnostics with out.ffn_router_entropy/out.ffn_router_load_std/
         out.ffn_gate_entropy, same call site as update_head_metrics."""
         _ema_update(self.ema_ffn_router_load_std, ffn_router_load_std)
         _ema_update(self.ema_ffn_router_entropy, ffn_router_entropy)
@@ -176,7 +176,7 @@ class QtomePretrain(nn.Module):
 
     @torch.no_grad()
     def encode_atoms(self, x, coords, time_idx=None, valid_channels=None):
-        """Unmasked Q-atom code for analysis/viz: AtomBank output (recon [G, C, L], amp
+        """Unmasked qlet code for analysis/viz: AtomBank output (recon [G, C, L], amp
         [G, C, n_atoms, 2] with rms, h [G, n_atoms]; G = B*N positions, b*N + n), no ranked contents.
         Same per-channel rms as forward() -- without it amp lacks its raw-amplitude factor."""
         B, C, N, L = x.shape
@@ -191,15 +191,15 @@ class QtomePretrain(nn.Module):
         x: [B, C, N, L], coords: [B, C, 3]
         bool_masked_pos: [B, C, N] bool — None during the Tokenizer stage (no masking);
         pass real masks only in the Masked stage, once temporal/spatial mixing are enabled
-        and the Q-atoms are frozen (see enable_temporal/enable_spatial/freeze_atoms).
+        and the qlets are frozen (see enable_temporal/enable_spatial/freeze_atoms).
         valid_channels: [B, C] bool, True=real (not zero-padded) channel, or None. Passed into
         AtomBank (padded channels stay out of h) and carried through on the returned
         SimpleNamespace so get_loss/_recon_loss can exclude padded channels from the loss — a
         zero-padded channel's "reconstruction" is meaningless signal, not a real target. Padded
         channels still decode/reconstruct like any other.
-        returns SimpleNamespace(recon [B,C,N,L], h [G, n_atoms] Q-atom strengths and amp
+        returns SimpleNamespace(recon [B,C,N,L], h [G, n_atoms] qlet strengths and amp
         [G, C, n_atoms, 2] (G = B*N patch positions, b*N + n; AtomBank.decode re-expands amp),
-        ranked [B, C, N, n_atoms, L] (every Q-atom's content, strongest first per patch: the nested loss), ffn_lb_loss scalar (TSABlock MoEFFN routers, summed across blocks), FFN
+        ranked [B, C, N, n_atoms, L] (every qlet's content, strongest first per patch: the nested loss), ffn_lb_loss scalar (TSABlock MoEFFN routers, summed across blocks), FFN
         router health.
         """
         B, C, N, L = x.shape
@@ -296,19 +296,19 @@ class QtomePretrain(nn.Module):
             out[f'{b}_num'], out[f'{b}_den'] = float(Pe[..., sel].sum()), float(Px[..., sel].sum())
         return out
 
-    # Nested sets (default): the strongest S/8, S/4, S/2 and all S Q-atoms, weighted 1/8, 1/8, 1/4, 1/2 -- half the
-    # weight on the full reconstruction, so the first Q-atoms cannot dominate.
+    # Nested sets (default): the strongest S/8, S/4, S/2 and all S qlets, weighted 1/8, 1/8, 1/4, 1/2 -- half the
+    # weight on the full reconstruction, so the first qlets cannot dominate.
     NESTED_FRACTIONS, NESTED_WEIGHTS = (1 / 8, 1 / 4, 1 / 2, 1), (0.125, 0.125, 0.25, 0.5)
 
     def _recon_loss(self, recon, x, ranked, bool_masked_pos, valid_channels=None,
                     mse_patch_weight=1.0, unmasked_weight=1.0, nested_sizes=None, nested_weights=None):
         """Recon loss: the nested reconstruction loss (docs/adr/0018; adopted 2026-10-17 over 3 seeds,
-        docs/cards/2026-10-17-nested-loss-retest.md) -- per patch, sum_k w_k * |x - (strongest s_k Q-atoms)|^2,
-        Q-atoms ranked per patch by strength (ranked [B, C, N, S, L], AtomBank.forward), nothing detached. The last
-        size is every Q-atom, so that term is the plain patch MSE (nested_sizes [S] + nested_weights [1] is plain MSE,
-        bit-identical). The smaller sets penalise a Q-atom that repeats a stronger one's content: the anti-duplicate
+        docs/cards/2026-10-17-nested-loss-retest.md) -- per patch, sum_k w_k * |x - (strongest s_k qlets)|^2,
+        qlets ranked per patch by strength (ranked [B, C, N, S, L], AtomBank.forward), nothing detached. The last
+        size is every qlet, so that term is the plain patch MSE (nested_sizes [S] + nested_weights [1] is plain MSE,
+        bit-identical). The smaller sets penalise a qlet that repeats a stronger one's content: the anti-duplicate
         job of the MP residual loss it replaced (ADR 0011; MP code removed 2026-10-17). Defaults: NESTED_FRACTIONS /
-        NESTED_WEIGHTS ([3, 6, 12, 24] at 24 Q-atoms).
+        NESTED_WEIGHTS ([3, 6, 12, 24] at 24 qlets).
 
         Position weights: padded channels 0; in the masked phase masked positions 1 and visible
         positions `unmasked_weight` (0 = standard MAE, loss on masked patches only; 1 = every
@@ -337,7 +337,7 @@ class QtomePretrain(nn.Module):
         nested_sizes = list(nested_sizes or [int(K * f) for f in self.NESTED_FRACTIONS])
         nested_weights = list(nested_weights or self.NESTED_WEIGHTS)
         assert nested_sizes == sorted(set(nested_sizes)) and nested_sizes[0] > 0 and nested_sizes[-1] == K, \
-            f"nested_sizes {nested_sizes}: increasing, last = every Q-atom ({K})"
+            f"nested_sizes {nested_sizes}: increasing, last = every qlet ({K})"
         assert len(nested_weights) == len(nested_sizes) and abs(sum(nested_weights) - 1) < 1e-6, \
             f"nested_weights {nested_weights}: one per size, summing to 1"
         sel = torch.as_tensor([k - 1 for k in nested_sizes], device=x.device)
@@ -367,7 +367,7 @@ class QtomePretrain(nn.Module):
         Returns (total, l_masked, l_unmasked).
 
         Reconstruction term is _recon_loss's nested loss (see its docstring for mse_patch_weight /
-        unmasked_weight / nested_*). Dictionary shaping (no near-duplicate Q-atoms) is the nested
+        unmasked_weight / nested_*). Dictionary shaping (no near-duplicate qlets) is the nested
         sets' job; earlier attempts -- activation decorrelation / negentropy, then the MP residual loss
         (ADR 0011) -- were measured and dropped.
 
@@ -426,7 +426,7 @@ class QtomePretrain(nn.Module):
 
 
 class FinetuneModel(nn.Module):
-    """Frozen Qtome backbone + one FeatureHead (model/Qtome/head/). Call signature
+    """Frozen Qlet backbone + one FeatureHead (model/Qlet/head/). Call signature
     matches the old finetune classes so train_finetune.py is unchanged: forward -> (logits, None, None)."""
     def __init__(self, backbone, head_cfg, channel_idx):
         super().__init__()

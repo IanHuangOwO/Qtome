@@ -1,5 +1,5 @@
-"""atom_vs_raw: closed-form loso ridge on log Q-atom power vs on log raw band power, same trials and split -> analysis/atom_vs_raw.json.
-Positive Q-atom - raw: the Q-atom code carries class information a raw spectral filterbank does not."""
+"""atom_vs_raw: closed-form loso ridge on log qlet power vs on log raw band power, same trials and split -> analysis/atom_vs_raw.json.
+Positive qlet - raw: the qlet code carries class information a raw spectral filterbank does not."""
 import copy
 import json
 
@@ -9,10 +9,10 @@ from sklearn.linear_model import RidgeClassifier
 from sklearn.model_selection import GridSearchCV, LeaveOneGroupOut
 from sklearn.metrics import balanced_accuracy_score
 
-from model.Qtome.finetune.feature_cache import CachedAtomDataset, get_atom_cache
+from model.Qlet.finetune.feature_cache import CachedAtomDataset, get_atom_cache
 from IO.splits import load_sessions
 from panels.shared.ridge import ALPHAS, DATASETS
-from model.Qtome.finetune.protocol import apply_protocol
+from model.Qlet.finetune.protocol import apply_protocol
 
 
 PRESETS = {'standard', 'quick'}
@@ -39,10 +39,10 @@ def _loso_ridge(X, y, subj, keep, subs):
 
 def atom_vs_raw(config, checkpoint, out_path, datasets=DATASETS):
     """Per dataset, the same closed-form loso ridge on two fixed feature sets of the same trials:
-    log Q-atom power (a^2 + b^2 per channel x Q-atom, mean over N_SEG time segments) and log raw band
-    power (per channel x band, same segments). Q-atom - raw > 0: the Q-atom code carries class
+    log qlet power (a^2 + b^2 per channel x qlet, mean over N_SEG time segments) and log raw band
+    power (per channel x band, same segments). Qlet - raw > 0: the qlet code carries class
     information a raw spectral filterbank does not."""
-    from model.Qtome.finetune.sources import RawSource
+    from model.Qlet.finetune.sources import RawSource
     res = {}
     for ds, proto in datasets:
         ds_args = {'dataset_path': f'datas/finetune/{ds}', 'subject_to_use': ['all'], 'channels_to_use': ['all']}
@@ -50,7 +50,7 @@ def atom_vs_raw(config, checkpoint, out_path, datasets=DATASETS):
         cfg['dataset_params']['finetune'] = {ds: ds_args}
         cfg['training_params']['finetune'] = {'pretrained_checkpoint': checkpoint, 'protocol': proto,
                                               'split': {'type': 'loso'}}
-        cfg['model_params'].setdefault('Qtome', {}).setdefault('finetune', {})
+        cfg['model_params'].setdefault('Qlet', {}).setdefault('finetune', {})
         cfg = apply_protocol(cfg)
         sessions = cfg['training_params']['finetune']['split'].get('sessions')
         subs = list(json.load(open(f"{ds_args['dataset_path']}/metadata.json"))['data_structure'])

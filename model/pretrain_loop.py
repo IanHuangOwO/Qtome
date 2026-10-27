@@ -29,7 +29,7 @@ def unpack_batch(batch, device):
 
 def _ratio_terms(metrics):
     """'<name>_num' / '<name>_den' pairs (epoch means of per-batch sums) -> '<name>' = their ratio, the ratio over
-    the whole epoch rather than a mean of per-batch ratios (Qtome's per-band recon error)."""
+    the whole epoch rather than a mean of per-batch ratios (Qlet's per-band recon error)."""
     for k in [k for k in metrics if k.endswith('_num') and k[:-4] + '_den' in metrics]:
         num, den = metrics.pop(k), metrics.pop(k[:-4] + '_den')
         metrics[k[:-4]] = num / den if den > 0 else float('nan')

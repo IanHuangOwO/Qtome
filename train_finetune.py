@@ -1,6 +1,6 @@
-"""Finetune a FeatureHead on a frozen Qtome backbone.
+"""Finetune a FeatureHead on a frozen Qlet backbone.
 
-The backbone never trains: Q-atom features come from the amplitude cache (model/Qtome/finetune/feature_cache.py), raw
+The backbone never trains: qlet features come from the amplitude cache (model/Qlet/finetune/feature_cache.py), raw
 features from the compiled dataset; only the head is optimised (fp32, batches indexed from RAM).
 training_params.finetune.split picks a split type (SPLITS: loso, subject_kfold, eval_subjects,
 kfold, blocked_kfold, fewshot). Every run writes artifacts/group_eval.json: per-subject tail (mean of the last 10
@@ -12,9 +12,9 @@ import torch.optim as optim
 
 from IO.config import apply_overrides, load_config, model_output_root, setup_logger
 from IO.splits import SPLITS, all_subjects, load_sessions, make_runs, resolve_subjects
-from model.Qtome.finetune.fit import build_head_factory, run_closed_form, run_one
-from model.Qtome.finetune.protocol import apply_protocol
-from model.Qtome.finetune.sources import make_source
+from model.Qlet.finetune.fit import build_head_factory, run_closed_form, run_one
+from model.Qlet.finetune.protocol import apply_protocol
+from model.Qlet.finetune.sources import make_source
 
 
 
@@ -34,8 +34,8 @@ def env_atom():
 
 
 def main():
-    ap = argparse.ArgumentParser(description='Finetune a FeatureHead on a frozen Qtome backbone')
-    ap.add_argument('--config', default='configs/Qtome/finetune.template.json')
+    ap = argparse.ArgumentParser(description='Finetune a FeatureHead on a frozen Qlet backbone')
+    ap.add_argument('--config', default='configs/Qlet/finetune.template.json')
     ap.add_argument('--set', action='append', default=[], metavar='KEY=VALUE',
                     help='override a config value, dotted path, JSON value '
                          '(repeatable), e.g. --set training_params.finetune.learning_rate=0.003')
@@ -47,7 +47,7 @@ def main():
         torch.set_num_threads(int(tp['num_threads']))
     if 'split' not in tp:
         raise ValueError(f"training_params.finetune.split is required (type: one of {sorted(SPLITS)})")
-    # output_path: where this run writes under output/Qtome/ -- separate from model_name (a
+    # output_path: where this run writes under output/Qlet/ -- separate from model_name (a
     # clean identity string), same split as train_pretrain.py's. Falls back to
     # model_name for configs that don't set it.
     base = os.path.join(model_output_root(config, 'finetune'), tp.get('output_path', tp.get('model_name', 'default_finetune_run')))

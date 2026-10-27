@@ -10,9 +10,9 @@ the ablations the paper needs. This file is the working list.
 
 | | state |
 |---|---|
-| `qtome_small_v4flat_nested_s1` | done (backbone_eval, 12 loso cells) |
-| `qtome_small_v4flat_nested_s2`, `_s3` | running since 2026-10-19 15:41 (`output/queue/small_seeds.plan`, two at a time) |
-| `qtome_small_v4flat_tr2tb10_s1-3` | matching-pursuit references (archive them once the nested seeds are in) |
+| `qlet_small_v4flat_nested_s1` | done (backbone_eval, 12 loso cells) |
+| `qlet_small_v4flat_nested_s2`, `_s3` | running since 2026-10-19 15:41 (`output/queue/small_seeds.plan`, two at a time) |
+| `qlet_small_v4flat_tr2tb10_s1-3` | matching-pursuit references (archive them once the nested seeds are in) |
 
 GPU. One 3-seed ablation on this machine is therefore about 8-11 h wall (two slots). The 5090 server is not used (likely
 CPU-bound, and the data transfer is slow). **Unit below: one small pretrain run = 5.4 h on this machine.**
@@ -46,8 +46,8 @@ Cost in small pretrain runs (SPR). "Config" = no code; "code" = a short option i
 | 1 | Mask mixture against random patches alone (LaBraM / CBraMod style) | method todo, Masking | 3 | config |
 | 2 | Spatial terms off in training (`spatial_embedding` false) | method todo, Spatial embedding | 3 | config |
 | 3 | Time position off in training | method todo, FoPE | 3 | code (FoPE is the only option now) |
-| 4 | 16 and 32 Q-atoms against 24 | appendix todo | 6 | config |
-| 5 | Patch 50 against 100 (stride half) | experiments todo | 3 | config; 2 x 24 = 48 is near 50, so the Q-atom count may need 16 |
+| 4 | 16 and 32 qlets against 24 | appendix todo | 6 | config |
+| 5 | Patch 50 against 100 (stride half) | experiments todo | 3 | config; 2 x 24 = 48 is near 50, so the qlet count may need 16 |
 | 6 | Fixed Hann comb: seed 3 and the decoding cells | reviewer question | 1 | patch in `docs/cards/2026-10-18-fixed-filter-bank-option.patch`; tiny had 2 seeds |
 | 7 | Dense feed-forward against the mixture | adopted without test, tiny result exists | 6 (or 3) | config (dense branch exists) |
 | 8 | One training phase against two | untested by choice | 3 | config (`tokenizer_epochs` 0, check) |
@@ -66,7 +66,7 @@ All twelve is about 38 SPR, about 4 days here.
 the task filter rebuilt on the small nested backbones.
 
 **Downstream ablations:** combined head against its parents (power only, signed only, latent), closed-form against SGD,
-raw-EEG head against the Q-atom head (raw_head exists), per dataset, with the Compass suite.
+raw-EEG head against the qlet head (raw_head exists), per dataset, with the Compass suite.
 
 ## 4. Order
 

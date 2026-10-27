@@ -6580,7 +6580,7 @@
     "window_fraction_seed": 0
   },
   "model_params": {
-    "Qtome": {
+    "Qlet": {
       "pretrain": {
         "patch_len": 100,
         "embed_dim": 100,
@@ -6622,8 +6622,8 @@
   },
   "training_params": {
     "pretrain": {
-      "model_type": "Qtome",
-      "model_name": "qtome_vXX_small",
+      "model_type": "Qlet",
+      "model_name": "qlet_vXX_small",
       "tokenizer_epochs": 0,
       "checkpoint_every": 10,
       "freeze_atoms": false,

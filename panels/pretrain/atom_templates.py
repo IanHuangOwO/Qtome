@@ -1,4 +1,4 @@
-"""atom_templates: every Q-atom's template D and quadrature partner H -> analysis/pretrain/atom_templates.png."""
+"""atom_templates: every qlet's template D and quadrature partner H -> analysis/pretrain/atom_templates.png."""
 import matplotlib.pyplot as plt
 import numpy as np
 
@@ -9,7 +9,7 @@ PRESETS = {'standard', 'quick'}
 
 
 def plot_atom_templates(out_path, D, H, ids):
-    """Grid of Q-atom templates: D solid, its quadrature partner H dashed."""
+    """Grid of qlet templates: D solid, its quadrature partner H dashed."""
     ncols = 8
     nrows = (len(ids) + ncols - 1) // ncols
     fig, axes = plt.subplots(nrows, ncols, figsize=(2.2 * ncols, 1.6 * nrows), squeeze=False)

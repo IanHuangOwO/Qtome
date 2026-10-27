@@ -1,16 +1,16 @@
-"""Where a finetune head reads its trials from: the Q-atom code cache, the raw compiled data, or both, as one source with get(idx)."""
+"""Where a finetune head reads its trials from: the qlet code cache, the raw compiled data, or both, as one source with get(idx)."""
 import copy
 
 import torch
 
 from IO.dataset import build_dataset_from_config
 from IO.preprocessing import num_patches, slice_patches
-from model.Qtome.finetune.feature_cache import CachedAtomDataset, get_atom_cache
-from model.Qtome.head.config import feature_names, needs_atom, needs_latent, needs_raw
+from model.Qlet.finetune.feature_cache import CachedAtomDataset, get_atom_cache
+from model.Qlet.head.config import feature_names, needs_atom, needs_latent, needs_raw
 
 
 class AtomSource:
-    """Cached Q-atom amplitudes of the pool (feature_cache.py), moved to the device once (a
+    """Cached qlet amplitudes of the pool (feature_cache.py), moved to the device once (a
     BNCI2014008 64-channel impute cache is ~1 GB fp16): the head is tiny, so per-batch CPU
     indexing and host-to-device copies were most of a step's time."""
     kind = 'atom'
@@ -84,9 +84,9 @@ class CombinedSource:
 
 
 def make_source(config, ds_name, pool, device):
-    ft_cfg = dict(config['model_params']['Qtome']['finetune'])
+    ft_cfg = dict(config['model_params']['Qlet']['finetune'])
     want_atom, want_raw, latent = needs_atom(ft_cfg), needs_raw(ft_cfg), needs_latent(ft_cfg)
-    if latent:   # latent_source: which z the latent_* entries read ('output' = what the Q-atoms read)
+    if latent:   # latent_source: which z the latent_* entries read ('output' = what the qlets read)
         latent = ft_cfg.get('latent_source', 'output')
         if latent not in ('output', 'bottleneck'):
             raise ValueError(f"latent_source must be output|bottleneck, got {latent!r}")

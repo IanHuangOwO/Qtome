@@ -8,14 +8,14 @@ import torch
 
 from IO.dataset import build_dataset_from_config
 from IO.channels import get_standard_coords
-from model.Qtome.head.feature_head import FeatureHead
+from model.Qlet.head.feature_head import FeatureHead
 
 MONT = json.load(open('configs/montages.json'))['10-10']['channels']
 CHANNELS = [m['label'] for m in MONT]                                     # the 64 slots, in slot order
 FS = 200                                                                  # sample rate
 
 
-def cell_dir(bb, ds):                                                     # bb = output/Qtome/<backbone>
+def cell_dir(bb, ds):                                                     # bb = output/Qlet/<backbone>
     return f'{bb}/finetune/allatom/{ds}_impute64_loso_seed1'
 
 

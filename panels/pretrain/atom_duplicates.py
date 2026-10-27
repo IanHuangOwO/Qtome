@@ -1,5 +1,5 @@
-"""atom_duplicates: are Q-atoms copies of each other up to phase? Prints pairs above --dup-threshold (default 0.9) and each
-Q-atom's nearest neighbour -> analysis/pretrain/atom_duplicates.png."""
+"""atom_duplicates: are qlets copies of each other up to phase? Prints pairs above --dup-threshold (default 0.9) and each
+Qlet's nearest neighbour -> analysis/pretrain/atom_duplicates.png."""
 import matplotlib.pyplot as plt
 import numpy as np
 

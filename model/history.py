@@ -7,7 +7,7 @@ import os
 
 class History:
     """Per-epoch training / validation metrics, kept by the trainers and stored as history.json (the numbers; the
-    dashboard is drawn from them afterwards by the training_dashboard panel -- a QtomeDashboard built with history=)."""
+    dashboard is drawn from them afterwards by the training_dashboard panel -- a QletDashboard built with history=)."""
 
     def __init__(self):
         self.history = {'train': {}, 'val': {}}

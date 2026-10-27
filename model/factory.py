@@ -1,12 +1,12 @@
 import torch
-from model.Qtome.plugin import PLUGIN as QTOME_PLUGIN
+from model.Qlet.plugin import PLUGIN as QLET_PLUGIN
 from IO.channels import resolve_canonical_channels
 
 # Adding a model = implement model/<Name>/plugin.py (Trainer/Checker/Plotter + build_model,
 # bundled into a BasePlugin) and register the PLUGIN instance here. No other shared file
 # needs editing.
 MODEL_REGISTRY = {
-    'Qtome': QTOME_PLUGIN,
+    'Qlet': QLET_PLUGIN,
 }
 
 
@@ -14,7 +14,7 @@ def checkpoint_build_config(config, mode='pretrain'):
     """Everything that decides the backbone's architecture, saved inside every pretrain checkpoint:
     a trained backbone is always rebuilt from its own checkpoint, never from a config file that
     may have been edited since it was trained."""
-    model_type = config['training_params'][mode].get('model_type', 'Qtome')
+    model_type = config['training_params'][mode].get('model_type', 'Qlet')
     if model_type not in MODEL_REGISTRY:
         raise ValueError(f"Unknown model type: {model_type}")
     canonical_channels = config.get('preprocess_params', {}).get('canonical_channels')
@@ -32,11 +32,13 @@ def build_pretrain_from_config(config, mode='pretrain'):
 
 def build_from_checkpoint(ckpt):
     """The backbone exactly as trained: built from ckpt['build_config'], weights loaded (the load
-    restores its phase flags, Qtome _restore_phase)."""
+    restores its phase flags, Qlet _restore_phase)."""
     if 'build_config' not in ckpt:
         raise ValueError("checkpoint has no build_config: trained before the 2026-09-26 encoder redesign, "
                          "the current code cannot rebuild it")
-    bc = ckpt['build_config']
+    bc = dict(ckpt['build_config'])
+    if bc['model_type'] == 'Qtome':                                    # checkpoints trained before the 2026-10-27 rename
+        bc['model_type'] = 'Qlet'
     model = MODEL_REGISTRY[bc['model_type']].build(bc['model_params'], bc['num_channels'])
     model.load_state_dict(ckpt['model_state_dict'])
     return model
@@ -67,10 +69,15 @@ def load_backbone(config, checkpoint_path=None, mode='finetune'):
     return build_from_checkpoint(torch.load(path, map_location='cpu', weights_only=False))
 
 
+def legacy_path(path):
+    """A path stored in a checkpoint before the 2026-10-27 rename (output/Qtome/qtome_...) -> its current place."""
+    return path.replace('output/Qtome/qtome_', 'output/Qlet/qlet_') if isinstance(path, str) else path
+
+
 def load_finetune_checkpoint(config, path, device):
     """Rebuild a finetune model from a head checkpoint: backbone from ckpt['backbone_checkpoint'],
     head from ckpt['head_config'] (no shape inference)."""
-    from model.Qtome.Qtome import FinetuneModel
+    from model.Qlet.Qlet import FinetuneModel
     ckpt = torch.load(path, map_location='cpu', weights_only=False)
-    backbone = load_backbone(config, ckpt['backbone_checkpoint'])
+    backbone = load_backbone(config, legacy_path(ckpt['backbone_checkpoint']))
     return FinetuneModel.from_checkpoint(backbone, ckpt).to(device).eval()

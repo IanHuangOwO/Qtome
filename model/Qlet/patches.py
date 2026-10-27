@@ -17,8 +17,8 @@ def overlap_add_patches(patches, stride):
     duplicate copies are byte-identical — the same real samples read twice), the two
     patches' independently-computed views of that same shared moment generally
     disagree, showing a real discontinuity at every patch boundary. See
-    model/Qtome/Qtome_codebook_checker.py's event dynamics for the diagnostic-display use of
-    this, and QtomePretrain._recon_loss for the differentiable training-loss use.
+    model/Qlet/Qlet_codebook_checker.py's event dynamics for the diagnostic-display use of
+    this, and QletPretrain._recon_loss for the differentiable training-loss use.
 
     Linear-crossfade overlap-add instead: each patch gets a trapezoidal window — ramps
     0->1 over the incoming overlap it shares with the PREVIOUS patch, flat 1 over its

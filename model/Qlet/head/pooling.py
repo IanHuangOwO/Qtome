@@ -1,4 +1,4 @@
-"""Finetune head, spatial and time pooling. Shapes: a, b are the spatially mixed code amplitudes [B, N', K, S] (B trials, N' patches, K spatial filters, S Q-atoms); power = a^2 + b^2. Parameter names (p, q) and init match the old QtomeFeatureHead so saved checkpoints load unchanged."""
+"""Finetune head, spatial and time pooling. Shapes: a, b are the spatially mixed code amplitudes [B, N', K, S] (B trials, N' patches, K spatial filters, S qlets); power = a^2 + b^2. Parameter names (p, q) and init match the old QletFeatureHead so saved checkpoints load unchanged."""
 import math
 
 import torch
@@ -14,7 +14,7 @@ def spatial_mix(spatial, t, dim):
 
 
 class PerAtomSpatial(nn.Module):
-    """One signed spatial filter bank per Q-atom (filter-bank-CSP style): weight [S, K, C], so Q-atom s's code is mixed
+    """One signed spatial filter bank per qlet (filter-bank-CSP style): weight [S, K, C], so qlet s's code is mixed
     by its own K filters. [B, N', C, S] -> [B, N', K, S], the same shape the shared nn.Linear(C, K) gives.
     Init as nn.Linear's (uniform, bound 1/sqrt(C))."""
     def __init__(self, num_channels, k, num_atoms):

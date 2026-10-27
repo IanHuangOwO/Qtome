@@ -1,5 +1,5 @@
 """Finetune head configuration: defaults, validation (resolve_head_config), the head checkpoint, and the entry widths."""
-from model.Qtome.head.entries import ENTRY_TYPES, FEATURES_ALL
+from model.Qlet.head.entries import ENTRY_TYPES, FEATURES_ALL
 
 
 # Per-entry keys: set at the top level as the default for every entry, or inside one entry.
@@ -77,7 +77,7 @@ def _entry_cfg(cfg, name):
 
 
 def needs_atom(cfg):
-    """Whether any entry in cfg['features'] needs the frozen backbone (Q-atom codes, or z)."""
+    """Whether any entry in cfg['features'] needs the frozen backbone (Qlet codes, or z)."""
     return any(ENTRY_TYPES[f['type']].source in ('atom', 'latent') for f in cfg.get('features', _HEAD_DEFAULTS['features']))
 
 
@@ -87,7 +87,7 @@ def needs_raw(cfg):
 
 
 def needs_latent(cfg):
-    """Whether any entry in cfg['features'] reads the encoder output z (cached with the Q-atoms)."""
+    """Whether any entry in cfg['features'] reads the encoder output z (cached with the qlets)."""
     return any(ENTRY_TYPES[f['type']].source == 'latent' for f in cfg.get('features', _HEAD_DEFAULTS['features']))
 
 

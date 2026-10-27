@@ -3,7 +3,7 @@
 Guidance for Claude Code in this repository. Canonical terms: `CONTEXT.md`. Design history: `docs/adr/` (decisions),
 `docs/cards/` (pre-registered experiments), `docs/reports/` (results) -- kept locally, not tracked in git.
 
-**Name:** the model is called **Qlet** in prose since 2026-10-27 (partial rename; it was Qtome). Code, paths (`model/Qtome/`, `configs/Qtome/`, `output/Qtome/`), `model_params.Qtome`, `QtomePretrain` and run names (`qtome_*`) stay Qtome until the full rename, which waits for the running jobs. The phoneme-like framing is dropped (qlets act as a filterbank).
+**Name:** the model is **Qlet** since 2026-10-27 (it was Qtome, MeSAE before 2026-10-06); its unit is the **qlet** (it was Q-atom; `atom` in code identifiers). Code, folders (`model/Qlet/`, `configs/Qlet/`, `output/Qlet/`), `model_params.Qlet` and run names (`qlet_*`) were renamed the same day. Checkpoints and saved configs from before still carry `model_type` `Qtome` / `model_params.Qtome`: `IO/config.py` and `model/factory.py` read both. The phoneme-like framing is dropped (qlets act as a filterbank). The conda env, the repo folder and the GitHub repo keep the name `qtome`.
 
 ## Environment
 
@@ -29,7 +29,7 @@ python train_pretrain.py --config configs/runs/<backbone>/pretrain.json
 python train_finetune.py --config configs/runs/<backbone>/finetune/<head>/<cell>.json
 
 # From-scratch baseline (model/EEGNet/, settings configs/EEGNet/settings.json, Compass-checked) on one cell, same
-# splits and group_eval.json as a Qtome cell -> output/EEGNet/finetune/compass/<dataset>_<mode>_seed<k>/
+# splits and group_eval.json as a Qlet cell -> output/EEGNet/finetune/compass/<dataset>_<mode>_seed<k>/
 python train_baseline.py --model EEGNet --dataset BNCI2014004 --protocol mi_fewshot
 
 # Any config value can be overridden (dotted path, JSON value, repeatable; artifacts/config.json records it)
@@ -37,12 +37,12 @@ python train_finetune.py --config <cfg> --set training_params.finetune.learning_
 
 # Experiments: a sweep file (base config + cases x grid, optional "backbones") -> queue plan; run_queue runs it
 # resumably (state in output/queue/<plan>/: .done/.failed/.log per job; plan lines 'job <name> :: <cmd>' / 'wait')
-python -m tools.misc.sweep configs/Qtome/sweeps/<sweep>.json > output/queue/<plan>.plan
+python -m tools.misc.sweep configs/Qlet/sweeps/<sweep>.json > output/queue/<plan>.plan
 python -m tools.misc.run_queue output/queue/<plan>.plan --max-parallel 2 --threads 8
 
 # Analysis: one file per analysis under panels/<stage>/ (compute the numbers, then draw the figures from them; failures don't stop the
 # other panels; presets are tagged in each panel's PRESETS). Pretrain = one backbone -> numbers in
-# output/Qtome/<backbone>/pretrain/analysis/, figures in output/Qtome/<backbone>/analysis/pretrain/ (standard: backbone_eval,
+# output/Qlet/<backbone>/pretrain/analysis/, figures in output/Qlet/<backbone>/analysis/pretrain/ (standard: backbone_eval,
 # attention_range, atom_usage, ridge_probe, atom_vs_raw, atom_templates, atom_duplicates, atom_labels, snapshot,
 # training_dashboard, task_filter_artifacts (skipped without the three loso impute64 cells; TUAR eye / muscle / electrode / line-noise test of the multi-task filter); quick: attention_range, atom_usage, ridge_probe, atom_vs_raw, atom_templates, atom_duplicates; on request: atom_distribution, codebook (each loads every pretrain dataset: ~20-30 min),
 # coord_robustness, long_context, profile, other task_filter_*; finetune: atom_maps,
@@ -53,8 +53,8 @@ python analyze.py list                                                  # every 
 python analyze.py check                                                 # every panel imports, flags consistent (no data; run after editing a panel)
 python analyze.py pretrain --run <backbone> [--preset quick] [--panel <name> ...] [--redraw]
 python analyze.py pretrain --panel profile [--train]                    # parameter counts + timing, no checkpoint
-# Group = several backbones compared in one folder -> output/Qtome/<common name of the backbones>_analysis/ (--out overrides). A group name is <recipe>_s<seed> (s1, small_s2) or a bare s1;
-# the recipe is the name without the seed, so one run can hold a recipe's seeds (qtome_tiny_v4flat_onephase_analysis) or several recipes (mean +- SE over each recipe's seeds).
+# Group = several backbones compared in one folder -> output/Qlet/<common name of the backbones>_analysis/ (--out overrides). A group name is <recipe>_s<seed> (s1, small_s2) or a bare s1;
+# the recipe is the name without the seed, so one run can hold a recipe's seeds (qlet_tiny_v4flat_onephase_analysis) or several recipes (mean +- SE over each recipe's seeds).
 # The stage was called `finetune` until 2026-10-27 (that name still works). Standard panels: summary, atom_seed_match (all seed pairs; skipped with one group), and from the numbers the pretrain panels saved under each backbone: backbone_eval (masked MSE per mask), atom_labels
 # (ICLabel classes per seed and their agreement across seeds), noise_removal (TUAR / TUEV artifacts and brain kept), noise_removal_synthetic (artificial noise at TUAR strength), noise_classify (accuracy after
 # removal); on request: report, gradient_correlation, subspace_affinity, pretrain_alignment. The noise panels need the pretrain panels backbone_eval, atom_labels, task_filter_artifacts (--art-dataset TUAR and TUEV), task_filter_noise_removal_synthetic and task_filter_atom_classify run on every
@@ -62,13 +62,13 @@ python analyze.py pretrain --panel profile [--train]                    # parame
 python analyze.py group --group base=<backbone> --group X=<backbone> --ref base [--head frozen_learned] [--panel <name> ...]
 # Cross-task gradient panels (on request, per backbone; EEG-FM-Bench Figs. 3, 4, 8): backbone gradients of each finetune cell's trained head, shared probe cached as gradient_probe_<group>.npz
 python analyze.py group --group base=<backbone> --head <head> --panel gradient_correlation --panel subspace_affinity --panel pretrain_alignment [--cells <cell> ...]
-python -m panels.group.summary 'output/Qtome/<backbone>/finetune/<head>/*' [--ref <backbone>:<head>] [--rank N]   # standalone table
+python -m panels.group.summary 'output/Qlet/<backbone>/finetune/<head>/*' [--ref <backbone>:<head>] [--rank N]   # standalone table
 
 # Task filter: a reconstruction keeping only what classification heads use (panels/shared/task_filter/fit.py). Panels of
 # analyze.py pretrain, run on request (not in a preset). --filter-source 'multi' (multi-task filter: MI + P300 + SSVEP
 # heads) or one dataset (single-task filter); needs loso cells <ds>_impute64_loso_seed1 (impute_missing_channels=true).
-# Numbers: output/Qtome/<backbone>/pretrain/analysis/filter/<source>/ (filter.pt, eval_*) and .../compare/; figures
-# (filter_analysis_*, filter_<ds>_*, compare_*.png): output/Qtome/<backbone>/analysis/filter/<source>/ and .../compare/
+# Numbers: output/Qlet/<backbone>/pretrain/analysis/filter/<source>/ (filter.pt, eval_*) and .../compare/; figures
+# (filter_analysis_*, filter_<ds>_*, compare_*.png): output/Qlet/<backbone>/analysis/filter/<source>/ and .../compare/
 python analyze.py pretrain --run <backbone> --panel task_filter_build               # fit and save the filter (again)
 python analyze.py pretrain --run <backbone> --panel task_filter_filter [--share 0.1]   # the filter alone: importance maps, power kept of white input
 python analyze.py pretrain --run <backbone> --panel task_filter_eval [--filter-test mi p300 noise] [--target <ds> ...]
@@ -96,7 +96,7 @@ chained behind it; a finished queue went unreported for 40 min.
 ## Configs
 
 Configs are grouped by owner: shared ones at the top of `configs/`, model-specific ones in `configs/<Model>/`.
-`configs/Qtome/pretrain.template.json` / `configs/Qtome/finetune.template.json` are starting points, never
+`configs/Qlet/pretrain.template.json` / `configs/Qlet/finetune.template.json` are starting points, never
 run directly: copy to `configs/runs/<backbone>/pretrain.json` and `configs/runs/<backbone>/finetune/<head>/<cell>.json`
 (a run config is one complete JSON file: copy a template, edit it).
 `configs/runs/` is gitignored; every run's effective config is saved in its `artifacts/config.json`.
@@ -106,20 +106,20 @@ sqrt(subjects) share, cohort hours ~ unique subjects^0.75, equal time per subjec
 setting, `preprocess_params.window_fraction`: tiny 0.05 / small 0.2 / medium 0.5 / large 1.0 (the template's value)
 of every subject's windows, nested at one `window_fraction_seed`. Set it in the run config or with `--set`.
 Shared: `configs/compile.json` (compile params + dataset list), `configs/montages.json` (canonical and
-sub-montages), `configs/finetune_protocols.json` (evaluation splits per protocol, every model). Qtome:
-`configs/Qtome/` (templates, `protocol_heads.json` = its head and optimiser per protocol, `sweeps/`). EEGNet:
+sub-montages), `configs/finetune_protocols.json` (evaluation splits per protocol, every model). Qlet:
+`configs/Qlet/` (templates, `protocol_heads.json` = its head and optimiser per protocol, `sweeps/`). EEGNet:
 `configs/EEGNet/settings.json`. See `configs/README.md`.
 
 Key fields (templates show defaults):
-- `model_params.Qtome.pretrain`: `patch_len`, `embed_dim`, `enc_depth`, (the encoder is `enc_depth` blocks at full patch
+- `model_params.Qlet.pretrain`: `patch_len`, `embed_dim`, `enc_depth`, (the encoder is `enc_depth` blocks at full patch
   resolution; pooling of the patch axis, its upsampling and the gated skips -- `blocks_per_stage` -- were removed
   2026-10-13: the user adopted the flat encoder on one seed, masked MSE -4.3%, docs/cards/2026-10-12-no-pooling.md; the
-  pooled backbones, up to `qtome_tiny_v4tr2`, can no longer be rebuilt, their results stay in their output dirs),
+  pooled backbones, up to `qlet_tiny_v4tr2`, can no longer be rebuilt, their results stay in their output dirs),
   (the skip drop-path `skip_drop` was removed 2026-10-12: without it masked MSE fell 12% and no downstream cell lost
   over 3 seeds, docs/cards/2026-10-11-skip-drop.md; a `skip_drop` key in an old build_config is ignored),
   (time position: FoPE on every block's temporal attention, the only option since 2026-10-07 -- it replaced the learned
   absolute time table and the `temporal_bias` lag bias; checkpoints from before, v2 / v3, can no longer be rebuilt,
-  their results stay in their output dirs; `time_idx` is still passed but unused by Qtome; block order is sequential,
+  their results stay in their output dirs; `time_idx` is still passed but unused by Qlet; block order is sequential,
   temporal -> spatial -> FFN: parallel attention was screened and rejected 2026-10-07),
   `spatial_heads`, `moe_ffn`, `atom_bank` (`n_atoms`, `hidden_width`), `loss` (the nested reconstruction loss, the only one since 2026-10-17:
   per patch, the error of the strongest 3 / 6 / 12 / 24 qlets weighted 1/8, 1/8, 1/4, 1/2 -- `nested_sizes` /
@@ -149,20 +149,20 @@ Key fields (templates show defaults):
 - `training_params.pretrain`: `model_name`, `output_path`, `epochs`, `tokenizer_epochs` (0 = one phase, adopted 2026-10-21 on 3 small seeds: masked MSE
   level, finetune level, 30-45 Hz coding worse, docs/cards/2026-10-19-one-phase.md; the mask ramp is 20 epochs, subsampling from epoch 21), `freeze_atoms`,
   `warmup_epochs`, `batch_size`, LR fields, `train_val_split`, `seed`.
-- `model_params.Qtome.finetune` (the head, validated at build): `features` = a list of `{"type": <entry>,
-  <per-entry keys>}`; entries are classes in `model/Qtome/head/entries.py`'s `ENTRY_TYPES` (`atom_power`, `signed_ab`,
+- `model_params.Qlet.finetune` (the head, validated at build): `features` = a list of `{"type": <entry>,
+  <per-entry keys>}`; entries are classes in `model/Qlet/head/entries.py`'s `ENTRY_TYPES` (`atom_power`, `signed_ab`,
   `latent_signed`, and the raw-input baseline `raw_band` / `raw_signal`; `atom_band` / `evoked` / `phase_advance` /
   `latent_power` removed 2026-10-07) -- a new
   head feature is one class + one registry line. Every entry has its own spatial filter. Per-entry keys
   (`spatial_k`, `time_pool`, `time_rank`, `window`, `atom_rank`, `latent_proj`) may also be set
   at the top level as defaults; plus `dropout`. Defaults: `_HEAD_DEFAULTS`.
-- `training_params.finetune`: `pretrained_checkpoint`, `protocol` (a `configs/finetune_protocols.json` split + its `configs/Qtome/protocol_heads.json` head:
+- `training_params.finetune`: `pretrained_checkpoint`, `protocol` (a `configs/finetune_protocols.json` split + its `configs/Qlet/protocol_heads.json` head:
   mi_loso / mi_fewshot / p300_loso / p300_fewshot, tuned on DEV sets BNCI2015001 / BNCI2014009 only; each sets
   the combined head; applied over the merged config, so a head in the run config is overridden -- `--set` still wins), `split` = `{"type": ...}` from `train_finetune.py`'s `SPLITS`:
   `loso`, `subject_kfold` (`n_folds`), `eval_subjects`, `kfold`, `blocked_kfold`, `fewshot` (`train_fraction`,
   EEG-FM-Compass calibration); all take `sessions` and `seed`, per-subject types also `purge` (P300 overlap);
   unknown keys are rejected. Plus LR fields, `epochs`, `class_weight` (`balanced`), `batch_size`, `seed`.
-  `fit`: `sgd` (default) or `closed_form` (`model/Qtome/head/closed_form.py`, no SGD). Few-shot always uses the closed-form
+  `fit`: `sgd` (default) or `closed_form` (`model/Qlet/head/closed_form.py`, no SGD). Few-shot always uses the closed-form
   structured head: the all-atom head's own factors (spatial filter x qlet weights x time course) set in closed
   form, one head for every paradigm, signed half at full time resolution (the protocols set it;
   docs/reports/2026-10-06-structured-fewshot-head.md); since 2026-10-15 both halves use the Fisher score and full time
@@ -176,7 +176,7 @@ Key fields (templates show defaults):
 | Owner | Code | Configs |
 |---|---|---|
 | shared (every model) | `cache_dataset.py`, `datas/`, `IO/` (incl. `IO/splits.py`: protocol splits, `make_runs`), `train_pretrain.py` (dispatches through `model/factory.py`'s plugin registry), `model/base_*.py`, `model/factory.py`, `IO/config.py`, `tools/misc/` | `compile.json`, `montages.json`, `finetune_protocols.json` |
-| Qtome | `model/Qtome/` (incl. `finetune/`: head sources, protocol, fit, atom cache), `train_finetune.py` + `cache_feature.py` (entry points), `analyze.py` + `panels/` (every analysis and figure, incl. the task filter) | `configs/Qtome/` |
+| Qlet | `model/Qlet/` (incl. `finetune/`: head sources, protocol, fit, atom cache), `train_finetune.py` + `cache_feature.py` (entry points), `analyze.py` + `panels/` (every analysis and figure, incl. the task filter) | `configs/Qlet/` |
 | from-scratch baselines | `model/EEGNet/`, `train_baseline.py` | `configs/EEGNet/` |
 
 A new pretrained backbone follows `docs/agents/adding-a-model.md` (plugin); a new from-scratch baseline is
@@ -184,13 +184,13 @@ A new pretrained backbone follows `docs/agents/adding-a-model.md` (plugin); a ne
 
 ## Architecture
 
-**Qtome**: an EEG tokenizer. A TSA encoder feeds a static qlet dictionary (AtomBank: every qlet active at
+**Qlet**: an EEG tokenizer. A TSA encoder feeds a static qlet dictionary (AtomBank: every qlet active at
 every patch; each reconstructs a patch as `a*D + b*H`, D a template and H its quadrature partner), trained by
 masked reconstruction (nested loss: qlets ranked per patch by strength, docs/adr/0018). Routed (top-k) qlets were removed (docs/adr/0022; code on the `routed-stamps`
 branch). The default downstream head reads only the qlets: qlet power (`atom_power`, induced band power: MI) and the
 signed qlet gains (`signed_ab`: phase-locked / P300). The stronger head swaps `signed_ab` for the signed encoder
 output z (`latent_signed`, PCA): level on loso, better on MI few-shot (BNCI2014004 +3.5)
-(docs/reports/2026-10-02-head-ablation.md, docs/reports/2026-09-29-combined-head.md). Plugged in via `model/Qtome/plugin.py` (`model/factory.py`
+(docs/reports/2026-10-02-head-ablation.md, docs/reports/2026-09-29-combined-head.md). Plugged in via `model/Qlet/plugin.py` (`model/factory.py`
 `MODEL_REGISTRY`, docs/adr/0004).
 
 ```
@@ -207,13 +207,13 @@ datas/<split>/<Name>/loader.py  compile time only; MOABB datasets have none (met
                        (spatial attention + coordinate embedding on, mask curriculum starts)
 ```
 
-- Backbone, one file each in `model/Qtome/`: `embeddings.py` (`SpatialTemporalEmbeddings`, `RelativeSpatialBias`, FoPE), `ffn.py` (MoE FFN),
+- Backbone, one file each in `model/Qlet/`: `embeddings.py` (`SpatialTemporalEmbeddings`, `RelativeSpatialBias`, FoPE), `ffn.py` (MoE FFN),
   `encoder.py` (`TSABlock`: temporal attention -> spatial attention -> MoE FFN, LayerScale; `TSAEncoder`: 8 blocks at full patch
   resolution, no pooling; padded channels and padded tail patches are masked out of attention), `atom_bank.py` (`AtomBank`),
-  `patches.py` (overlap-add, fold). Finetune side in `model/Qtome/head/`: `extractor.py` (`AtomExtractor`: qlet codes and optionally z
+  `patches.py` (overlap-add, fold). Finetune side in `model/Qlet/head/`: `extractor.py` (`AtomExtractor`: qlet codes and optionally z
   from the frozen backbone), `entries.py` (the `ENTRY_TYPES` registry), `config.py` (defaults, validation, widths), `pooling.py`,
   `feature_head.py` (`FeatureHead`).
-- `Qtome.py`: `QtomePretrain` (phases, per-sample masked loss: a sample counts as masked only if every patch
+- `Qlet.py`: `QletPretrain` (phases, per-sample masked loss: a sample counts as masked only if every patch
   covering it is masked), `FinetuneModel`.
 - `model/EEGNet/EEGNet.py`: the EEGNet baseline (Compass's architecture), trained from scratch by `train_baseline.py`;
   not a plugin (no backbone). Finetune caches store volts: raw-input baselines multiply by 1e6.
@@ -233,21 +233,21 @@ dataset, kurtosis 6.7 -> 1.2). docs/adr/0011.
 ## Outputs
 
 Each model has its own output folder: a run writes to `output/<model_type>/<training_params.<mode>.output_path>`
-(default `<model_name>/pretrain` for pretrain; `model_type` defaults to Qtome; `IO/config.py` QTOME_OUTPUT). EEGNet:
+(default `<model_name>/pretrain` for pretrain; `model_type` defaults to Qlet; `IO/config.py` QLET_OUTPUT). EEGNet:
 `output/EEGNet/finetune/compass/<dataset>_<mode>_seed<k>/`.
-Per Qtome backbone: `output/Qtome/<backbone>/pretrain/` (`checkpoint/last.pth` -- prefer it over `best.pth`, which locks
+Per Qlet backbone: `output/Qlet/<backbone>/pretrain/` (`checkpoint/last.pth` -- prefer it over `best.pth`, which locks
 onto an easy epoch of the mask curriculum; `artifacts/config.json`, `artifacts/history.json` (per-epoch curves + `epochs`: lr, seconds, phase, mask curriculum),
 `artifacts/run_info.json` (code version, host, GPU, sizes, status), `artifacts/epoch_snapshots.npz` (atom templates per epoch),
 `checkpoint/epoch_<n>.pth` every `training_params.pretrain.checkpoint_every` epochs (default 10);
 `analysis/` numbers and tables; `feature_cache/` -- regenerable, keyed by checkpoint, build_config, code hash and data
-fingerprint) and `output/Qtome/<backbone>/finetune/<head>/<cell>/` (`artifacts/group_eval.json`: per-subject `tail` = mean
+fingerprint) and `output/Qlet/<backbone>/finetune/<head>/<cell>/` (`artifacts/group_eval.json`: per-subject `tail` = mean
 of the last 10 epochs' balanced accuracy, `last`, kappa; `finetune/run_<fold>/` = `head.pth`, `history.json` (curves, lr, per-subject bal. acc. and kappa every epoch), `predictions.npz`
 (eval trial indices, labels, last-epoch logits)). Runs store
-logs, numbers and checkpoints only: **every figure lives in `output/Qtome/<backbone>/analysis/`** (`pretrain/` = the
+logs, numbers and checkpoints only: **every figure lives in `output/Qlet/<backbone>/analysis/`** (`pretrain/` = the
 pretrain panels, incl. `training_dashboard.png`, `snapshot/`; `filter/` = the task-filter panels; `finetune/<head>/<cell>/<fold>_training_dashboard.png`),
 drawn afterwards from the stored numbers by the analysis panels (`--panel training_dashboard`, `--panel snapshot`);
-training draws nothing. `output/Qtome/<name>_analysis/` (name = what the backbones' names share, e.g. `qtome_small_v4flat_onephase_analysis`) holds generated multi-backbone analysis (regenerable),
-`output/queue/` queue state, `output/Qtome/archive/<date>_<topic>/` superseded experiments. Once a result is final, write it up
+training draws nothing. `output/Qlet/<name>_analysis/` (name = what the backbones' names share, e.g. `qlet_small_v4flat_onephase_analysis`) holds generated multi-backbone analysis (regenerable),
+`output/queue/` queue state, `output/Qlet/archive/<date>_<topic>/` superseded experiments. Once a result is final, write it up
 in `docs/reports/` (fixed format and index in `docs/reports/README.md`; copy the figures, tables and
 pipeline scripts it cites) and delete the generated `*_analysis/` and queue folders.
 

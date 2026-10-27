@@ -1,14 +1,14 @@
 """
-Q-atom usage on held-out pretrain windows (unmasked, CPU): the direct measures of whether the Q-atom
+Qlet usage on held-out pretrain windows (unmasked, CPU): the direct measures of whether the qlet
 dictionary's slots are distinct and all used -- what the nested loss (and any dedup change) is for.
 
-Per Q-atom:
-  first       share of patches where it is the strongest Q-atom (per-patch ranking by strength h)
-  rank_ent    entropy of its rank across patches / log(#Q-atoms): high = its rank moves with content
+Per qlet:
+  first       share of patches where it is the strongest qlet (per-patch ranking by strength h)
+  rank_ent    entropy of its rank across patches / log(#qlets): high = its rank moves with content
   energy      its share of the total reconstructed energy
-  remove_cost rise in reconstruction MSE when only this Q-atom is dropped, / the model's MSE
-              (~0 = redundant: another Q-atom covers it, e.g. a near-duplicate)
-Summary: Q-atoms ranked first in >= 5% of patches, redundant Q-atoms (remove_cost < 1%).
+  remove_cost rise in reconstruction MSE when only this qlet is dropped, / the model's MSE
+              (~0 = redundant: another qlet covers it, e.g. a near-duplicate)
+Summary: qlets ranked first in >= 5% of patches, redundant qlets (remove_cost < 1%).
 
 """
 import json

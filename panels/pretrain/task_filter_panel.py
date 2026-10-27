@@ -3,7 +3,7 @@ pretrain/analysis/filter/<source>/filter_<target>_<share>.npz, figure -> analysi
 from the saved numbers). Builds the filter first if it is not saved.
 
 A task filter (panels/shared/task_filter/fit.py) applied to one dataset it
-never saw (no label, head or trial of it is used). Left: the share of power kept per Q-atom and, per Q-atom, where the
+never saw (no label, head or trial of it is used). Left: the share of power kept per qlet and, per qlet, where the
 filter reads from to make the dataset's real channels (squared weight of each input channel into them). The filter
 alone (importance maps, power kept of white input, effective rank) is draw_filter's figure. Right: the dataset before and after
 -- the class difference of the mean waveform, the spectrum, single trials, class information in the waveform and the
@@ -77,7 +77,7 @@ def panel_numbers(ctx, ds, share, path, log=print):
     reduced to what the figure shows and saved to path (npz). Drawing is draw(path, out_path)."""
     SHARE, SRC, BACKBONE, src_c = share, ctx.filt['source'], ctx.name, CHANNELS
     md = json.load(open(f'datas/finetune/{ds}/metadata.json'))['data_metadata']; t0 = md.get('event_onset_seconds', 0.0)
-    peak = ctx.backbone.freqs                                            # each Q-atom's dominant frequency
+    peak = ctx.backbone.freqs                                            # each qlet's dominant frequency
     dst_r, dst_c = channel_names(ds); encode = imputed_encoder(ctx.bb, ds, ctx.backbone.model, ctx.filt['coords64']); mean_op = ctx.filt['filters'][SHARE]   # [S, 64, 64]
     G, Y, seams, Pf, Pk, who = {'before': [], 'after': []}, [], [], 0, 0, []
     for sub, (amp, y) in sorted(gains(ctx.bb, ds, len(dst_c), None).items(), key=lambda kv: int(kv[0])):
@@ -168,19 +168,19 @@ def draw_figure(path, out_path, log=print):
             if j == 0: a_.text(-.12, .5, bn if band is None else f'{bn}\n{band[0]:g}-{band[1]:g} Hz', transform=a_.transAxes, rotation=90, ha='center', va='center', fontsize=11)
         fig.colorbar(im, ax=row, shrink=.7, fraction=.02, pad=.01).ax.tick_params(labelsize=7)
     xm = BAND.get_position(fig); fig.text((xm.x0 + xm.x1) / 2, .96, 'class information of each class\nagainst the others: waveform,\nthen log power per band (own scale per row)', ha='center', va='top', fontsize=13)
-    # left: how much of each Q-atom's power is kept on this dataset, and where on the scalp it reads from
+    # left: how much of each qlet's power is kept on this dataset, and where on the scalp it reads from
     sa = [fig.add_subplot(gside[i, j]) for i in range(6) for j in range(4)]
     for i, a_ in zip(np.argsort(-ka), sa):                                # most kept first, as the bars
         im = draw_topomap(a_, pos, reads[:, i], cmap='Purples'); a_.set_title(f'{i}: {peak[i]:.0f} Hz, kept {ka[i]:.2f}', fontsize=8)
         fig.colorbar(im, ax=a_, shrink=.75, pad=.03, fraction=.06).ax.tick_params(labelsize=5)
-    xs_ = gside.get_grid_positions(fig); fig.text((xs_[2][0] + xs_[3][-1]) / 2, xs_[1][0] + .018, f'where each Q-atom reads from (index: Hz, power kept), most kept first\nsquared weight of each input channel into {", ".join(dst_c)}; own scale per map', ha='center', va='bottom', fontsize=11)
-    # row 0: what the time-free mask keeps of each Q-atom's power, most kept first, after the total
+    xs_ = gside.get_grid_positions(fig); fig.text((xs_[2][0] + xs_[3][-1]) / 2, xs_[1][0] + .018, f'where each qlet reads from (index: Hz, power kept), most kept first\nsquared weight of each input channel into {", ".join(dst_c)}; own scale per map', ha='center', va='bottom', fontsize=11)
+    # row 0: what the time-free mask keeps of each qlet's power, most kept first, after the total
     hm = fig.add_subplot(fl[0]); order = np.argsort(-ka); vals = np.r_[share, ka[order]]; xb = np.r_[-0.5, 1 + np.arange(S)]
     hm.bar(xb, vals, color=plt.cm.YlOrRd(vals / vals.max()), edgecolor='k', lw=.6)
     for x_, v_ in zip(xb, vals): hm.text(x_, v_ + .01 * vals.max(), f'{v_:.2f}', ha='center', va='bottom', fontsize=7)
     hm.axvline(.25, color='k', lw=1.5); hm.set_xlim(-1.2, S + .6); hm.set_ylim(0, 1.1 * vals.max()); hm.grid(axis='y', alpha=.3)
     hm.set_xticks(xb); hm.set_xticklabels(['all'] + [f'{i}\n{peak[i]:.0f}' for i in order], fontsize=7); hm.set_ylabel('share of power kept')
-    hm.set_title('share of power kept per Q-atom (index, Hz), most kept first', fontsize=11)
+    hm.set_title('share of power kept per qlet (index, Hz), most kept first', fontsize=11)
     xf, xr = FILT.get_position(fig), MAIN.get_position(fig); xsep = (xf.x1 + xr.x0) / 2
     fig.add_artist(plt.Line2D([xsep, xsep], [.02, .985], color='k', lw=2))
     fig.text((xf.x0 + xf.x1) / 2, .992, f'THE FILTER ON {ds}', ha='center', va='top', fontsize=20, weight='bold')

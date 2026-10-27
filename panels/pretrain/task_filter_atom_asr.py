@@ -1,5 +1,5 @@
-"""task_filter_atom_asr: artifact subspace reconstruction (ASR) in the Q-atom space. ASR calibrates on clean data, finds the directions in channel space that
-carry more variance than the clean data ever did, and removes them. Here it runs on the Q-atom gains: for every Q-atom separately, the [C] vectors of its
+"""task_filter_atom_asr: artifact subspace reconstruction (ASR) in the qlet space. ASR calibrates on clean data, finds the directions in channel space that
+carry more variance than the clean data ever did, and removes them. Here it runs on the qlet gains: for every qlet separately, the [C] vectors of its
 gains (a and b of every patch) of the patient's clean windows give the clean channel covariance, its eigenvectors the components and the clean rms of
 each component. In a test window every component whose rms over the window's patches exceeds --asr-cutoff x its clean rms is set to zero for that atom
 and window (hard removal; the original ASR reconstructs the component from the clean mixing instead); the changed gains decode through the unchanged
@@ -130,5 +130,5 @@ def draw(ctx):
         b = ax[1, j]; b.bar(x - .2, db(art), .38, color=[colour(m) for m in methods]); b.bar(x + .2, db(ctl), .38, color='#cccccc')
         b.axhline(0, color='k', lw=.6); b.set_xticks(x); b.set_xticklabels(methods, rotation=60, ha='right', fontsize=6); b.set_ylabel('power change (dB), grey: control' if j == 0 else '')
     ax[0, 0].legend(fontsize=7, loc='lower left')
-    fig.suptitle('ASR in the Q-atom space (purple, cutoff in the name) against atom removal and time-domain ASR, TUAR', fontweight='bold')
+    fig.suptitle('ASR in the qlet space (purple, cutoff in the name) against atom removal and time-domain ASR, TUAR', fontweight='bold')
     fig.tight_layout(rect=(0, 0, 1, 0.96)); out = ctx.figure_in('filter', ctx.args.filter_source, 'atom_asr_TUAR.png'); fig.savefig(out, dpi=110); plt.close(fig); print(f'  -> {out}')

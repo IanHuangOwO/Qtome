@@ -1,7 +1,7 @@
 {
-  "_comment": "Finetune hyperparameter grid on DEV datasets (BNCI2015001 MI, BNCI2014009 P300; never reported), 2026-09-25. Expand with python -m tools.misc.sweep configs/Qtome/sweeps/tune_base_s1.json, run with tools/misc/run_queue.py. Kept as the record of how the frozen protocols were tuned: its backbone qtome_tiny_static16_base_s1 is archived (output/Qtome/archive/2026-09-26_spatial_and_masking), so it does not run as-is.",
+  "_comment": "Finetune hyperparameter grid on DEV datasets (BNCI2015001 MI, BNCI2014009 P300; never reported), 2026-09-25. Expand with python -m tools.misc.sweep configs/Qlet/sweeps/tune_base_s1.json, run with tools/misc/run_queue.py. Kept as the record of how the frozen protocols were tuned: its backbone qlet_tiny_static16_base_s1 is archived (output/Qlet/archive/2026-09-26_spatial_and_masking), so it does not run as-is.",
   "script": "train_finetune.py",
-  "config": "configs/runs/qtome_tiny_static16_base_s1/finetune/learned/BNCI2014001_loso.json",
+  "config": "configs/runs/qlet_tiny_static16_base_s1/finetune/learned/BNCI2014001_loso.json",
   "set": {
     "training_params.finetune.epochs": 50,
     "training_params.finetune.seed": 1
@@ -27,7 +27,7 @@
         ]
       },
       "training_params.finetune.class_weight": null,
-      "model_params.Qtome.finetune": {
+      "model_params.Qlet.finetune": {
         "features": [
           {
             "type": "atom_power",
@@ -57,7 +57,7 @@
         ]
       },
       "training_params.finetune.class_weight": null,
-      "model_params.Qtome.finetune": {
+      "model_params.Qlet.finetune": {
         "features": [
           {
             "type": "atom_power",
@@ -87,7 +87,7 @@
         ]
       },
       "training_params.finetune.class_weight": "balanced",
-      "model_params.Qtome.finetune": {
+      "model_params.Qlet.finetune": {
         "features": [
           {
             "type": "atom_power",
@@ -123,7 +123,7 @@
         ]
       },
       "training_params.finetune.class_weight": "balanced",
-      "model_params.Qtome.finetune": {
+      "model_params.Qlet.finetune": {
         "features": [
           {
             "type": "atom_power",
@@ -150,11 +150,11 @@
       0.1,
       0.5
     ],
-    "model_params.Qtome.finetune.dropout": [
+    "model_params.Qlet.finetune.dropout": [
       0.3,
       0.5
     ],
-    "model_params.Qtome.finetune.spatial_k": [
+    "model_params.Qlet.finetune.spatial_k": [
       2,
       4,
       8
@@ -163,11 +163,11 @@
   "name": {
     "training_params.finetune.learning_rate": "lr",
     "training_params.finetune.weight_decay": "wd",
-    "model_params.Qtome.finetune.dropout": "do",
-    "model_params.Qtome.finetune.spatial_k": "k"
+    "model_params.Qlet.finetune.dropout": "do",
+    "model_params.Qlet.finetune.spatial_k": "k"
   },
   "derived": {
     "training_params.finetune.min_learning_rate": "training_params.finetune.learning_rate / 10"
   },
-  "output_path": "qtome_tiny_static16_base_s1/finetune/tune/{case}/{job}"
+  "output_path": "qlet_tiny_static16_base_s1/finetune/tune/{case}/{job}"
 }

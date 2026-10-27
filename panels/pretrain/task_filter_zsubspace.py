@@ -1,7 +1,7 @@
-"""task_filter_zsubspace: noise removal in the encoder's output z (the [D] embedding of every channel-patch token that the Q-atom MLPs read) instead of on the
-Q-atom gains (a, b). For one artifact label, a low-rank direction set is fitted on TUAR patients that are NOT evaluated (even patient numbers fit, odd ones are
+"""task_filter_zsubspace: noise removal in the encoder's output z (the [D] embedding of every channel-patch token that the qlet MLPs read) instead of on the
+Qlet gains (a, b). For one artifact label, a low-rank direction set is fitted on TUAR patients that are NOT evaluated (even patient numbers fit, odd ones are
 tested): the tokens of that label's windows against the tokens of the same patients' clean windows. Whiten by the clean covariance, take the top-k principal
-directions of the artifact windows' (second moment about the clean mean) covariance there, and project them out of z of the test windows; the unchanged Q-atom
+directions of the artifact windows' (second moment about the clean mean) covariance there, and project them out of z of the test windows; the unchanged qlet
 MLPs and templates then decode the projected z (the patch RMS is kept). Subspaces: eye (eyem windows), muscle (musc), electrode (elec) and artifacts (the five
 labels pooled), at each rank in --zs-ranks. Scored like task_filter_artifacts on the held-out patients (artifact score and its clean-window control in dB,
 brain kept = correlation with the input on clean windows), next to backbone64, the multi-task filter at 0.1 and the atom removals -eye and -line of the same run.

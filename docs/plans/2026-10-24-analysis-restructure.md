@@ -6,7 +6,7 @@ Status: DECIDED. Decided with the user 2026-10-24: (1) compute and draw live tog
 
 ## 1. Why
 
-- One analysis is spread over three folders (task filter: `model/Qtome/Qtome_filter_tools.py`, `tools/analysis/task_filter_eval.py`,
+- One analysis is spread over three folders (task filter: `model/Qlet/Qlet_filter_tools.py`, `tools/analysis/task_filter_eval.py`,
   two `tools/viz/task_filter_*.py`, five panels). A new analysis edits `analysis_pretrain.py` (flags, docstring), `tools/panels/__init__.py`
   (PRESETS), `CLAUDE.md`.
 - Grab bags: `tools/viz/atom_plots.py` (506 lines) and `codebook.py` (464) hold unrelated figures; `tools/analysis/__init__.py` mixes
@@ -27,7 +27,7 @@ panels/
   finetune/<name>.py
   shared/<topic>.py             only code used by >= 2 panels (rule of two); moved here the day the second user appears
   kit/                          generic drawing primitives: topomap, timeseries, style (no analysis logic)
-IO/config.py                    load_config, apply_overrides, deep_merge, model_output_root, resolve_output_path, QTOME_OUTPUT
+IO/config.py                    load_config, apply_overrides, deep_merge, model_output_root, resolve_output_path, QLET_OUTPUT
                                 (what train_*.py and cache_feature.py import today from tools.analysis)
 ```
 
@@ -44,7 +44,7 @@ Output folders unchanged: numbers `<bb>/pretrain/analysis/`, figures `<bb>/analy
 
 ## 3. Cut-over procedure (verify before deleting anything)
 
-1. **Baseline.** On `qtome_small_v4flat_onephase_s1` (and a finetune group of the onephase backbones) run every panel with small arguments
+1. **Baseline.** On `qlet_small_v4flat_onephase_s1` (and a finetune group of the onephase backbones) run every panel with small arguments
    (`--max-trials 40`, two datasets, task-filter cells that exist) and copy all outputs to a baseline dir. Run the old code twice:
    panels whose outputs differ run to run are marked numbers-only (tolerance) in the check.
 2. **Build `panels/core` + `IO/config.py`**, repoint `train_pretrain.py`, `train_finetune.py`, `train_baseline.py`, `cache_feature.py`.

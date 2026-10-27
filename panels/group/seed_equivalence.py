@@ -17,14 +17,14 @@ import re
 import numpy as np
 from scipy import stats
 
-from IO.config import QTOME_OUTPUT
+from IO.config import QLET_OUTPUT
 from panels.shared.finetune_runs import load
 
 
 def collect(backbone, head, metric='tail'):
     """-> {cell: {seed: {subject: score}}}"""
     out = {}
-    for d in glob.glob(f'{QTOME_OUTPUT}/{backbone}/finetune/{head}_seed*/*'):
+    for d in glob.glob(f'{QLET_OUTPUT}/{backbone}/finetune/{head}_seed*/*'):
         m = re.search(r'_seed(\d+)$', os.path.basename(os.path.dirname(d)))
         if m and (subj := load(d, metric)):
             out.setdefault(os.path.basename(d), {})[int(m.group(1))] = subj

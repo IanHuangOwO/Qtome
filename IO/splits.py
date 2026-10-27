@@ -1,9 +1,9 @@
-"""Shared evaluation splits (every model: Qtome's train_finetune.py, baselines' train_baseline.py, analysis tools).
+"""Shared evaluation splits (every model: Qlet's train_finetune.py, baselines' train_baseline.py, analysis tools).
 
 A cell's split comes from configs/finetune_protocols.json: protocol name -> split block, plus per-dataset settings
 (_dataset_split: Compass's sessions and few-shot fractions). make_runs turns a split block into runs (train trial
-indices + evaluation groups); SPLITS lists the split types. Model-specific parts of a protocol (Qtome's head and
-optimiser) live with the model (configs/Qtome/protocol_heads.json).
+indices + evaluation groups); SPLITS lists the split types. Model-specific parts of a protocol (Qlet's head and
+optimiser) live with the model (configs/Qlet/protocol_heads.json).
 """
 import json
 import os

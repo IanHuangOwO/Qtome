@@ -1,5 +1,5 @@
-"""The training-curve dashboard: rendered generically from a declarative list of panel specs (Dashboard.render), with the Qtome
-pretrain and finetune layouts (QtomeDashboard). Shared by the pretrain and finetune training_dashboard panels."""
+"""The training-curve dashboard: rendered generically from a declarative list of panel specs (Dashboard.render), with the Qlet
+pretrain and finetune layouts (QletDashboard). Shared by the pretrain and finetune training_dashboard panels."""
 
 import os
 import math
@@ -40,7 +40,7 @@ class Dashboard:
 
     def router_health_series(self, prefix='', entropy_label='Router entropy (higher=balanced)'):
         """MoE router-health panel shape shared by every router in this codebase (Expert,
-        Q-atom, FFN, ...): router_entropy + gate_entropy on the main axis, router_load_std
+        qlet, FFN, ...): router_entropy + gate_entropy on the main axis, router_load_std
         + lb_loss on a twin axis. History keys are f'{prefix}_<key>' (e.g. 'ffn_router_entropy',
         'ffn_lb_loss'), unprefixed for prefix=''.
         Returns (main_series, twin_series) — pass twin_series into a panel's twin dict
@@ -177,7 +177,7 @@ class Dashboard:
         raise NotImplementedError
 
 
-class QtomeDashboard(Dashboard):
+class QletDashboard(Dashboard):
     def plot_pretrain(self, filename='training_dashboard.png'):
         # Grouped: loss/reconstruction -> FFN routing -> architecture diagnostics. Order is the only grouping lever
         # `render`'s flat ncols grid gives us — no row breaks/section labels, so panels of a
@@ -193,11 +193,11 @@ class QtomeDashboard(Dashboard):
                  ylabel='MSE', series=[dict(key=k, color=c) for k, c in recon]),
         ]
         nested = sorted((k for k in self.history['val'] if k.startswith('mse_nested_')), key=lambda k: int(k.rsplit('_', 1)[1]))
-        for i, k in enumerate(nested):   # nested loss: error from the strongest k Q-atoms per patch
+        for i, k in enumerate(nested):   # nested loss: error from the strongest k qlets per patch
             loss_panels[1]['series'].append(dict(key=k, color=matplotlib.colormaps['cividis'](i / max(len(nested) - 1, 1)),
                                                  label=f"strongest {k.rsplit('_', 1)[1]}"))
         bands = [k for k in ('delta', 'theta', 'alpha', 'beta', 'gamma', 'high') if self.has_signal(f'mse_band_{k}')]
-        if bands:   # Qtome._band_errors: error power / target power per band, all valid positions
+        if bands:   # Qlet._band_errors: error power / target power per band, all valid positions
             cmap = matplotlib.colormaps['viridis']
             loss_panels.append(dict(title='Recon error per band, train (solid) and val (dashed)\n(error power / target '
                                           'power; 0.5-4 / 4-8 / 8-13 / 13-30 / 30-45 / 45-90 Hz)',
@@ -206,7 +206,7 @@ class QtomeDashboard(Dashboard):
                                             for i, k in enumerate(bands)]))
 
         # FFN Router Health — the MoEFFN routers inside every TSABlock (averaged across blocks),
-        # see Qtome.update_ffn_router_metrics.
+        # see Qlet.update_ffn_router_metrics.
         ffn_router_series, ffn_twin_series = self.router_health_series(
             'ffn', entropy_label='Router entropy (load balance)')
 

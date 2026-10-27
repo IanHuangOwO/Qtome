@@ -1,16 +1,16 @@
-"""Closed-form finetune head (2026-10-04/05): fit without SGD on the frozen Q-atom code (a, b), for few-shot.
+"""Closed-form finetune head (2026-10-04/05): fit without SGD on the frozen qlet code (a, b), for few-shot.
 
 training_params.finetune.fit = "closed_form", closed_form = {"spatial_k", "atom_rank", "time_rank", "signed_time_rank"}:
 the loso all-atom head (atom_power + signed_ab, head/feature_head.FeatureHead) with every factor set in closed form instead
-of by SGD, same ranks (user: few-shot keeps the head's structure so its factors read as Q-atom events, not a generic
+of by SGD, same ranks (user: few-shot keeps the head's structure so its factors read as qlet events, not a generic
 probe):
-  atom_power: spatial filter C -> spatial_k shared over Q-atoms and a/b (CSP on the trial covariance of the code,
-    patches x Q-atoms x {a, b} as samples) -> a^2 + b^2 -> per-atom time weights w[s, n] (non-negative, rank
-    time_rank: the leading SVD components of the per-(Q-atom, patch) Fisher score of log-power, clipped at 0, summed
-    to 1 per Q-atom) -> log -> [K * S].
+  atom_power: spatial filter C -> spatial_k shared over qlets and a/b (CSP on the trial covariance of the code,
+    patches x qlets x {a, b} as samples) -> a^2 + b^2 -> per-atom time weights w[s, n] (non-negative, rank
+    time_rank: the leading SVD components of the per-(Qlet, patch) Fisher score of log-power, clipped at 0, summed
+    to 1 per qlet) -> log -> [K * S].
   signed_ab: spatial filter C -> spatial_k (generalised eigenvectors of the class-mean code covariance vs the trial
-    covariance, xDAWN-style) -> Q-atom pooling S -> atom_rank and time filters N' -> time_rank, the leading
-    eigenvectors of the class-mean difference scatter over Q-atoms and over patches (HOSVD of the centred class
+    covariance, xDAWN-style) -> qlet pooling S -> atom_rank and time filters N' -> time_rank, the leading
+    eigenvectors of the class-mean difference scatter over qlets and over patches (HOSVD of the centred class
     means) -> [2 * K * atom_rank * time_rank].
   both concatenated -> shrinkage LDA, equal priors.
 Every step is a formula, an eigen-decomposition or one convex solve: the same training trials give the same head
@@ -33,7 +33,7 @@ class ClosedFormHead:
         # signed_ab's own time_rank (a per-entry key, as in the SGD head). DEV few-shot
         # 2026-10-06 (MI / P300 / SSVEP power / SSVEP phase-locked, mean): rank 2 53.2, 4 54.9, 8 56.7, full 59.7.
         self.Rs = rank(signed_time_rank) if signed_time_rank else self.R
-        # how each half scores a (Q-atom, patch) for its factors: 'between' = the between-class variance of the class
+        # how each half scores a (Qlet, patch) for its factors: 'between' = the between-class variance of the class
         # means (for the signed half: the HOSVD of the centred class means), 'fisher' = that over the within-class variance
         assert power_score in ('fisher', 'between') and signed_score in ('fisher', 'between')
         self.power_score, self.signed_score = power_score, signed_score
@@ -75,7 +75,7 @@ class ClosedFormHead:
         ys = np.einsum('ntcsj,ck->nkjst', amp, self.Ws)                           # [n, K, 2, S, N]
         cm = np.stack([ys[y == c].mean(0) for c in cls])
         D = cm - cm.mean(0)                                                       # centred class means [k, K, 2, S, N]
-        if self.signed_score == 'fisher':                                        # each (filter, a/b, Q-atom, patch) over its noise
+        if self.signed_score == 'fisher':                                        # each (filter, a/b, qlet, patch) over its noise
             within = sum(((ys[y == c] - cm[i]) ** 2).sum(0) for i, c in enumerate(cls)) / max(n - len(cls), 1)
             D = D / np.sqrt(within + 1e-12)
         D = D.reshape(-1, S, N)
@@ -98,7 +98,7 @@ class ClosedFormHead:
 
 
 def _selfcheck():
-    """Separable synthetic data: class 1 has extra power on channel 0 in Q-atom 0 and a fixed signed offset on
+    """Separable synthetic data: class 1 has extra power on channel 0 in qlet 0 and a fixed signed offset on
     channel 1; held-out trials must classify well above chance."""
     rng = np.random.default_rng(0)
     n, P, C, S = 80, 6, 4, 3

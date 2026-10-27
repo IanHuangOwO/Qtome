@@ -1,4 +1,4 @@
-"""atom_seed_match: do independently trained backbones learn the same Q-atoms? Every pair of the --group backbones (seeds of one recipe)
+"""atom_seed_match: do independently trained backbones learn the same qlets? Every pair of the --group backbones (seeds of one recipe)
 is matched one-to-one (Hungarian) on the phase-invariant template similarity sqrt(<D_i,D_j>^2 + <D_i,H_j>^2) (1 = the same waveform at some
 phase), against the best match of random dictionaries of the same size -> atom_seed_match.png (matched similarity curves, the matching matrix,
 peak frequency of matched atoms) and atom_seed_match_gallery.png (the matched waveforms of the most reproducible atoms of the reference
@@ -13,7 +13,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from scipy.optimize import linear_sum_assignment
 
-from IO.config import QTOME_OUTPUT
+from IO.config import QLET_OUTPUT
 from panels.core.context import load_model
 from panels.core.numbers import load_npz, save_npz
 from panels.shared.atom_dictionary import FS, atom_templates, peak_freq
@@ -58,7 +58,7 @@ def aligned_topographies(groups):
     atom_labels numbers."""
     zs = []
     for bb in groups.values():
-        path = f'{QTOME_OUTPUT}/{bb}/pretrain/analysis/atom_labels.npz'
+        path = f'{QLET_OUTPUT}/{bb}/pretrain/analysis/atom_labels.npz'
         if not os.path.exists(path):
             return None
         zs.append(load_npz(path))
@@ -79,7 +79,7 @@ def compute(ctx):
         return
     T = {}
     for g, bb in ctx.groups.items():
-        m = load_model({}, f'{QTOME_OUTPUT}/{bb}/pretrain/checkpoint/last.pth', ctx.device)
+        m = load_model({}, f'{QLET_OUTPUT}/{bb}/pretrain/checkpoint/last.pth', ctx.device)
         D, H, _ = atom_templates(m)
         T[g] = (D, H)
     n, length = T[names[0]][0].shape
@@ -154,7 +154,7 @@ def draw(ctx):
         for b in range(len(names)):
             ax4.text(b, a, f'{M[a, b]:.2f}', ha='center', va='center', color='white' if M[a, b] < 0.6 else 'black', fontsize=10)
     ax4.set_title(f'(d) share of atoms matched at >= {thr:g}, every seed pair', fontsize=9, fontweight='bold'); fig.colorbar(im, ax=ax4, fraction=0.046)
-    fig.suptitle('Do independently trained backbones learn the same Q-atoms?', fontweight='bold')
+    fig.suptitle('Do independently trained backbones learn the same qlets?', fontweight='bold')
     out = ctx.figure('atom_seed_match.png')
     fig.tight_layout(); fig.savefig(out, dpi=130); plt.close(fig)
     print(f'  -> {out}')

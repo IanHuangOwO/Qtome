@@ -1,8 +1,8 @@
-"""codebook: cross-dataset Q-atom-usage diagnostics -> analysis/pretrain/codebook/. One dataset per pretrain entry (usage stays
+"""codebook: cross-dataset qlet-usage diagnostics -> analysis/pretrain/codebook/. One dataset per pretrain entry (usage stays
 attributable to its source), real trials with their labels, each capped at --max-trials trials (shared/trials.cap_subjects).
-Figures: dataset relation, usage by dataset, Q-atom phase / topography / identity consistency; each with its own flag: the
+Figures: dataset relation, usage by dataset, qlet phase / topography / identity consistency; each with its own flag: the
 embedding scatters per patch and per trial (--embedding-scatter: by dataset, by target, per dataset), patch-position consistency
-(--patch-position) and event-locked Q-atom dynamics (--event-dynamics) per dataset.
+(--patch-position) and event-locked qlet dynamics (--event-dynamics) per dataset.
 Options: --datasets, --max-trials, --embedding-scatter, --patch-position, --event-dynamics."""
 import copy
 import glob
@@ -27,7 +27,7 @@ def add_args(flags):
     flags.add('--max-trials', type=int, default=1000, help='trials per dataset')
     flags.add('--embedding-scatter', action='store_true', help='also draw the embedding scatters, per patch and per trial (by dataset, by target, per dataset)')
     flags.add('--patch-position', action='store_true', help='also draw the patch-position consistency per dataset')
-    flags.add('--event-dynamics', action='store_true', help='also compute and draw the event-locked Q-atom dynamics per dataset')
+    flags.add('--event-dynamics', action='store_true', help='also compute and draw the event-locked qlet dynamics per dataset')
 
 
 def compute(ctx):

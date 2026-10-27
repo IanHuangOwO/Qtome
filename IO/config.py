@@ -7,15 +7,25 @@ import sys
 from datetime import datetime
 
 
+def legacy_names(cfg: dict) -> dict:
+    """In place: configs written before the 2026-10-27 rename (Qtome -> Qlet) say model_params.Qtome and model_type 'Qtome'."""
+    if 'Qtome' in cfg.get('model_params', {}):
+        cfg['model_params']['Qlet'] = cfg['model_params'].pop('Qtome')
+    for tp in cfg.get('training_params', {}).values():
+        if isinstance(tp, dict) and tp.get('model_type') == 'Qtome':
+            tp['model_type'] = 'Qlet'
+    return cfg
+
+
 def load_config(path: str) -> dict:
     with open(path, 'r') as f:
-        return json.load(f)
+        return legacy_names(json.load(f))
 
 
 def apply_overrides(cfg: dict, sets) -> dict:
     """In place: each 'dotted.key.path=value' in sets. value is parsed as JSON (numbers, true,
     null, lists, objects) and falls back to a plain string; a numeric path segment indexes a
-    list (model_params.Qtome.finetune.features.0.time_rank=1). Missing dict keys are created,
+    list (model_params.Qlet.finetune.features.0.time_rank=1). Missing dict keys are created,
     so a typo adds a key rather than failing -- check the config.json snapshot a run writes."""
     for item in sets or []:
         key, sep, raw = item.partition('=')
@@ -36,12 +46,12 @@ def apply_overrides(cfg: dict, sets) -> dict:
     return cfg
 
 
-QTOME_OUTPUT = 'output/Qtome'   # every Qtome run (backbones, their finetune heads, archive); tools resolve backbones here
+QLET_OUTPUT = 'output/Qlet'   # every Qlet run (backbones, their finetune heads, archive); tools resolve backbones here
 
 
 def model_output_root(config: dict, mode: str = 'pretrain') -> str:
-    """output/<model_type>: each model's runs live in their own folder (output/Qtome/, output/EEGNet/, ...)."""
-    return os.path.join('output', config['training_params'][mode].get('model_type', 'Qtome'))
+    """output/<model_type>: each model's runs live in their own folder (output/Qlet/, output/EEGNet/, ...)."""
+    return os.path.join('output', config['training_params'][mode].get('model_type', 'Qlet'))
 
 
 def resolve_output_path(config: dict, mode: str = 'pretrain') -> str:

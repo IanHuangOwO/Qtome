@@ -7,7 +7,7 @@ import re
 
 import numpy as np
 
-from IO.config import QTOME_OUTPUT
+from IO.config import QLET_OUTPUT
 
 
 def load(run_dir, metric):
@@ -23,14 +23,14 @@ def load(run_dir, metric):
 
 
 def cell_names(backbones, head, strip_seed=True):
-    """Sorted cell names under output/Qtome/<backbone>/finetune/<head>/ of these backbones; strip_seed folds <cell>_seed<k> into <cell>."""
-    names = {os.path.basename(d) for bb in backbones for d in glob.glob(f'{QTOME_OUTPUT}/{bb}/finetune/{head}/*')}
+    """Sorted cell names under output/Qlet/<backbone>/finetune/<head>/ of these backbones; strip_seed folds <cell>_seed<k> into <cell>."""
+    names = {os.path.basename(d) for bb in backbones for d in glob.glob(f'{QLET_OUTPUT}/{bb}/finetune/{head}/*')}
     return sorted({re.sub(r'_seed\d+$', '', n) for n in names} if strip_seed else names)
 
 
 def cell_run_dirs(bb, head, cell):
     """A backbone's run dirs of one cell: <cell> and every <cell>_seed<k> (several seeds of one cell are pooled)."""
-    base = f'{QTOME_OUTPUT}/{bb}/finetune/{head}/{cell}'
+    base = f'{QLET_OUTPUT}/{bb}/finetune/{head}/{cell}'
     return sorted(glob.glob(base) + glob.glob(base + '_seed*'))
 
 

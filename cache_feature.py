@@ -1,14 +1,14 @@
-"""Build the Q-atom-amplitude cache for every finetune dataset of a config (the cache itself: model/Qtome/finetune/feature_cache.py;
+"""Build the qlet-amplitude cache for every finetune dataset of a config (the cache itself: model/Qlet/finetune/feature_cache.py;
 train_finetune.py builds it on first use anyway):
     python cache_feature.py --config configs/runs/<backbone>/finetune/<head>/<dataset>_<mode>.json"""
 import argparse
 
-from model.Qtome.finetune.feature_cache import get_atom_cache, subjects_of
+from model.Qlet.finetune.feature_cache import get_atom_cache, subjects_of
 
 
 def main():
     ap = argparse.ArgumentParser(description="Build the atom-amplitude cache for every finetune dataset in a config.")
-    ap.add_argument('--config', default='configs/Qtome/finetune.template.json')
+    ap.add_argument('--config', default='configs/Qlet/finetune.template.json')
     ap.add_argument('--batch-size', type=int, default=64)
     args = ap.parse_args()
     from IO.config import load_config

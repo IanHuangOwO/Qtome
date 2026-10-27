@@ -61,7 +61,7 @@ def compute(ctx):
                     sig[f'multi-task {q:g}'] = dec(torch.einsum('scd,bndsx->bncsx', o, g))[..., :T]
             for n, m in atom_keep.items():
                 sig[n] = dec(g[:, :, sel] * m.to(g.device, g.dtype).view(1, 1, 1, -1, 1))[..., :T]
-            if 'atoms -line' in atom_keep:                                         # ASR in the Q-atom space (task_filter_atom_asr), calibrated on the subject's own windows
+            if 'atoms -line' in atom_keep:                                         # ASR in the qlet space (task_filter_atom_asr), calibrated on the subject's own windows
                 ga, _ = atom_asr(g[:, :, sel], torch.arange(len(x)), 1.5)
                 sig['ASR atoms 1.5'] = dec(ga)[..., :T]
                 sig['ASR atoms 1.5 + atoms -line'] = dec(ga * atom_keep['atoms -line'].view(1, 1, 1, -1, 1))[..., :T]

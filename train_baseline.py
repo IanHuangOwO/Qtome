@@ -1,6 +1,6 @@
 """Train a from-scratch baseline (model/<Name>/, no pretrained backbone) on one finetune cell, through the same caches,
 splits (configs/finetune_protocols.json via IO/splits.py) and result format as train_finetune.py, so a baseline cell
-sits next to a Qtome cell in the summary panel (analyze.py finetune). Settings: configs/<Name>/settings.json (Compass's, per split mode, with
+sits next to a Qlet cell in the summary panel (analyze.py finetune). Settings: configs/<Name>/settings.json (Compass's, per split mode, with
 per-dataset overrides). One seed per run; scored every epoch on the evaluation trials (tail = mean of the last 10
 epochs, last = Compass's number).
 
@@ -55,7 +55,7 @@ def preprocess(x, s):
     x = signal.filtfilt(b, a, x, axis=-1)
     if s['norm'] == 'car':
         x = x - x.mean(1, keepdims=True)
-    elif s['norm'] == 'ztrial':      # Qtome's input normalisation: one mean / std per trial over channels and samples
+    elif s['norm'] == 'ztrial':      # Qlet's input normalisation: one mean / std per trial over channels and samples
         x = (x - x.mean((1, 2), keepdims=True)) / (x.std((1, 2), keepdims=True) + 1e-8)
     return np.ascontiguousarray(x, dtype=np.float32)
 
@@ -128,7 +128,7 @@ def main():
     ap.add_argument('--tag', default='compass', help='head-label folder under output/<model>/finetune/')
     a = ap.parse_args()
 
-    split = protocol_split(a.protocol, [a.dataset])     # the shared split of a Qtome cell (sessions, fraction, purge)
+    split = protocol_split(a.protocol, [a.dataset])     # the shared split of a Qlet cell (sessions, fraction, purge)
     mode = 'loso' if split['type'] in ('loso', 'subject_kfold') else 'fewshot'
     presets = json.load(open(f'configs/{a.model}/settings.json'))
     settings = {**presets[mode], **presets.get('cells', {}).get(a.dataset, {}).get(mode, {})}

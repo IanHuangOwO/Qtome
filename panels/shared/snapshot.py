@@ -1,6 +1,6 @@
 """One real trial as a snapshot: the stage-normalised bundle (pretrain: the full model; finetune: its frozen backbone), the numbers a
 snapshot is drawn from (saved so --redraw needs no model), and the two figures: the band-filtered original-vs-reconstruction grid
-and the Q-atom gallery. Shared by the snapshot (pretrain) and class_snapshots (finetune) panels."""
+and the qlet gallery. Shared by the snapshot (pretrain) and class_snapshots (finetune) panels."""
 import json
 import os
 from dataclasses import dataclass
@@ -13,8 +13,8 @@ import torch.nn as nn
 
 from panels.shared.event_onset import lookup_event_onset_sample
 from IO.preprocessing import slice_patches
-from model.Qtome.patches import overlap_add_patches
-from model.Qtome.plugin import QtomeTrainer
+from model.Qlet.patches import overlap_add_patches
+from model.Qlet.plugin import QletTrainer
 from panels.kit.timeseries import visualize_reconstruction
 from panels.kit.topomap import project_coords_2d
 from panels.shared.atom_gallery import plot_atom_gallery
@@ -123,8 +123,8 @@ def _run_reconstruction(model, dataset, trial_idx, device):
 def build_pretrain_bundle(model, dataset, trial_idx, config, device,
                            subject_id=None, epoch=None):
     """Pretrain-stage bundle: full (masked-phase-restored) model forward, unmasked
-    reconstruction, per-trial Q-atom usage for title colors. Returns (bundle, metrics)
-    where metrics = {'recon_mse': ..., **QtomeTrainer().epoch_metrics(model, out)},
+    reconstruction, per-trial qlet usage for title colors. Returns (bundle, metrics)
+    where metrics = {'recon_mse': ..., **QletTrainer().epoch_metrics(model, out)},
     matching today's BaseEpochChecker.check_pretrain's returned metrics dict exactly."""
     was_training = model.training
     model.eval()
@@ -143,7 +143,7 @@ def build_pretrain_bundle(model, dataset, trial_idx, config, device,
         recon_cnl = out.recon[0].detach().cpu().numpy()
 
         metrics = {'recon_mse': float(np.mean((data['raw'] - data['recon']) ** 2))}
-        metrics.update(QtomeTrainer().epoch_metrics(model, out))
+        metrics.update(QletTrainer().epoch_metrics(model, out))
 
         event_onset_sec = _lookup_event_onset(config, dataset, trial_idx)
         valid_start, valid_end = _lookup_valid_range(dataset, trial_idx)
@@ -192,7 +192,7 @@ def build_finetune_bundle(model, dataset, trial_idx, config, device,
         recon_cnl = out.recon[0].reshape(C, N, L).detach().cpu().numpy()
 
         metrics = {'recon_mse': float(np.mean((raw_cnl - recon_cnl) ** 2))}
-        metrics.update(QtomeTrainer().epoch_metrics(backbone, out))
+        metrics.update(QletTrainer().epoch_metrics(backbone, out))
 
         bundle = SnapshotBundle(
             x_in=x_in, c_in=c_in, t_in=t_in, vc_in=vc_in, psd_model=backbone,
@@ -233,7 +233,7 @@ _META = ('channel_names', 'patch_len', 'title_suffix', 'event_onset_sec', 'valid
 
 
 def snapshot_numbers(bundle, config):
-    """Everything draw_recon / draw_gallery need, as {name: array} for save_npz: the bundle's signals and the Q-atom gallery readout
+    """Everything draw_recon / draw_gallery need, as {name: array} for save_npz: the bundle's signals and the qlet gallery readout
     (the only part that runs the model)."""
     pp = config.get('preprocess_params', {})
     fs = pp.get('sample_freq')
@@ -288,7 +288,7 @@ def draw_recon(bundle, config, out_dir):
 
 
 def draw_gallery(bundle, config, out_dir, cmap='YlOrRd'):
-    """Q-atom gallery for one trial: whole-trial raw/recon PSD, then per Q-atom its topography, PSD,
+    """Qlet gallery for one trial: whole-trial raw/recon PSD, then per qlet its topography, PSD,
     phase and waveform."""
     viz_dir = out_dir
     os.makedirs(viz_dir, exist_ok=True)
@@ -308,7 +308,7 @@ def draw_gallery(bundle, config, out_dir, cmap='YlOrRd'):
 
     # Whole-trial raw/recon PSD -- same FFT settings as the gallery's own per-atom PSD
     # (freq_resolution=fft_resolution drives both), so the header row is directly
-    # comparable to the Q-atom rows below it. n_fft must match extract_atom_gallery's
+    # comparable to the qlet rows below it. n_fft must match extract_atom_gallery's
     # own n_fft (round(fs/fft_resolution)); rfft's n= transparently
     # zero-pads a short trial or truncates a long one to match.
     raw_t   = bundle.raw_t[0].numpy()

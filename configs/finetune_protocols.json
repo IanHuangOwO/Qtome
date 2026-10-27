@@ -1,5 +1,5 @@
 {
-  "_comment": "Shared evaluation protocols (every model): name -> split block (IO/splits.py SPLITS), plus _dataset_split per-dataset settings applied on top. Tuned with Qtome's heads on the DEV sets BNCI2015001 (MI) / BNCI2014009 (P300); never retune per backbone. Each model keeps its own per-protocol training settings: Qtome's head and optimiser in configs/Qtome/protocol_heads.json (its history in that file's _comment), baselines' in configs/<Name>/settings.json.",
+  "_comment": "Shared evaluation protocols (every model): name -> split block (IO/splits.py SPLITS), plus _dataset_split per-dataset settings applied on top. Tuned with Qlet's heads on the DEV sets BNCI2015001 (MI) / BNCI2014009 (P300); never retune per backbone. Each model keeps its own per-protocol training settings: Qlet's head and optimiser in configs/Qlet/protocol_heads.json (its history in that file's _comment), baselines' in configs/<Name>/settings.json.",
   "mi_loso": {
     "type": "loso",
     "sessions": [

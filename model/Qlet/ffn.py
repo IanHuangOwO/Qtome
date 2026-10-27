@@ -96,7 +96,7 @@ class MoEFFN(nn.Module):
 
     @torch.no_grad()
     def _record_health(self, gate_mask):
-        """Same router-health formulas as QtomePretrain.update_head_metrics (entropy of the
+        """Same router-health formulas as QletPretrain.update_head_metrics (entropy of the
         LOAD distribution across routed Experts, entropy of the WITHIN-token gate weights,
         load std) — computed every forward call (cheap, R is small) and stashed on self so
         TSAEncoder.forward can average across all TSABlocks' MoEFFNs into one dashboard
@@ -111,7 +111,7 @@ class MoEFFN(nn.Module):
         # .float() matters here: this runs inside forward(), under autocast during
         # training, so gate_mask is fp16 — 1e-10 underflows to exactly 0.0 in fp16, making
         # log(0+0)=-inf and 0*-inf=NaN for every masked-out (always-present) entry, which
-        # _ema_update's NaN-guard then silently skips forever (see QtomePretrain.
+        # _ema_update's NaN-guard then silently skips forever (see QletPretrain.
         # update_head_metrics's gate_routed.detach().float().clamp(...) for the same fix
         # applied to the SAE Filter router's equivalent metric).
         gm = gate_mask.float().clamp(min=0)

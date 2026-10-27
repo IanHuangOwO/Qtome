@@ -1,9 +1,9 @@
-"""ASR in the Q-atom space (panel task_filter_atom_asr): per Q-atom, the clean covariance over channels of its gains (a and b of every patch) gives
+"""ASR in the qlet space (panel task_filter_atom_asr): per qlet, the clean covariance over channels of its gains (a and b of every patch) gives
 components and their clean rms; a component whose rms over a window's patches exceeds cutoff x its clean rms is set to zero for that atom and window."""
 import torch
 
 
-def _per_atom(g):                                                          # [B, N, C, S, 2] -> [S, B, 2N, C]: the [C] vectors of every patch's a and b, per Q-atom
+def _per_atom(g):                                                          # [B, N, C, S, 2] -> [S, B, 2N, C]: the [C] vectors of every patch's a and b, per qlet
     B, N, C, S, _ = g.shape
     return g.permute(3, 0, 1, 4, 2).reshape(S, B, N * 2, C).double()
 
@@ -17,7 +17,7 @@ def fit(g):
 
 
 def apply(g, model, cutoff):
-    """-> (gains with the outlying components of every Q-atom zeroed, share of components removed per window [B])."""
+    """-> (gains with the outlying components of every qlet zeroed, share of components removed per window [B])."""
     V, sd = model; B, N, C, S, _ = g.shape
     comp = _per_atom(g) @ V[:, None]                                              # [S, B, 2N, C]
     bad = comp.pow(2).mean(2) > (cutoff * sd[:, None, :]) ** 2             # [S, B, C]

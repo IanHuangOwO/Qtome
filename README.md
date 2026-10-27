@@ -71,20 +71,20 @@ python cache_dataset.py --config configs/compile.json            # --dataset NAM
 
 # 2. Pretrain a backbone
 mkdir -p configs/runs/<backbone>
-cp configs/Qtome/pretrain.template.json configs/runs/<backbone>/pretrain.json   # set model_name, output_path,
+cp configs/Qlet/pretrain.template.json configs/runs/<backbone>/pretrain.json   # set model_name, output_path,
 #                                                            window_fraction (tiny 0.05 / small 0.2)
 python train_pretrain.py --config configs/runs/<backbone>/pretrain.json
 
 # 3. Finetune a head on the frozen backbone (the feature cache is built on first use)
-cp configs/Qtome/finetune.template.json configs/runs/<backbone>/finetune/<head>/<dataset>_<split>.json
+cp configs/Qlet/finetune.template.json configs/runs/<backbone>/finetune/<head>/<dataset>_<split>.json
 #    set pretrained_checkpoint, output_path, protocol / split in the copy
 python train_finetune.py --config configs/runs/<backbone>/finetune/<head>/<dataset>_<split>.json
 
 # Any config value can be overridden on the command line (dotted path, JSON value)
-python train_finetune.py --config <cfg> --set model_params.Qtome.finetune.spatial_k=8
+python train_finetune.py --config <cfg> --set model_params.Qlet.finetune.spatial_k=8
 
 # Experiments: a sweep file -> queue plan; run_queue runs it resumably, a few jobs at a time
-python -m tools.misc.sweep configs/Qtome/sweeps/<sweep>.json > output/queue/<plan>.plan
+python -m tools.misc.sweep configs/Qlet/sweeps/<sweep>.json > output/queue/<plan>.plan
 python -m tools.misc.run_queue output/queue/<plan>.plan --max-parallel 2 --threads 8
 
 # Analysis
@@ -92,14 +92,14 @@ python analyze.py list                                            # every panel
 python analyze.py pretrain --run <backbone> [--preset quick] [--panel <name> ...] [--redraw]
 python analyze.py pretrain --panel profile [--train]              # parameter counts + timing
 python analyze.py group --group base=<backbone> --group X=<backbone> --ref base
-python -m panels.group.summary 'output/Qtome/<backbone>/finetune/<head>/*'
+python -m panels.group.summary 'output/Qlet/<backbone>/finetune/<head>/*'
 ```
 
 The files in `configs/*.template.json` are starting points and are never run directly. Real run
 configs go in `configs/runs/`, which is git-ignored because every run saves its effective config
 in `output/.../artifacts/config.json`. See `configs/README.md`.
 
-**Finetune.** A head is a list of feature entries (`model_params.Qtome.finetune.features`), each
+**Finetune.** A head is a list of feature entries (`model_params.Qlet.finetune.features`), each
 with its own spatial filter: qlet-code entries (`atom_power`, `signed_ab`, ...), latent entries
 on the encoder output z (`latent_signed` is the linear probe), and raw-signal baselines. The default head
 reads only the qlets: `atom_power` (MI) and `signed_ab` (signed gains, P300); swapping `signed_ab` for
@@ -112,7 +112,7 @@ reads only the qlets: `atom_power` (MI) and `signed_ab` (signed gains, P300); sw
 ## Outputs
 
 ```
-output/Qtome/<backbone>/          # every Qtome run; archive/ beside the backbones
+output/Qlet/<backbone>/          # every Qlet run; archive/ beside the backbones
   pretrain/
     checkpoint/{best,last}.pth    # prefer last.pth: best.pth locks onto easy curriculum epochs
     artifacts/config.json
@@ -122,8 +122,8 @@ output/Qtome/<backbone>/          # every Qtome run; archive/ beside the backbon
   finetune/<head>/<dataset>_<split>/
     artifacts/group_eval.json     # per-subject balanced accuracy (tail = mean of the last 10 epochs)
 output/EEGNet/finetune/compass/<dataset>_<mode>_seed<k>/   # from-scratch baseline (train_baseline.py)
-output/Qtome/<name>_analysis/       # generated multi-backbone analysis (name = what the backbones' names share) (curated write-ups: docs/reports/)
-output/Qtome/archive/<date>_<topic>/     # superseded experiments, grouped by topic
+output/Qlet/<name>_analysis/       # generated multi-backbone analysis (name = what the backbones' names share) (curated write-ups: docs/reports/)
+output/Qlet/archive/<date>_<topic>/     # superseded experiments, grouped by topic
 ```
 
 ## Repository layout
@@ -133,7 +133,7 @@ output/Qtome/archive/<date>_<topic>/     # superseded experiments, grouped by to
 | `train_pretrain.py`, `train_finetune.py` | Training entry points |
 | `cache_dataset.py`, `cache_feature.py` | Dataset compilation and frozen-backbone feature caching |
 | `analyze.py`, `panels/` | Analysis entry point and its panels: one file per analysis (`panels/pretrain/`, `panels/group/`, `shared/`, `kit/`) |
-| `model/Qtome/` | `embeddings.py`, `ffn.py`, `encoder.py` (`TSABlock`, `TSAEncoder`), `atom_bank.py`, `patches.py`, `head/` (finetune `FeatureHead`, entries, config, `AtomExtractor`), `Qtome.py` (`QtomePretrain`, losses, `FinetuneModel`), `plugin.py` (registry glue, trainer) |
+| `model/Qlet/` | `embeddings.py`, `ffn.py`, `encoder.py` (`TSABlock`, `TSAEncoder`), `atom_bank.py`, `patches.py`, `head/` (finetune `FeatureHead`, entries, config, `AtomExtractor`), `Qlet.py` (`QletPretrain`, losses, `FinetuneModel`), `plugin.py` (registry glue, trainer) |
 | `model/` | Plugin base classes and `factory.py` (`MODEL_REGISTRY`, `build_from_checkpoint`) |
 | `IO/` | Loading, preprocessing (windowing, patching, normalization), masking |
 | `datas/pretrain/`, `datas/finetune/` | One folder per dataset: `loader.py`, `metadata.json`, git-ignored `raw/` and `cache/` |

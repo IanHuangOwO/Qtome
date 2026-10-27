@@ -2,9 +2,9 @@
 import torch
 import torch.nn as nn
 
-from model.Qtome.head.pooling import spatial_mix, PerAtomSpatial, FlatTimePool, LearnedTimePool
-from model.Qtome.head.config import feature_names, resolve_head_config, _entry_cfg, needs_atom, needs_raw, _entry_dim, feature_dim
-from model.Qtome.head.entries import ENTRY_TYPES
+from model.Qlet.head.pooling import spatial_mix, PerAtomSpatial, FlatTimePool, LearnedTimePool
+from model.Qlet.head.config import feature_names, resolve_head_config, _entry_cfg, needs_atom, needs_raw, _entry_dim, feature_dim
+from model.Qlet.head.entries import ENTRY_TYPES
 
 
 def _selfcheck_head_modules():
@@ -55,7 +55,7 @@ def _selfcheck_head_modules():
     ph = FeatureHead(ps)
     x = torch.randn(2, 8, 6, S, 2)
     assert ph({'atom': x}).shape == (2, 3)
-    W = ph.spatials['atom_power'].weight                        # [S, K, C]: Q-atom s mixed by its own filters only
+    W = ph.spatials['atom_power'].weight                        # [S, K, C]: qlet s mixed by its own filters only
     ref = torch.stack([x[..., s, 0] @ W[s].T for s in range(S)], -1)
     assert torch.allclose(ph.spatials['atom_power'](x[..., 0]), ref, atol=1e-5)
 
@@ -83,7 +83,7 @@ class FeatureHead(nn.Module):
                                  nn.Linear(n_feat, cfg['num_classes']))
 
     def forward(self, inp):
-        """inp: {'raw': [B, C, N', L] or absent, 'Q-atom': [B, N', C, S, 2] or absent}."""
+        """inp: {'raw': [B, C, N', L] or absent, 'Qlet': [B, N', C, S, 2] or absent}."""
         # Feature math in fp32: under autocast, squared amplitudes overflow in fp16 and the 1e-12
         # epsilon rounds to 0 (NaN loss). The readout stays outside, as before.
         with torch.autocast(device_type=next(iter(inp.values())).device.type, enabled=False):

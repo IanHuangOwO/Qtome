@@ -3,8 +3,8 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from model.Qtome.embeddings import FoPE, _rotate_half
-from model.Qtome.ffn import MoEFFN
+from model.Qlet.embeddings import FoPE, _rotate_half
+from model.Qlet.ffn import MoEFFN
 
 
 class TSABlock(nn.Module):
@@ -70,7 +70,7 @@ class TSABlock(nn.Module):
         self.scale_ffn = nn.Parameter(torch.full((dim,), layerscale_init))
 
         # Both cross-patch (temporal, global context pooled over all N) and cross-channel
-        # (spatial) mixing default off — Qtome's tokenizer stage trains the SAE on
+        # (spatial) mixing default off — Qlet's tokenizer stage trains the SAE on
         # patch-local features only, so the frozen dictionary can't leak already-seen
         # context into masked-stage reconstruction targets. Both out_proj-equivalents are
         # zero-inited so enabling later starts as a no-op and grows in under gradient,

@@ -8,10 +8,10 @@ from sklearn.linear_model import RidgeClassifier
 from sklearn.model_selection import GridSearchCV, LeaveOneGroupOut
 from sklearn.metrics import balanced_accuracy_score
 
-from model.Qtome.finetune.feature_cache import CachedAtomDataset, get_atom_cache
+from model.Qlet.finetune.feature_cache import CachedAtomDataset, get_atom_cache
 from IO.splits import load_sessions
 from panels.shared.ridge import ALPHAS, _pca_axes
-from model.Qtome.finetune.protocol import apply_protocol
+from model.Qlet.finetune.protocol import apply_protocol
 
 
 
@@ -39,7 +39,7 @@ def coord_robustness(config, checkpoint, out_path, n_pca=8, transforms=COORD_TRA
             cfg['dataset_params']['finetune'] = {ds: args}
             cfg['training_params']['finetune'] = {'pretrained_checkpoint': checkpoint, 'protocol': proto,
                                                   'split': {'type': 'loso'}}
-            cfg['model_params'].setdefault('Qtome', {}).setdefault('finetune', {})
+            cfg['model_params'].setdefault('Qlet', {}).setdefault('finetune', {})
             cfg = apply_protocol(cfg)
             data = CachedAtomDataset(get_atom_cache(cfg, ds, subs, latent='output'), subs)
             return cfg, args, data

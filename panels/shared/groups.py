@@ -1,6 +1,6 @@
 """Groups of backbones for the group stage: a group name is '<recipe>_s<seed>' (free_s1, fixed_s2) or a bare 's1'; the recipe is the name without its seed,
 so several recipes can be compared in one run (--group free_s1=bb --group free_s2=bb --group fixed_s1=bb ...). The new group panels read the numbers the
-pretrain panels saved under each backbone (output/Qtome/<backbone>/pretrain/analysis/...) and give mean +- SE over the seeds of each recipe."""
+pretrain panels saved under each backbone (output/Qlet/<backbone>/pretrain/analysis/...) and give mean +- SE over the seeds of each recipe."""
 import os
 import re
 
@@ -8,7 +8,7 @@ import textwrap
 
 import numpy as np
 
-from IO.config import QTOME_OUTPUT
+from IO.config import QLET_OUTPUT
 
 PALETTE = ('#2a78d6', '#eb6834', '#1baf7a', '#9a5fd0', '#eda100', '#888888')
 
@@ -27,7 +27,7 @@ def recipes(groups):
 
 
 def numbers_path(bb, *parts):
-    return os.path.join(QTOME_OUTPUT, bb, 'pretrain', 'analysis', *parts)
+    return os.path.join(QLET_OUTPUT, bb, 'pretrain', 'analysis', *parts)
 
 
 def load_all(groups, loader, *parts):
@@ -67,34 +67,34 @@ def grouped_bars(ax, labels, series, colors, width=0.8, **kw):
 
 
 def own_numbers(ctx, group, name):
-    """A single backbone's finetune-side numbers, kept with the backbone: output/Qtome/<backbone>/finetune/_analysis/<head>/<name>
+    """A single backbone's finetune-side numbers, kept with the backbone: output/Qlet/<backbone>/finetune/_analysis/<head>/<name>
     (not inside finetune/<head>/, whose subfolders are the finetune cells)."""
-    path = os.path.join(QTOME_OUTPUT, ctx.groups[group], 'finetune', '_analysis', ctx.head, name)
+    path = os.path.join(QLET_OUTPUT, ctx.groups[group], 'finetune', '_analysis', ctx.head, name)
     os.makedirs(os.path.dirname(path), exist_ok=True)
     return path
 
 
 def own_figure(ctx, group, name):
-    """A single backbone's finetune-side figure: output/Qtome/<backbone>/analysis/finetune/<head>/<name> (next to its training dashboards)."""
-    path = os.path.join(QTOME_OUTPUT, ctx.groups[group], 'analysis', 'finetune', ctx.head, name)
+    """A single backbone's finetune-side figure: output/Qlet/<backbone>/analysis/finetune/<head>/<name> (next to its training dashboards)."""
+    path = os.path.join(QLET_OUTPUT, ctx.groups[group], 'analysis', 'finetune', ctx.head, name)
     os.makedirs(os.path.dirname(path), exist_ok=True)
     return path
 
 
 METHOD_TEXT = {
-    'backbone64': 'reconstruction through the encoder and all Q-atoms, nothing removed (the cost of the model itself)',
+    'backbone64': 'reconstruction through the encoder and all qlets, nothing removed (the cost of the model itself)',
     'multi-task 0.5': 'task filter keeping the 50% of the signal that the motor-imagery, P300 and SSVEP heads use',
     'multi-task 0.1': 'task filter keeping only the 10% of the signal the heads use most',
-    'atoms -eye': 'reconstruction without the Q-atoms whose top ICLabel class is eye',
-    'atoms -muscle': 'without the Q-atoms labelled muscle',
-    'atoms -line': 'without the Q-atoms labelled line noise or channel noise',
-    'atoms -artifacts': 'without every Q-atom labelled eye, muscle, heart, line noise or channel noise',
-    'atoms -brain': 'without the Q-atoms labelled brain (negative control: it should damage the brain signal)',
-    'atoms brain only': 'keeps only the Q-atoms labelled brain',
+    'atoms -eye': 'reconstruction without the qlets whose top ICLabel class is eye',
+    'atoms -muscle': 'without the qlets labelled muscle',
+    'atoms -line': 'without the qlets labelled line noise or channel noise',
+    'atoms -artifacts': 'without every qlet labelled eye, muscle, heart, line noise or channel noise',
+    'atoms -brain': 'without the qlets labelled brain (negative control: it should damage the brain signal)',
+    'atoms brain only': 'keeps only the qlets labelled brain',
     'ASR': 'artifact subspace reconstruction, calibrated on the same patient\'s clean windows',
     'ICLabel': 'ICA, then components labelled as artifact by ICLabel are removed',
-    'ASR atoms 1.5': 'ASR on the Q-atom gains: per atom, channel components stronger than 1.5 x the patient\'s clean rms are set to zero',
-    'ASR atoms 1.5 + atoms -line': 'that ASR, then without the Q-atoms labelled line noise or channel noise',
+    'ASR atoms 1.5': 'ASR on the qlet gains: per atom, channel components stronger than 1.5 x the patient\'s clean rms are set to zero',
+    'ASR atoms 1.5 + atoms -line': 'that ASR, then without the qlets labelled line noise or channel noise',
 }
 
 

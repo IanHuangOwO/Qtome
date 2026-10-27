@@ -22,8 +22,8 @@ def add_args(flags):
 @torch.no_grad()
 def accumulate_atom_ab(model, pretrain_dataset, trial_indices, device, max_atoms=30):
     """Runs the frozen tokenizer (no masking) over pretrain_dataset[trial_indices] and collects every
-    (patch, channel)'s post-rms (a, b) pair per Q-atom (AtomBank's quadrature gain). Returns
-    {atom_id: (a [n], b [n])} np.ndarray pairs for the max_atoms Q-atoms with the largest mean
+    (patch, channel)'s post-rms (a, b) pair per qlet (AtomBank's quadrature gain). Returns
+    {atom_id: (a [n], b [n])} np.ndarray pairs for the max_atoms qlets with the largest mean
     amplitude, in that order."""
     was_training = model.training
     model.eval()
@@ -44,7 +44,7 @@ def accumulate_atom_ab(model, pretrain_dataset, trial_indices, device, max_atoms
 
 def plot_atom_ab_violin(out_path, atom_ab, title=''):
     """4-row violin grid (a, b, amp=sqrt(a^2+b^2), phase=atan2(b,a)) -- one violin per
-    Q-atom id, x-axis ordered by mean amplitude (accumulate_atom_ab's
+    qlet id, x-axis ordered by mean amplitude (accumulate_atom_ab's
     accumulate_atom_ab already ranks/caps atom_ab that way). atom_ab: {atom_id: (a
     [n], b [n])} np.ndarray pairs."""
     ids = list(atom_ab.keys())

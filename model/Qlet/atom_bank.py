@@ -1,4 +1,4 @@
-"""The static Q-atom dictionary: every Q-atom active at every patch, each reconstructing a patch as a*D + b*H (D a template, H its quadrature partner)."""
+"""The static qlet dictionary: every qlet active at every patch, each reconstructing a patch as a*D + b*H (D a template, H its quadrature partner)."""
 import math
 from types import SimpleNamespace
 
@@ -9,17 +9,17 @@ import torch.nn.functional as F
 
 class AtomBank(nn.Module):
     """
-    Static Q-atom dictionary over CHANNEL-GROUPED tokens: input is [G, C, D] where each group g is one
-    patch POSITION (G = B*N) carrying all C channels' embeddings for that moment. Every Q-atom is active
+    Static qlet dictionary over CHANNEL-GROUPED tokens: input is [G, C, D] where each group g is one
+    patch POSITION (G = B*N) carrying all C channels' embeddings for that moment. Every qlet is active
     at every position; amplitude is read per channel. The instantaneous-mixing ICA picture made
     structural: x_c(t) = sum_s A[c, s] * source_s(t) -- D_hat_s is source s's waveform, and the [C]
-    vector of a Q-atom's per-channel amps IS that source's mixing column (its topomap at that patch
-    time). Routed (top-k) Q-atoms were removed (`routed-stamps` branch).
+    vector of a qlet's per-channel amps IS that source's mixing column (its topomap at that patch
+    time). Routed (top-k) qlets were removed (`routed-stamps` branch).
 
     phi_s(z_c) = rms_c * (a_s(z_c) * D_hat_s + b_s(z_c) * Hilbert(D_hat_s)): a fixed per-atom waveform
     TEMPLATE D_s (no z dependence, used UNIT-L2-NORMALIZED everywhere -- with a free-norm D, amp*D has
     a scale degeneracy) plus its DERIVED Hilbert quadrature partner (see _quadrature), combined by a
-    per-CHANNEL gain pair (a, b) from the Q-atom's own small MLP on z -- amplitude sqrt(a^2+b^2), phase
+    per-CHANNEL gain pair (a, b) from the qlet's own small MLP on z -- amplitude sqrt(a^2+b^2), phase
     atan2(b, a) -- times that channel's raw-input RMS (the LayerNorm stack erases amplitude from z, so
     the gain multiplies it back in). Shape is a pure parameter and amplitude/phase the only
     z-dependent knobs, so "same waveform, different amplitude across channels" is structural
@@ -45,7 +45,7 @@ class AtomBank(nn.Module):
         self.w_amp = nn.Parameter(torch.empty(n_atoms, hidden_width, 2))
         self.b_amp = nn.Parameter(torch.zeros(n_atoms, 2))
         nn.init.kaiming_uniform_(self.w_amp, a=math.sqrt(5))
-        # D_s: the Q-atom's waveform template, used unit-normalized; the raw parameter's norm is irrelevant.
+        # D_s: the qlet's waveform template, used unit-normalized; the raw parameter's norm is irrelevant.
         self.D = nn.Parameter(torch.randn(n_atoms, patch_len) * 0.02)
 
     def _amp(self, z):
@@ -79,7 +79,7 @@ class AtomBank(nn.Module):
     def decode(self, amp):
         """amp: [G, C, n_atoms, 2] per-channel gains WITH rms (forward()'s out.amp) -> per-atom
         contribution [G, C, n_atoms, patch_len] = a*D_hat + b*H_hat, unsummed (forward's recon is its
-        sum over Q-atoms). Pure re-expansion, no model re-evaluation."""
+        sum over qlets). Pure re-expansion, no model re-evaluation."""
         D, H = self.templates()
         return amp[..., 0, None] * D + amp[..., 1, None] * H
 
@@ -95,13 +95,13 @@ class AtomBank(nn.Module):
         z: [G, C, D] channel-grouped token embeddings (G = B*N patch positions), rms: [G, C, 1] per-channel
         raw-input RMS or None -- multiplied into every amp; callers running the real pipeline always pass it.
         valid_channels: [G, C] bool (True = real channel) or None -- excludes zero-padded channels from h;
-        padded channels still decode. rank: also return every Q-atom's decoded content in per-patch strength
-        order (the nested reconstruction loss, QtomePretrain._recon_loss).
+        padded channels still decode. rank: also return every qlet's decoded content in per-patch strength
+        order (the nested reconstruction loss, QletPretrain._recon_loss).
 
         Returns recon [G, C, patch_len], amp [G, C, n_atoms, 2] (per-channel (a, b), rms included -- a
-        Q-atom's [C] magnitude column is its phase-invariant topomap at this patch time), h [G, n_atoms]
+        qlet's [C] magnitude column is its phase-invariant topomap at this patch time), h [G, n_atoms]
         (post-rms amp magnitude averaged over valid channels: reconstruction-energy importance, the rank
-        order) and ranked ([G, C, n_atoms, patch_len], strongest Q-atom first per patch; None unless rank).
+        order) and ranked ([G, C, n_atoms, patch_len], strongest qlet first per patch; None unless rank).
         """
         G, C, _ = z.shape
         amp = self._amp(self.input_norm(z))                                 # [G, C, S, 2]
@@ -118,8 +118,8 @@ class AtomBank(nn.Module):
         D, H = self.templates()
         recon = torch.einsum('gck,kl->gcl', amp[..., 0], D) + torch.einsum('gck,kl->gcl', amp[..., 1], H)
 
-        # Ranked per patch by h, not by Q-atom index (a fixed global hierarchy): the nested loss's sets are each
-        # patch's strongest k Q-atoms (docs/adr/0018, adopted 2026-10-17; it replaced the MP residual loss).
+        # Ranked per patch by h, not by qlet index (a fixed global hierarchy): the nested loss's sets are each
+        # patch's strongest k qlets (docs/adr/0018, adopted 2026-10-17; it replaced the MP residual loss).
         ranked = None
         if rank:
             contrib = self.decode(amp)                                      # [G, C, S, L]

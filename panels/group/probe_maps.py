@@ -13,7 +13,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import torch
 
-from IO.config import QTOME_OUTPUT
+from IO.config import QLET_OUTPUT
 from IO.channels import resolve_canonical_channels
 from panels.core.numbers import load_npz, save_npz
 from panels.kit.channels import mirror_order
@@ -89,7 +89,7 @@ def compute(ctx):
             continue
         note = ''.join(sorted(n for n in notes if n))
         chans = resolve_canonical_channels(cfg['preprocess_params']['canonical_channels'])
-        hc = torch.load(glob.glob(f'{QTOME_OUTPUT}/{next(iter(ctx.groups.values()))}/finetune/{ctx.head}/{cell}*/finetune/run_*/head.pth')[0],
+        hc = torch.load(glob.glob(f'{QLET_OUTPUT}/{next(iter(ctx.groups.values()))}/finetune/{ctx.head}/{cell}*/finetune/run_*/head.pth')[0],
                         map_location='cpu', weights_only=False)['head_config']
         names = [chans[i] for i in hc['channel_idx']]
         arrays = {}

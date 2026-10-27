@@ -1,18 +1,18 @@
 # Adding a new model
 
-**Two kinds of model live under `model/`.** A *pretrained backbone* (Qtome) follows the plugin protocol below and is registered in
+**Two kinds of model live under `model/`.** A *pretrained backbone* (Qlet) follows the plugin protocol below and is registered in
 `model/factory.py`. A *from-scratch baseline* (EEGNet) has no backbone and no plugin: put the architecture in `model/<Name>/<Name>.py`
 (citation at the top, an assert-based `_selfcheck()`), register the class in `train_baseline.py`'s `BASELINES`, and give it
 `configs/<Name>/settings.json` (training and preprocessing settings per split mode, per-dataset overrides marked published or ours).
 `train_baseline.py` runs it through the same caches, protocol splits (`IO/splits.py` `make_runs`) and `group_eval.json` format as a
-Qtome cell. Feed it microvolts: the caches store volts.
+Qlet cell. Feed it microvolts: the caches store volts.
 
 ## A pretrained backbone
 
 Read `docs/adr/0004-model-plugin-base-classes.md` first. **The rule:** a new backbone touches only files under `model/<Name>/`, one
 line in `model/factory.py`, and its own panels. If you find yourself editing `train_pretrain.py`, `model/pretrain_loop.py` or
 `model/base_trainer.py`, stop: either the model needs a real contract change (discuss first) or it is being solved the wrong way.
-Qtome is the only model today, so this protocol has been exercised once; correct it when a second backbone is added.
+Qlet is the only model today, so this protocol has been exercised once; correct it when a second backbone is added.
 
 What the shared training loop (`train_pretrain.py` + `model/pretrain_loop.py`) needs from a model:
 
@@ -28,8 +28,8 @@ class NamePretrain(nn.Module):
     def enter_masked_phase(self, freeze_atoms=True): ...   # at the first masked epoch (epoch 1 when tokenizer_epochs = 0)
 ```
 
-The phase is a persisted buffer (Qtome: `masked_phase`) restored by a `load_state_dict` hook, so a checkpoint loaded for analysis or
-finetuning comes back in the phase it was saved in. `time_idx` is passed but Qtome ignores it. Give the model `patch_len` and
+The phase is a persisted buffer (Qlet: `masked_phase`) restored by a `load_state_dict` hook, so a checkpoint loaded for analysis or
+finetuning comes back in the phase it was saved in. `time_idx` is passed but Qlet ignores it. Give the model `patch_len` and
 `patch_stride` attributes if the shared panels are to work on it.
 
 ### 2. The plugin: `model/<Name>/plugin.py`
@@ -47,13 +47,13 @@ class NameTrainer(BaseTrainer):                      # model/base_trainer.py
 PLUGIN = BasePlugin(build=build_model, trainer_cls=NameTrainer)   # model/base_plugin.py
 ```
 
-`model/Qtome/plugin.py` is the reference example.
+`model/Qlet/plugin.py` is the reference example.
 
 ### 3. Register: `model/factory.py`
 
 ```python
 from model.Name.plugin import PLUGIN as NAME_PLUGIN
-MODEL_REGISTRY = {'Qtome': QTOME_PLUGIN, 'Name': NAME_PLUGIN}
+MODEL_REGISTRY = {'Qlet': QLET_PLUGIN, 'Name': NAME_PLUGIN}
 ```
 
 A pretrain checkpoint stores its `build_config` (`checkpoint_build_config`); `build_from_checkpoint` rebuilds the backbone from it, never from
@@ -62,14 +62,14 @@ an editable config, so an architecture change does not break old checkpoints as 
 ### 4. Config
 
 Add `model_params.<Name>.pretrain` (architecture, and a `loss` block whose keys reach `compute_loss` as `**hparams`) and set
-`training_params.pretrain.model_type` to `"<Name>"`. Copy `configs/Qtome/pretrain.template.json` for the rest (corpus, masking, optimiser).
+`training_params.pretrain.model_type` to `"<Name>"`. Copy `configs/Qlet/pretrain.template.json` for the rest (corpus, masking, optimiser).
 
 ### 5. Finetuning and analysis
 
-- **Finetuning is Qtome's.** `train_finetune.py` freezes a backbone and trains a `FeatureHead` on its Q-atom codes (`model/Qtome/head/`,
-  `model/Qtome/finetune/`). A backbone with a different readout needs its own head code and entry point: there is no generic finetune hook.
+- **Finetuning is Qlet's.** `train_finetune.py` freezes a backbone and trains a `FeatureHead` on its qlet codes (`model/Qlet/head/`,
+  `model/Qlet/finetune/`). A backbone with a different readout needs its own head code and entry point: there is no generic finetune hook.
 - **Analysis is panels, not plugin hooks** (`docs/agents/adding-a-panel.md`). The snapshot panels call `model(...)` generically, so they work
-  as they are; the codebook and the dashboard layouts read Qtome's `encode_atoms` and history keys, so a model with another readout
+  as they are; the codebook and the dashboard layouts read Qlet's `encode_atoms` and history keys, so a model with another readout
   adds its own panel files beside them.
 
 ### 6. Verify
@@ -81,7 +81,7 @@ There is no test suite; verify by hand.
 python -c "
 import json
 from model.factory import build_pretrain_from_config
-cfg = json.load(open('configs/Qtome/pretrain.template.json'))
+cfg = json.load(open('configs/Qlet/pretrain.template.json'))
 cfg['training_params']['pretrain']['model_type'] = 'Name'
 m = build_pretrain_from_config(cfg); print(type(m).__name__, sum(p.numel() for p in m.parameters()))"
 

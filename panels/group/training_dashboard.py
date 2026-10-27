@@ -3,16 +3,16 @@ backbones under --head (<cell>/finetune/run_<fold>/history.json) -> <backbone>/a
 import glob
 import os
 
-from IO.config import QTOME_OUTPUT
+from IO.config import QLET_OUTPUT
 from model.history import History
-from panels.shared.dashboard import QtomeDashboard
+from panels.shared.dashboard import QletDashboard
 
 PRESETS = set()
 
 
 def draw(ctx):
     for bb in ctx.groups.values():
-        for path in sorted(glob.glob(f'{QTOME_OUTPUT}/{bb}/finetune/{ctx.head}/*/finetune/run_*/history.json')):
+        for path in sorted(glob.glob(f'{QLET_OUTPUT}/{bb}/finetune/{ctx.head}/*/finetune/run_*/history.json')):
             parts = path.split(os.sep); cell, fold = parts[-4], parts[-2]
-            out = f'{QTOME_OUTPUT}/{bb}/analysis/finetune/{ctx.head}/{cell}'
-            QtomeDashboard(output_dir=out, history=History.load(path)).plot_finetune(filename=f'{fold}_training_dashboard.png')
+            out = f'{QLET_OUTPUT}/{bb}/analysis/finetune/{ctx.head}/{cell}'
+            QletDashboard(output_dir=out, history=History.load(path)).plot_finetune(filename=f'{fold}_training_dashboard.png')

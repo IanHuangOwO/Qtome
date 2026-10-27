@@ -1,7 +1,7 @@
 """Tests of a task filter (panels/shared/task_filter/fit.py) on a dataset it never saw, run by the task_filter_eval and task_filter_compare panels. The target
 is encoded with its missing channels imputed, the whole 64-channel filter is applied and the target's real channels
 are read out. Every test compares the filter with 'matched q': the 64-channel reconstruction filtered (zero phase) to
-the filter output's mean power spectrum, so the same frequencies are removed with no channel or Q-atom choice.
+the filter output's mean power spectrum, so the same frequencies are removed with no channel or qlet choice.
   mi     motor-imagery target. Signals: raw; band 8-30 Hz; backbone (the reconstruction from the cached gains of the
          real channels); backbone64 (from the 64-channel encoding, no filter: what the imputation alone changes);
          full64 q; matched q. Scores: change (relative RMS difference to raw), kept (power against backbone), effect

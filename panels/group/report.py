@@ -16,7 +16,7 @@ import os
 import numpy as np
 from scipy import stats
 
-from IO.config import QTOME_OUTPUT
+from IO.config import QLET_OUTPUT
 from panels.shared.finetune_runs import load
 from panels.shared.tables import write_csv
 
@@ -30,7 +30,7 @@ MSE_REL = 0.05                 # an MSE is "better" only when >= 5% lower (vs th
 
 
 def scores(bb, head, cell):
-    return load(f'{QTOME_OUTPUT}/{bb}/finetune/{head}/{cell}', 'tail') or {}
+    return load(f'{QLET_OUTPUT}/{bb}/finetune/{head}/{cell}', 'tail') or {}
 
 
 def paired(a, b):
@@ -52,7 +52,7 @@ def holm(ps):
 
 
 def backbone_eval(bb):
-    p = f'{QTOME_OUTPUT}/{bb}/pretrain/analysis/backbone_eval.json'
+    p = f'{QLET_OUTPUT}/{bb}/pretrain/analysis/backbone_eval.json'
     return json.load(open(p)) if os.path.exists(p) else None
 
 
@@ -175,7 +175,7 @@ def backbone_tables(groups):
     structure, per group of backbones (averaged over a group's seeds), from each backbone_eval.json."""
     print('\n## Backbone eval (held-out windows, identical masks; lower MSE is better)')
     evals = {g: [json.load(open(p)) for b in bbs
-                 if os.path.exists(p := f'{QTOME_OUTPUT}/{b}/pretrain/analysis/backbone_eval.json')] for g, bbs in groups.items()}
+                 if os.path.exists(p := f'{QLET_OUTPUT}/{b}/pretrain/analysis/backbone_eval.json')] for g, bbs in groups.items()}
     kinds = ['token_runs', 'random_channel', 'channel_cluster', 'time_block', 'motor3_to_bci22']
     print(f'  {"test mask":17} {"windows":7}' + ''.join(f' | {g:>22}' for g in evals))
     for k in kinds:

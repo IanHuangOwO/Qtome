@@ -1,9 +1,9 @@
 """atom_maps: where a head with a atom_power entry reads from, per cell and group (a latent_signed entry of the same head, if any, is drawn
-on top: virtual channel x time and spatial filters, as probe_maps; a signed_ab entry is drawn on top in Q-atom space instead -- Q-atom x
-time, gain-scaled, scalp maps of its top Q-atoms): each Q-atom's learned time weights (Q-atoms ranked by decision importance, labelled
-with their template's peak frequency) and, for the most important Q-atoms, which electrodes' power the decision uses, over every fold and
+on top: virtual channel x time and spatial filters, as probe_maps; a signed_ab entry is drawn on top in qlet space instead -- qlet x
+time, gain-scaled, scalp maps of its top qlets): each qlet's learned time weights (Qlets ranked by decision importance, labelled
+with their template's peak frequency) and, for the most important qlets, which electrodes' power the decision uses, over every fold and
 finetune seed of the cell -> atom_maps_<cell>_<group>.png. Run it with --head <a label whose head has atom_power>, e.g. combined or
-cw_atom. One figure per group: Q-atoms are each backbone's own dictionary, not comparable across."""
+cw_atom. One figure per group: qlets are each backbone's own dictionary, not comparable across."""
 import glob
 import json
 import os
@@ -17,8 +17,8 @@ import torch
 
 from IO.channels import resolve_canonical_channels
 from IO.channels import get_standard_coords
-from model.factory import build_from_checkpoint
-from model.Qtome.finetune.feature_cache import CachedAtomDataset, get_atom_cache
+from model.factory import build_from_checkpoint, legacy_path
+from model.Qlet.finetune.feature_cache import CachedAtomDataset, get_atom_cache
 from panels.core.numbers import load_npz, save_npz
 from panels.kit.channels import mirror_order
 from panels.shared.finetune_runs import cell_names, cell_run_dirs, head_files
@@ -34,7 +34,7 @@ def add_args(flags):
 
 def _atom_block(fig, gs, r0, tw, imp, chan, t_axis, atom_labels, xy, channel_names, event_s, title, cbar_label,
                  top=8, ncol=4):
-    """Two grid rows from r0: Q-atom x time map (rows ranked by importance) and scalp maps of the top Q-atoms."""
+    """Two grid rows from r0: qlet x time map (rows ranked by importance) and scalp maps of the top qlets."""
     order = np.argsort(-imp)
     share = imp / imp.sum()
     dt = (t_axis[1] - t_axis[0]) if len(t_axis) > 1 else 1.0
@@ -65,12 +65,12 @@ def _atom_block(fig, gs, r0, tw, imp, chan, t_axis, atom_labels, xy, channel_nam
 
 def plot_atom_maps(out_path, tw, imp, chan, t_axis, atom_labels, xy, channel_names, title, event_s=None, top=8,
                     z_maps=None, signed_maps=None):
-    """Q-atom-power half of a head (bottom): per-atom time weights (rows = Q-atoms ranked by importance, label = Q-atom,
-    template peak and importance share) and the channel map of the `top` most important Q-atoms on the scalp.
+    """Qlet-power half of a head (bottom): per-atom time weights (rows = qlets ranked by importance, label = qlet,
+    template peak and importance share) and the channel map of the `top` most important qlets on the scalp.
     The same head's signed half, if any, on top on the same time axis:
     z_maps (importance [K, N], spatial [K, C]) of a latent_signed entry -- virtual channel x time and spatial filters
-    (z has no Q-atom axis); signed_maps (importance [S, N], per-atom importance [S], channel map [S, C]) of a signed_ab
-    entry -- drawn in Q-atom space like the power half, so the two halves read side by side."""
+    (z has no qlet axis); signed_maps (importance [S, N], per-atom importance [S], channel map [S, C]) of a signed_ab
+    entry -- drawn in qlet space like the power half, so the two halves read side by side."""
     tw, imp, chan, t_axis, xy = (np.asarray(v) for v in (tw, imp, chan, t_axis, xy))
     ncol = 4
     if signed_maps is not None:
@@ -124,7 +124,7 @@ def plot_atom_maps(out_path, tw, imp, chan, t_axis, atom_labels, xy, channel_nam
 
 
 def _atom_labels(backbone_ckpt, sample_freq):
-    """'s<i> <peak> Hz' per Q-atom, from the backbone's unit templates."""
+    """'s<i> <peak> Hz' per qlet, from the backbone's unit templates."""
     atoms = build_from_checkpoint(torch.load(backbone_ckpt, map_location='cpu', weights_only=False)).atoms
     with torch.no_grad():
         D, _ = atoms.templates()
@@ -155,7 +155,7 @@ def compute(ctx):
             except KeyError:
                 pass
             if any(f['type'] == 'signed_ab' for f in torch.load(heads[0], map_location='cpu', weights_only=False)['head_config']['features']):
-                ds = next(iter(cfg['dataset_params']['finetune']))   # signed_ab half in Q-atom space, gain-scaled
+                ds = next(iter(cfg['dataset_params']['finetune']))   # signed_ab half in qlet space, gain-scaled
                 subs = list(json.load(open(cfg['dataset_params']['finetune'][ds]['dataset_path'] + '/metadata.json'))['data_structure'])
                 amp = CachedAtomDataset(get_atom_cache(cfg, ds, subs), subs).amp
                 s_tw, s_imp, s_chan, _ = summarise_signed_atoms(heads, amp)
@@ -165,7 +165,7 @@ def compute(ctx):
             chans = resolve_canonical_channels(cfg['preprocess_params']['canonical_channels'])
             names = [chans[i] for i in h0['head_config']['channel_idx']]
             xy = np.array([get_standard_coords(c)[:2] for c in names])
-            labels = _atom_labels(h0['backbone_checkpoint'], float(cfg['preprocess_params']['sample_freq']))
+            labels = _atom_labels(legacy_path(h0['backbone_checkpoint']), float(cfg['preprocess_params']['sample_freq']))
             save_npz(ctx.numbers(f'atom_maps_{cell}_{g}.npz'), tw=tw.numpy(), imp=imp.numpy(), chan=chan.numpy(), t=t,
                      labels=np.array(labels), xy=xy, names=np.array(names),
                      title=np.array(f'{cell}, {g} ({bb}): {ctx.head}, {n} heads{note}'),

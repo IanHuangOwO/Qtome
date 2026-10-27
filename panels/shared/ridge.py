@@ -1,5 +1,5 @@
 """Closed-form probe pieces shared by the ridge-probe panels (ridge_probe, atom_vs_raw, coord_robustness): the Compass cells, the
-alpha grid, the PCA of the latent z, and the Q-atom hidden features."""
+alpha grid, the PCA of the latent z, and the qlet hidden features."""
 import numpy as np
 import torch
 import torch.nn.functional as F
@@ -27,8 +27,8 @@ def _atom_bank(checkpoint):
 
 @torch.no_grad()
 def atom_hidden(z, bank, chunk=256):
-    """z [T, N', Cv, D] (the cached encoder output the Q-atoms read) -> Q-atom hidden u [T, N', Cv, S * K]:
-    every Q-atom's MLP hidden GELU(LN(z) W_down_s + b_down_s), Q-atoms concatenated (AtomBank._amp's first map)."""
+    """z [T, N', Cv, D] (the cached encoder output the qlets read) -> qlet hidden u [T, N', Cv, S * K]:
+    every qlet's MLP hidden GELU(LN(z) W_down_s + b_down_s), qlets concatenated (AtomBank._amp's first map)."""
     assert bank.hidden_layers == 1, 'the u probes read the first hidden map of a one-hidden-layer AtomBank'
     out = []
     for c in z.split(chunk):
@@ -40,7 +40,7 @@ def atom_hidden(z, bank, chunk=256):
 @torch.no_grad()
 def token_rms(amp, u, bank):
     """Per-token input rms [T, N', Cv, 1], recovered from the cached amp = (u w_amp + b_amp) * rms by least
-    squares over the Q-atoms (the cache keeps amp and z, not rms)."""
+    squares over the qlets (the cache keeps amp and z, not rms)."""
     out = []
     for a, h in zip(amp.split(256), u.split(256)):
         pre = torch.einsum('tncsk,skj->tncsj', h.unflatten(-1, (bank.W_down.shape[0], -1)), bank.w_amp) + bank.b_amp
@@ -50,8 +50,8 @@ def token_rms(amp, u, bank):
 
 def _features(feature, data, checkpoint):
     """The token features a probe reads [T, N', Cv, F]: 'z' (as cached), 'atom_hidden' (u), 'ln_z' (z after the
-    Q-atom bank's LayerNorm: z without its scale), 'atom_hidden_rms' (u times the token's input rms: scale put
-    back) or 'ab' (the cached signed Q-atom gains a, b, rms included)."""
+    qlet bank's LayerNorm: z without its scale), 'atom_hidden_rms' (u times the token's input rms: scale put
+    back) or 'ab' (the cached signed qlet gains a, b, rms included)."""
     z = data.z.float()
     if feature == 'z':
         return z

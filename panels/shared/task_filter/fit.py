@@ -1,10 +1,10 @@
 """Task filter: a reconstruction that keeps only what classification heads use (analyze.py pretrain task_filter_* panels; history in
 docs/reports/2026-10-14-task-filter.md).
 
-A trained all-atom head reads the Q-atom gains through spatial filters. Per Q-atom, its filters span a channel subspace;
-split into components that are uncorrelated on the training gains, every component cell [patch, component, Q-atom]
+A trained all-atom head reads the qlet gains through spatial filters. Per qlet, its filters span a channel subspace;
+split into components that are uncorrelated on the training gains, every component cell [patch, component, qlet]
 is scored by its class information less chance, the top share of cells is kept whole and the rest removed, and the
-kept components are mapped back to the channels with their patterns. The filter is one operator per Q-atom, time-free
+kept components are mapped back to the channels with their patterns. The filter is one operator per qlet, time-free
 (averaged over the patches), [S, 64, 64] on gains of all 64 canonical channels. It is applied to a recording encoded
 with its missing channels imputed (mask tokens at template coordinates: imputed_encoder) and its real channels are
 read out, so one filter serves any channel layout.
@@ -21,7 +21,7 @@ the backbone's finetune/allatom):
                 absolute    gains scored in each trial's own scale (x the trial's standard deviation, which the model
                             divided by, over the subject's median): with per-trial normalization a target trial's larger
                             P300 made every other band look smaller, a class difference at 50, 60 and 100 Hz
-                power only  Q-atoms above POWER_ONLY_HZ are scored by their log power alone: the 100 Hz Q-atom's
+                power only  qlets above POWER_ONLY_HZ are scored by their log power alone: the 100 Hz qlet's
                             quadrature partner carries part of the slow evoked response in its signed gain
 Importance (for the panel): the class information less chance of every channel cell, summed over patches, mean of the
 folds [64, S] (multi: per source as a share of its total, the maximum over sources)."""
@@ -39,7 +39,7 @@ POWER_ONLY_HZ, N_PER, N_SINGLE = 45, 1000, 3000                           # mult
 
 
 def components(W, amp, shrink=0.05, eps=1e-4):
-    """W [M, C] stacked filters, training gains [B, N, C, S, 2] (or a list of such, one per dataset) -> per Q-atom:
+    """W [M, C] stacked filters, training gains [B, N, C, S, 2] (or a list of such, one per dataset) -> per qlet:
     unmix [S, M, C] (gains -> components that are uncorrelated with unit variance on the training gains), mix [S, M, M]
     (components -> filter outputs), pattern [S, C, M] (components -> channels); M is cut to the number of channels if
     there are fewer channels than filters. The filters themselves are far from orthogonal, and dropping one of two
@@ -67,10 +67,10 @@ def r2(X, y):
 
 def class_info(u, y, chance=True, power_only=None):
     """[N, M, S] class information of every cell of u [B, N, M, S, 2]: R2 of a + of b + of log(a^2 + b^2); chance: each
-    less its chance level (k - 1) / (n - 1) for k classes and n trials, floored at 0. power_only [S] bool: those Q-atoms
+    less its chance level (k - 1) / (n - 1) for k classes and n trials, floored at 0. power_only [S] bool: those qlets
     are scored by their log power alone."""
     f = torch.cat([u, torch.log(u.pow(2).sum(-1, keepdim=True) + 1e-12)], -1).double().numpy(); r = r2(f, y.numpy())
-    if power_only is not None: r[..., np.asarray(power_only), :2] = 0          # [N, M, S, 3]: drop a and b of those Q-atoms
+    if power_only is not None: r[..., np.asarray(power_only), :2] = 0          # [N, M, S, 3]: drop a and b of those qlets
     if chance: r = np.maximum(r - (len(np.unique(y.numpy())) - 1) / (len(y) - 1), 0)   # expected R2 of a feature unrelated to the class
     return torch.from_numpy(r.sum(-1)).float()
 
@@ -106,7 +106,7 @@ def absolute(ds, data):
 
 
 def multi_filter(bb, sources, freqs, rng, shares=SHARES, log=print):
-    """{share: [S, 64, 64]}, importance [64, S]; freqs [S] the Q-atoms' dominant frequencies."""
+    """{share: [S, 64, 64]}, importance [64, S]; freqs [S] the qlets' dominant frequencies."""
     cells = {s: cell_dir(bb, s) for s in sources}
     ge = {s: list(json.load(open(f'{c}/artifacts/group_eval.json')).items()) for s, c in cells.items()}
     n = min(len(v) for v in ge.values()); data, ops, imp = {}, {q: [] for q in shares}, []; po = torch.from_numpy(freqs > POWER_ONLY_HZ)

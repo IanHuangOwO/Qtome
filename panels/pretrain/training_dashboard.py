@@ -3,7 +3,7 @@
 import os
 
 from model.history import History
-from panels.shared.dashboard import QtomeDashboard
+from panels.shared.dashboard import QletDashboard
 
 PRESETS = {'standard'}
 
@@ -13,4 +13,4 @@ def draw(ctx):
     if not os.path.exists(path):
         print(f'  skipped: {path} missing (the run predates history.json; its old dashboard, if kept, is in analysis/)')
         return
-    QtomeDashboard(output_dir=ctx.fig_dir, history=History.load(path)).plot_pretrain()
+    QletDashboard(output_dir=ctx.fig_dir, history=History.load(path)).plot_pretrain()

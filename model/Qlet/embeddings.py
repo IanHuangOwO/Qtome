@@ -84,7 +84,7 @@ class SpatialTemporalEmbeddings(nn.Module):
         # No absolute time term: time enters temporal attention through FoPE (TSAEncoder).
         self.spatial_active = False
         # spatial=False: no coordinate embedding at all (the spatial-embedding ablation; the model
-        # then pairs it with no RelativeSpatialBias either, see QtomePretrain).
+        # then pairs it with no RelativeSpatialBias either, see QletPretrain).
         # bias=False on BOTH linears: a bias on either one is a channel-INDEPENDENT constant the
         # network can add regardless of coords (it collapsed to exactly that before); with no bias
         # anywhere, per-channel variation is the only thing this path can produce.
@@ -101,7 +101,7 @@ class SpatialTemporalEmbeddings(nn.Module):
         B, C, N, L = x.shape
         z = self.proj(x.reshape(B * C, N, L))  # [B*C, N, D]
         if bool_masked_pos is not None:
-            # masked content -> mask_token BEFORE the position terms below (see QtomePretrain)
+            # masked content -> mask_token BEFORE the position terms below (see QletPretrain)
             z = torch.where(bool_masked_pos.reshape(B * C, N, 1), mask_token.reshape(1, 1, -1).to(z.dtype), z)
 
         if coords is not None and self.spatial_active and self.coord_proj is not None:

@@ -10,9 +10,9 @@ import torch.optim as optim
 from sklearn.metrics import balanced_accuracy_score, cohen_kappa_score, f1_score
 
 from IO.preprocessing import num_patches
-from model.Qtome.finetune.sources import iter_batches
-from model.Qtome.head.config import make_head_checkpoint, resolve_head_config
-from model.Qtome.head.feature_head import FeatureHead
+from model.Qlet.finetune.sources import iter_batches
+from model.Qlet.head.config import make_head_checkpoint, resolve_head_config
+from model.Qlet.head.feature_head import FeatureHead
 from model.history import History
 
 
@@ -41,7 +41,7 @@ def build_head_factory(config, source, num_classes):
     pp = config['preprocess_params']
     patch_len = pp.get('patch_length', 100)
     cfg = resolve_head_config(
-        config['model_params']['Qtome']['finetune'], num_classes=num_classes, num_patches=source.num_patches,
+        config['model_params']['Qlet']['finetune'], num_classes=num_classes, num_patches=source.num_patches,
         num_channels=len(source.channel_idx), num_atoms=source.num_atoms, patch_len=patch_len,
         latent_dim=getattr(source, 'latent_dim', None),
         patch_stride=pp.get('patch_stride', patch_len), sample_freq=float(pp['sample_freq']))
@@ -63,9 +63,9 @@ def _pca_axes(z, train_idx, m, chunk=256):
 
 
 def run_closed_form(config, run, source, tag, logger, out_dir=None):
-    """training_params.finetune.fit 'closed_form': fit ClosedFormHead (model/Qtome/head/closed_form.py) on run['train'],
+    """training_params.finetune.fit 'closed_form': fit ClosedFormHead (model/Qlet/head/closed_form.py) on run['train'],
     no SGD; per-subject balanced accuracy + kappa on run['eval'], in run_one's format (tail = last: one fit)."""
-    from model.Qtome.head.closed_form import ClosedFormHead
+    from model.Qlet.head.closed_form import ClosedFormHead
     tp = config['training_params']['finetune']
     if source.kind != 'atom':
         raise ValueError("fit 'closed_form' reads the atom code: the head needs a atom entry")

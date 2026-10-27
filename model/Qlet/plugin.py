@@ -1,19 +1,19 @@
-"""Qtome's implementation of the shared model-plugin contract (model/base_trainer.py,
+"""Qlet's implementation of the shared model-plugin contract (model/base_trainer.py,
 model/base_plugin.py)."""
 
 import torch
 
-from model.Qtome.Qtome import QtomePretrain
+from model.Qlet.Qlet import QletPretrain
 from model.base_trainer import BaseTrainer
 from model.base_plugin import BasePlugin
 
 
 def build_model(bp, num_channels):
-    """bp: config['model_params']['Qtome']['pretrain']."""
+    """bp: config['model_params']['Qlet']['pretrain']."""
     sb = bp.get('atom_bank', {})
     moe_ffn = bp.get('moe_ffn', {})
 
-    return QtomePretrain(
+    return QletPretrain(
         embed_dim=bp.get('embed_dim', 100),
         enc_depth=bp.get('enc_depth', 12),
         mlp_ratio=moe_ffn.get('mlp_ratio', 4.0),
@@ -35,7 +35,7 @@ def build_model(bp, num_channels):
     )
 
 
-class QtomeTrainer(BaseTrainer):
+class QletTrainer(BaseTrainer):
     def compute_loss(self, model, x, out, mp, **hparams):
         ffn_lb_weight = hparams.get('ffn_lb_weight', 0.01)
         return model.get_loss(x, out.recon, out.ranked, bool_masked_pos=mp,
@@ -43,7 +43,7 @@ class QtomeTrainer(BaseTrainer):
                                unmasked_weight=hparams.get('unmasked_weight', 1.0),
                                ffn_lb_loss=out.ffn_lb_loss, ffn_lb_weight=ffn_lb_weight,
                                valid_channels=out.valid_channels,
-                               # nested reconstruction loss (docs/adr/0018); unset = QtomePretrain.NESTED_* defaults
+                               # nested reconstruction loss (docs/adr/0018); unset = QletPretrain.NESTED_* defaults
                                nested_sizes=hparams.get('nested_sizes'), nested_weights=hparams.get('nested_weights'))
 
     @torch.no_grad()
@@ -66,5 +66,5 @@ class QtomeTrainer(BaseTrainer):
 
 PLUGIN = BasePlugin(
     build=build_model,
-    trainer_cls=QtomeTrainer,
+    trainer_cls=QletTrainer,
 )

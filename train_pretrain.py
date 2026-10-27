@@ -50,9 +50,9 @@ def _run_info(config, model, train_dataset, val_dataset, device):
 
 
 def main():
-    parser = argparse.ArgumentParser(description='Qtome pretraining, one run, two phases: unmasked tokenizer phase '
+    parser = argparse.ArgumentParser(description='Qlet pretraining, one run, two phases: unmasked tokenizer phase '
                                                    '(training_params.pretrain.tokenizer_epochs), then masked phase.')
-    parser.add_argument('--config', type=str, default='configs/Qtome/pretrain.template.json')
+    parser.add_argument('--config', type=str, default='configs/Qlet/pretrain.template.json')
     parser.add_argument('--set', action='append', default=[], metavar='KEY=VALUE',
                         help='override a config value, dotted path, JSON value (repeatable), '
                              'e.g. --set training_params.pretrain.seed=2')
@@ -110,7 +110,7 @@ def main():
     train_loader = _make_loader(train_dataset, shuffle=True)
     val_loader   = _make_loader(val_dataset,   shuffle=False)
 
-    model_type = train_params.get('model_type', 'Qtome')
+    model_type = train_params.get('model_type', 'Qlet')
     entry      = MODEL_REGISTRY[model_type]
     trainer    = entry.trainer_cls()
 
@@ -136,7 +136,7 @@ def main():
         model(x, coords, time_idx, bool_masked_pos=None, valid_channels=valid_channels)
 
     # Built once, while every param is trainable: bypassed blocks and (later) frozen
-    # Q-atoms just get grad=None, which AdamW skips.
+    # Qlets just get grad=None, which AdamW skips.
     scaler    = torch.cuda.amp.GradScaler()
     optimizer = optim.AdamW(optimizer_param_groups(model, train_params['weight_decay']), lr=train_params['learning_rate'])
     cosine_t_max     = max(1, train_params['epochs'] - train_params['warmup_epochs'])
@@ -219,7 +219,7 @@ def main():
         # time, so best_val_loss below can freeze on an early, easy-ratio epoch and never
         # update again even while the model keeps genuinely improving within each step.
         # That leaves ONLY that early checkpoint on disk if training is later interrupted —
-        # real instance: qtome_pretrain_v4 froze "best" at epoch 4/50, losing every epoch's
+        # real instance: qlet_pretrain_v4 froze "best" at epoch 4/50, losing every epoch's
         # progress after that when the run was stopped at epoch 32. last.pth is the
         # insurance: whatever epoch you actually stopped at is always recoverable.
         torch.save({'model_state_dict': model.state_dict(), 'build_config': build_config}, os.path.join(checkpoint_dir, 'last.pth'))

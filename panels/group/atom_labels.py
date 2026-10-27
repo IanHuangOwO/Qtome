@@ -1,4 +1,4 @@
-"""atom_labels (group): are the ICLabel classes of the Q-atoms the same from seed to seed? Per recipe: the class counts of each seed (stacked bars) and, for atoms
+"""atom_labels (group): are the ICLabel classes of the qlets the same from seed to seed? Per recipe: the class counts of each seed (stacked bars) and, for atoms
 matched across seeds by template similarity (>= --label-match, Hungarian, phase-invariant), the share whose top class
 agrees, against the share when the partners are shuffled -> atom_labels.png and atom_labels.md. Needs the pretrain panel atom_labels on each backbone."""
 import itertools
@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from scipy.optimize import linear_sum_assignment
 
-from IO.config import QTOME_OUTPUT
+from IO.config import QLET_OUTPUT
 from panels.core.context import load_model
 from panels.core.numbers import load_npz
 from panels.shared.atom_dictionary import atom_templates
@@ -40,7 +40,7 @@ def compute(ctx):
                 z = load_npz(p)
             except FileNotFoundError:
                 print(f'  {g}: no atom_labels.npz; left out'); continue
-            m = load_model({}, f'{QTOME_OUTPUT}/{bb}/pretrain/checkpoint/last.pth', ctx.device)
+            m = load_model({}, f'{QLET_OUTPUT}/{bb}/pretrain/checkpoint/last.pth', ctx.device)
             D, H, _ = atom_templates(m)
             Z.append(z); T.append((np.asarray(D), np.asarray(H)))
         if not Z:

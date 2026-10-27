@@ -1,4 +1,4 @@
-"""snapshot: one real trial per target, original vs reconstruction (band-filtered grid) and the Q-atom gallery -> analysis/pretrain/snapshot/.
+"""snapshot: one real trial per target, original vs reconstruction (band-filtered grid) and the qlet gallery -> analysis/pretrain/snapshot/.
 Targets: training_params.visualize_params.pretrain.targets ({dataset, subject, trial} list), or --datasets (trial 0 of the first subject
 loaded). Only a few subjects per dataset are loaded (shared/trials.cap_subjects)."""
 import copy

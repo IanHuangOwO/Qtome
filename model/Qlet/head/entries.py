@@ -1,9 +1,9 @@
-"""Head entry types: one class per features[] name (ENTRY_TYPES). An entry owns its validation (check), its feature width (dim), whether it needs the trial length in patches (needs_patches) and its forward. `source` says what it reads: 'atom' = the spatially mixed Q-atom codes (a, b), each [B, N', K, S]; 'raw' = the spatially mixed raw patches [B, K, N', L]; 'latent' = z. `e` is the entry's effective config (config._entry_cfg). Parameter/buffer names and construction order are what saved heads were trained with: keep them when changing a class. A new head feature = one class + one ENTRY_TYPES line."""
+"""Head entry types: one class per features[] name (ENTRY_TYPES). An entry owns its validation (check), its feature width (dim), whether it needs the trial length in patches (needs_patches) and its forward. `source` says what it reads: 'atom' = the spatially mixed qlet codes (a, b), each [B, N', K, S]; 'raw' = the spatially mixed raw patches [B, K, N', L]; 'latent' = z. `e` is the entry's effective config (config._entry_cfg). Parameter/buffer names and construction order are what saved heads were trained with: keep them when changing a class. A new head feature = one class + one ENTRY_TYPES line."""
 import torch
 import torch.nn as nn
 
-from model.Qtome.patches import overlap_add_patches
-from model.Qtome.head.pooling import _window_patches, _time_pool, _window, _pooled_dim
+from model.Qlet.patches import overlap_add_patches
+from model.Qlet.head.pooling import _window_patches, _time_pool, _window, _pooled_dim
 
 
 BANDS = ((8.0, 13.0), (13.0, 30.0))   # mu, beta
@@ -26,7 +26,7 @@ class _Entry(nn.Module):
 
 
 class AtomPowerEntry(_Entry):
-    """log of time-pooled a^2 + b^2 per Q-atom: phase-invariant power (induced activity)."""
+    """log of time-pooled a^2 + b^2 per qlet: phase-invariant power (induced activity)."""
     def __init__(self, e):
         super().__init__(e)
         self.time = _time_pool(e, e['num_atoms'])
@@ -92,7 +92,7 @@ class RawSignalEntry(_Entry):
 class SignedABEntry(_Entry):
     """signed_ab (2026-09-25): the signed, phase-locked counterpart of atom_power. Fully linear
     and factored: spatially mixed a and b (kept signed, so polarity and phase survive) ->
-    learned Q-atom pooling S -> atom_rank -> learned time filters N' -> time_rank (init: flat
+    learned qlet pooling S -> atom_rank -> learned time filters N' -> time_rank (init: flat
     average + small noise). A free linear readout on raw a/b would be the same function class
     but ~10^4 weights per class; the factoring is the regularisation. Carries evoked /
     phase-locked content only: induced (random-phase) power averages out, pair it with
@@ -123,7 +123,7 @@ class SignedABEntry(_Entry):
 def _latent_proj(e, m):
     """z's D -> m projection. latent_proj 'learned': trained with the head. 'pca': frozen here, set
     by train_finetune.py's run_one to the top-m principal axes of the run's TRAINING-trial z
-    (no trained parameters, like the Q-atom head's fixed templates)."""
+    (no trained parameters, like the qlet head's fixed templates)."""
     if e['latent_proj'] not in ('learned', 'pca'):
         raise ValueError(f"latent_proj must be learned|pca, got {e['latent_proj']!r}")
     proj = nn.Linear(e['latent_dim'], m, bias=False)

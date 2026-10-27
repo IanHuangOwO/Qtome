@@ -20,7 +20,7 @@ import torch
 
 from panels.shared.event_onset import lookup_event_onset_sample
 
-from model.Qtome.head.config import _entry_dim, feature_names
+from model.Qlet.head.config import _entry_dim, feature_names
 
 
 def readout(ckpt, entry):
@@ -67,7 +67,7 @@ def atom_head_maps(head_pth, entry='atom_power'):
     """A atom_power entry: features f[k, s] = log(sum_n w[s, n] (S a)^2 + (S b)^2) with S the spatial filter [K, C] and
     w the learned per-atom softmax time weights. -> (time weights [S, N], importance [K, S] = class-centred readout norm,
     channel map [S, C] = sum_k importance[k, s] * S[k, c]^2 / sum_k importance[k, s]: which electrodes' power the
-    decision on Q-atom s reads, invariant to the order and sign of the virtual channels)."""
+    decision on qlet s reads, invariant to the order and sign of the virtual channels)."""
     ckpt = torch.load(head_pth, map_location='cpu', weights_only=False)
     sd = ckpt['model_state_dict']
     p, q = sd[f'entries.{entry}.time.p'].float(), sd[f'entries.{entry}.time.q'].float()
@@ -80,7 +80,7 @@ def atom_head_maps(head_pth, entry='atom_power'):
 
 
 def summarise_atoms(head_paths, entry='atom_power'):
-    """Mean over heads of one backbone (Q-atoms are that backbone's own dictionary): time weights [S, N], per-atom
+    """Mean over heads of one backbone (Qlets are that backbone's own dictionary): time weights [S, N], per-atom
     importance [S] (summed over virtual channels), channel map [S, C] (each head's rows scaled to max 1 first)."""
     tws, imps, chans = [], [], []
     for h in head_paths:
@@ -90,7 +90,7 @@ def summarise_atoms(head_paths, entry='atom_power'):
 
 
 def gain_scale(amp, spatial, n_trials=2000, seed=0):
-    """Std of the spatially filtered Q-atom gains [2, K, S] (a, b) over trials and patches: the input scale each signed_ab
+    """Std of the spatially filtered qlet gains [2, K, S] (a, b) over trials and patches: the input scale each signed_ab
     readout weight multiplies. amp [T, N', C, S, 2] (the feature cache), spatial [K, C]; a random subset of trials."""
     g = torch.Generator().manual_seed(seed)
     idx = torch.randperm(amp.shape[0], generator=g)[:n_trials]
@@ -99,9 +99,9 @@ def gain_scale(amp, spatial, n_trials=2000, seed=0):
 
 
 def signed_atom_head_maps(head_pth, amp, entry='signed_ab'):
-    """A signed_ab entry in Q-atom space: features f[ab, k, m, r] = sum_n q[r, n] sum_s W[m, s] (S g_ab)[n, k, s], so the
-    class-centred effective weight per Q-atom and patch is E[c, ab, k, n, s] = sum_{m, r} w[c, ab, k, m, r] q[r, n] W[m, s],
-    times the Q-atom's filtered gain std (a weight on a quiet Q-atom moves the decision little).
+    """A signed_ab entry in qlet space: features f[ab, k, m, r] = sum_n q[r, n] sum_s W[m, s] (S g_ab)[n, k, s], so the
+    class-centred effective weight per qlet and patch is E[c, ab, k, n, s] = sum_{m, r} w[c, ab, k, m, r] q[r, n] W[m, s],
+    times the qlet's filtered gain std (a weight on a quiet qlet moves the decision little).
     -> (importance [S, N] = norm over class, a / b and virtual channel; per-atom importance [K, S] over the rest;
     channel map [S, C] weighted like atom_head_maps)."""
     ckpt = torch.load(head_pth, map_location='cpu', weights_only=False)

@@ -4,14 +4,14 @@ import torch
 
 from IO.preprocessing import slice_patches
 from model.factory import build_from_checkpoint
-from model.Qtome.atom_bank import AtomBank
-from model.Qtome.head.extractor import AtomExtractor
-from model.Qtome.patches import overlap_add_patches
+from model.Qlet.atom_bank import AtomBank
+from model.Qlet.head.extractor import AtomExtractor
+from model.Qlet.patches import overlap_add_patches
 from panels.shared.task_filter.cells import CHANNELS, FS, layout, names, slot_map
 
 
 class Backbone:
-    """The frozen backbone of output/Qtome/<backbone>: the model, its Q-atom templates D and quadrature partners H,
+    """The frozen backbone of output/Qlet/<backbone>: the model, its qlet templates D and quadrature partners H,
     their dominant frequencies, and decoding of gains [B, N, C, S, 2] to waveforms [B, C, T]."""
 
     def __init__(self, bb):
@@ -38,7 +38,7 @@ def imputed_encoder(bb, ds, model, coords64):
     assert idx.tolist() == [slot[n] for n in names(ds)[1] if n in CHANNELS] and torch.allclose(coords[idx], coords64[idx], atol=1e-5)
     ext, ext64 = AtomExtractor(model, idx.tolist()).eval(), AtomExtractor(model, list(range(64))).eval()
 
-    def encode(w, impute, want_z=False):                                   # want_z: also the encoder output z [B, N, C or 64, D] the Q-atoms read
+    def encode(w, impute, want_z=False):                                   # want_z: also the encoder output z [B, N, C or 64, D] the qlets read
         w = torch.from_numpy(w).float(); mu, s_ = w.mean((1, 2), keepdim=True), w.std((1, 2), keepdim=True)
         x = torch.zeros(len(w), len(valid), w.shape[-1]); x[:, idx] = (w - mu) / s_; out = []
         with torch.no_grad():

@@ -1,7 +1,7 @@
 """
 Per-layer size and speed of a trained pretrain backbone, and what fp32 would cost vs the fp16 AMP it trains with.
 
-    python -m tools.misc.profile_precision [--run qtome_tiny_p50_s16_real_s1] [--dataset Lee2019_MI] [--rounds 5]
+    python -m tools.misc.profile_precision [--run qlet_tiny_p50_s16_real_s1] [--dataset Lee2019_MI] [--rounds 5]
 
 Modes: fp16-amp (train_pretrain.py: fp16 autocast + GradScaler, TF32 on), fp32+tf32 (no autocast, TF32 matmuls),
 fp32 (no autocast, TF32 off). Every mode trains a copy of the checkpoint's weights on the same real masked-phase
@@ -32,7 +32,7 @@ from IO.wrappers import MontageBatchSampler
 from IO.masking import build_masking_strategy_from_config
 from model.factory import build_from_checkpoint, MODEL_REGISTRY, optimizer_param_groups
 from model.pretrain_loop import unpack_batch
-from IO.config import QTOME_OUTPUT
+from IO.config import QLET_OUTPUT
 
 MODES = ('fp16-amp', 'fp32+tf32', 'fp32')
 
@@ -90,7 +90,7 @@ class Hooks:
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument('--run', default='qtome_tiny_p50_s16_real_s1')
+    ap.add_argument('--run', default='qlet_tiny_p50_s16_real_s1')
     ap.add_argument('--dataset', default='Lee2019_MI')
     ap.add_argument('--subjects', nargs='+', default=['2', '7', '8', '9', '15', '16', '18', '41'])
     ap.add_argument('--batch-size', type=int, default=16)
@@ -100,8 +100,8 @@ def main():
 
     dev = torch.device('cuda')
     torch.manual_seed(0)
-    cfg = json.load(open(f'{QTOME_OUTPUT}/{a.run}/pretrain/artifacts/config.json'))
-    ckpt = torch.load(f'{QTOME_OUTPUT}/{a.run}/pretrain/checkpoint/last.pth', map_location='cpu', weights_only=False)
+    cfg = json.load(open(f'{QLET_OUTPUT}/{a.run}/pretrain/artifacts/config.json'))
+    ckpt = torch.load(f'{QLET_OUTPUT}/{a.run}/pretrain/checkpoint/last.pth', map_location='cpu', weights_only=False)
     c = copy.deepcopy(cfg)
     c['dataset_params']['pretrain'] = {a.dataset: dict(cfg['dataset_params']['pretrain'][a.dataset],
                                                        subject_to_use=a.subjects)}

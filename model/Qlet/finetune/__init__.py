@@ -1,4 +1,4 @@
-"""Qtome finetuning: head sources, protocol, fit, and the Q-atom code cache."""
+"""Qlet finetuning: head sources, protocol, fit, and the qlet code cache."""
 import torch
 
 # TF32 matmuls: training has always run with this (train_finetune.py set it on import, and the panels that imported train_finetune

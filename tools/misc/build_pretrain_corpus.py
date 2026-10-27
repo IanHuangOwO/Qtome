@@ -16,7 +16,7 @@ samples) in the _cont5 caches. The corpus sizes multiply in on top: a run sets p
 small 0.2 / medium 0.5; the template's 1.0 = large), one window per subject is the floor at every size. One template, one
 corpus list for every size.
 
-    python -m tools.misc.build_pretrain_corpus --out configs/Qtome/pretrain.template.json
+    python -m tools.misc.build_pretrain_corpus --out configs/Qlet/pretrain.template.json
 
 --out must already exist (a pretrain config); only its dataset_params.pretrain is replaced.
 """

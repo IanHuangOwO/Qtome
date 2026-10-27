@@ -1,9 +1,9 @@
-"""Q-atom-amplitude cache for the frozen backbone (CLI: cache_feature.py).
+"""Qlet-amplitude cache for the frozen backbone (CLI: cache_feature.py).
 
-The backbone never changes during finetuning, so its Q-atom amplitudes are computed once per
+The backbone never changes during finetuning, so its qlet amplitudes are computed once per
 (checkpoint, dataset, preprocessing) and stored next to the backbone:
     <backbone run folder>/feature_cache/<dataset>/<key>/<subject>.npz
-Only Q-atom features use it (AtomExtractor output); raw features never touch the backbone. The key hashes the
+Only qlet features use it (AtomExtractor output); raw features never touch the backbone. The key hashes the
 checkpoint, build_config, the code that computes the codes (_CODE_FILES) and the data fingerprint."""
 import os
 import json
@@ -17,7 +17,7 @@ from torch.utils.data import Dataset
 from IO.channels import get_standard_coords
 from IO.dataset import build_dataset_from_config
 from IO.preprocessing import cache_suffix, num_patches, slice_patches
-from model.Qtome.head.extractor import AtomExtractor
+from model.Qlet.head.extractor import AtomExtractor
 from model.factory import build_from_checkpoint
 
 
@@ -37,9 +37,9 @@ def _mne_version():
         return 'none'   # coordinates fall back to the flat metadata polar values
 
 
-_CODE_FILES = ('model/Qtome/Qtome.py', 'model/Qtome/patches.py', 'model/Qtome/embeddings.py', 'model/Qtome/ffn.py',
-               'model/Qtome/encoder.py', 'model/Qtome/atom_bank.py', 'model/Qtome/head/extractor.py',
-               'model/Qtome/finetune/feature_cache.py')
+_CODE_FILES = ('model/Qlet/Qlet.py', 'model/Qlet/patches.py', 'model/Qlet/embeddings.py', 'model/Qlet/ffn.py',
+               'model/Qlet/encoder.py', 'model/Qlet/atom_bank.py', 'model/Qlet/head/extractor.py',
+               'model/Qlet/finetune/feature_cache.py')
 
 
 def _code_hash():
@@ -187,7 +187,7 @@ def get_atom_cache(config, dataset_name, subjects, batch_size=64, latent=False):
 
 
 class CachedAtomDataset(Dataset):
-    """Q-atom amplitudes of the given subjects, in RAM. See the plan's Interfaces section."""
+    """Qlet amplitudes of the given subjects, in RAM. See the plan's Interfaces section."""
     def __init__(self, folder, subjects):
         parts = []
         for s in subjects:

@@ -4,7 +4,7 @@ pretrain_alignment; EEG-FM-Bench Figs. 3, 4 and 8, docs/references/2508.17742_EE
 For every task (a finetune cell of the group's backbone under --head: its dataset and one trained head) and every probe batch, two
 gradients with respect to the backbone's parameters are taken on the SAME trials:
   ce   the classification loss of the trained head (the backbone is frozen in our finetunes, but the loss still has a gradient
-       through it: trial -> backbone -> Q-atom codes -> head -> cross-entropy), computed as the head was trained (impute
+       through it: trial -> backbone -> qlet codes -> head -> cross-entropy), computed as the head was trained (impute
        cells feed missing channels as mask tokens, as the atom cache does);
   rec  the pretraining loss (nested reconstruction, masks drawn per window from the four pretraining mask modes, real channels only).
 Each gradient is split into parameter groups (GROUPS), compressed with a CountSketch to --sketch-dim values and L2-normalised, as in
@@ -18,8 +18,8 @@ import torch
 from IO.channels import get_standard_coords
 from IO.dataset import build_dataset_from_config
 from IO.preprocessing import slice_patches
-from model.Qtome.finetune.feature_cache import subjects_of
-from model.Qtome.atom_bank import AtomBank
+from model.Qlet.finetune.feature_cache import subjects_of
+from model.Qlet.atom_bank import AtomBank
 from model.factory import load_finetune_checkpoint
 from panels.shared.groups import own_numbers
 from panels.core.numbers import load_npz, save_npz
@@ -75,7 +75,7 @@ class Task:
         self.impute = bool(ds_args.get('impute_missing_channels'))
         self.model = load_finetune_checkpoint(config, heads[fold % len(heads)], device)   # backbone + one fold's head
         if self.model.extractor is None:
-            raise ValueError(f'{cell}: the head reads no Q-atom code (raw-input head): nothing to take a backbone gradient through')
+            raise ValueError(f'{cell}: the head reads no qlet code (raw-input head): nothing to take a backbone gradient through')
         self.device = device
         subs = subjects_of(ds_args)[:n_subjects]
         cfg = json.loads(json.dumps(config))
@@ -105,7 +105,7 @@ class Task:
                     coords_real=self.coords_real.unsqueeze(0).expand(b, -1, -1).to(dev))
 
     def ce_loss(self, b):
-        """Cross-entropy of the trained head on the Q-atom code, with the gradient taken through the backbone."""
+        """Cross-entropy of the trained head on the qlet code, with the gradient taken through the backbone."""
         amp = atom_code(self.model.extractor, b['x'], b['coords'], b['t'], b['valid'], self.impute)
         return torch.nn.functional.cross_entropy(self.model.head({'atom': amp}), b['y'])
 
@@ -128,7 +128,7 @@ class Task:
 
 
 def atom_code(extractor, x, coords, time_idx, valid, impute):
-    """AtomExtractor.forward (model/Qtome/head/extractor.py) with gradients: the same computation, but that forward and
+    """AtomExtractor.forward (model/Qlet/head/extractor.py) with gradients: the same computation, but that forward and
     AtomBank.dense_amp are both @torch.no_grad, so the body is repeated here (check: panels/shared/gradient_probe._selfcheck)."""
     bb = extractor.backbone
     B, C, N, _ = x.shape
@@ -231,7 +231,7 @@ def gradients(ctx, group):
     return cache[group]
 
 
-def _selfcheck(bb='qtome_smoke', head='allatom', cell='BNCI2014001_impute64_loso_seed1'):
+def _selfcheck(bb='qlet_smoke', head='allatom', cell='BNCI2014001_impute64_loso_seed1'):
     """atom_code equals AtomExtractor.forward (bit-identical values), and its loss has a gradient on every group."""
     task = Task(bb, head, cell, torch.device('cuda'), 1)
     b = task.batch(torch.arange(8))

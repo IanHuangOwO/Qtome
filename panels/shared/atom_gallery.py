@@ -1,4 +1,4 @@
-"""The whole-trial Q-atom gallery figure (snapshot and class_snapshots): raw / reconstruction PSD on top, then per Q-atom its
+"""The whole-trial qlet gallery figure (snapshot and class_snapshots): raw / reconstruction PSD on top, then per qlet its
 topography, PSD, phase and waveform."""
 import math
 
@@ -18,7 +18,7 @@ def _log_pow(x):
 
 
 def _log_signed(x):
-    """Signed counterpart of _log_pow for quantities where polarity matters (a Q-atom's
+    """Signed counterpart of _log_pow for quantities where polarity matters (a qlet's
     per-channel amp — its mixing/topomap column): sign(x)*log1p(|x|). Odd function, 0
     maps to exactly 0, magnitudes compress the same way _log_pow's do, sign survives —
     so a symmetric diverging color scale centered on 0 stays meaningful after the
@@ -32,31 +32,31 @@ def plot_atom_gallery(out_path, pos2d, raw_power, recon_power, psd_raw, psd_reco
                         subject_id=None, trial_idx=None, epoch_tag='',
                         unit_label='Atom', n_per_row=5):
     """
-    Whole-trial panel: the trial-wide Raw/Full-Recon view and every Q-atom's trial summary.
+    Whole-trial panel: the trial-wide Raw/Full-Recon view and every qlet's trial summary.
 
     Header row: Raw and Full-Recon (whole trial) topo + PSD, one block each. Below: a
-    grid of `n_per_row` blocks per row, one block per Q-atom (see
+    grid of `n_per_row` blocks per row, one block per qlet (see
     viz.extract.extract_atom_gallery), sorted by accumulated importance descending,
     reading left-to-right then top-to-bottom. Each block: topo on the LEFT (spanning
     the block's full height), PSD (channel x freq, from psd_x) top-right, and — when
     phase_ch_x is given — a per-channel PHASE bar chart bottom-right, directly under
     the PSD and sharing its channel-axis orientation (see _cell) so a phase shift
     across channels reads paired against that same channel's PSD row. A single
-    vertical bar chart at the right edge spans just the Q-atom grid (not the Raw/Recon
-    header), one horizontal bar per Q-atom in the SAME sorted order (top = highest
+    vertical bar chart at the right edge spans just the qlet grid (not the Raw/Recon
+    header), one horizontal bar per qlet in the SAME sorted order (top = highest
     importance) — paired 1:1 with the gallery (by rank, not by grid position, since
-    the grid wraps n_per_row-wide) so "how much did this Q-atom's real content matter"
+    the grid wraps n_per_row-wide) so "how much did this qlet's real content matter"
     reads directly alongside "what did it actually look like".
 
     psd_ch_x: [C, Q]. psd_x: [Q, C, F]. phase_ch_x: [C, Q] radians or None (Raw/Recon
     header cells never show phase — there's no atom/quadrature structure to a raw
-    signal — and passing None here entirely skips the phase row for Q-atom cells too).
-    importance: [Q], Q-atom q = column q. All topo/PSD cells are log1p-scaled (see _log_pow), same reasoning as
+    signal — and passing None here entirely skips the phase row for qlet cells too).
+    importance: [Q], qlet q = column q. All topo/PSD cells are log1p-scaled (see _log_pow), same reasoning as
     plot_atom_by_patch.
 
     waveforms: optional list of Q 1-D arrays of the real trial length (see
-    viz.extract.extract_atom_gallery): the Q-atom's decoded content at ONE pinned channel over
-    the whole trial, rendered as an extra full-block-width row under each Q-atom's PSD/phase pair.
+    viz.extract.extract_atom_gallery): the qlet's decoded content at ONE pinned channel over
+    the whole trial, rendered as an extra full-block-width row under each qlet's PSD/phase pair.
 
     """
     Q = psd_ch_x.shape[1]
@@ -97,10 +97,10 @@ def plot_atom_gallery(out_path, pos2d, raw_power, recon_power, psd_raw, psd_reco
                  f"Sub {subject_id}, Trial {trial_idx}{epoch_tag}", fontsize=13, fontweight='bold')
 
     def _cell(topo_row, block_col, power, psd_cf, phase_c, label, color, signed=False):
-        # signed: Q-atom topos are the SIGNED trial-mean per-channel amp (the mixing/
+        # signed: qlet topos are the SIGNED trial-mean per-channel amp (the mixing/
         # topomap column, see extract_atom_gallery) — diverging RdBu_r, symmetric
         # limits, 0 = white, so dipole polarity reads directly (same rationale as
-        # plot_atom_by_patch's Q-atom cells). Raw/Recon header stays unsigned power.
+        # plot_atom_by_patch's qlet cells). Raw/Recon header stays unsigned power.
         topo_col, right_col = block_col * 2, block_col * 2 + 1
         psd_cf = _log_pow(psd_cf)
         ax_topo = fig.add_subplot(gs[topo_row:topo_row + 2, topo_col])
@@ -158,7 +158,7 @@ def plot_atom_gallery(out_path, pos2d, raw_power, recon_power, psd_raw, psd_reco
 
     def _waveform_cell(row, block_col, sig, color, label):
         # Decoded time-domain content at ONE pinned channel (the channel with the most total
-        # energy for this Q-atom, see viz.extract.extract_atom_gallery), over the whole trial.
+        # energy for this qlet, see viz.extract.extract_atom_gallery), over the whole trial.
         topo_col = block_col * 2
         ax = fig.add_subplot(gs[row, topo_col:topo_col + 2])
         if sig is None or not np.isfinite(sig).any():
