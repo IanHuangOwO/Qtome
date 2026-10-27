@@ -29,6 +29,7 @@ def _atom_bank(checkpoint):
 def atom_hidden(z, bank, chunk=256):
     """z [T, N', Cv, D] (the cached encoder output the Q-atoms read) -> Q-atom hidden u [T, N', Cv, S * K]:
     every Q-atom's MLP hidden GELU(LN(z) W_down_s + b_down_s), Q-atoms concatenated (AtomBank._amp's first map)."""
+    assert bank.hidden_layers == 1, 'the u probes read the first hidden map of a one-hidden-layer AtomBank'
     out = []
     for c in z.split(chunk):
         u = F.gelu(torch.einsum('tncd,sdk->tncsk', bank.input_norm(c.float()), bank.W_down) + bank.b_down)

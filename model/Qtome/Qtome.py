@@ -66,6 +66,7 @@ class QtomePretrain(nn.Module):
         spatial_embedding=True,
         n_atoms=16,
         atom_hidden_width=16,
+        atom_hidden_layers=1,
         n_routed_ffn_experts=4,
         n_shared_ffn_experts=1,
         ffn_top_k=2,
@@ -93,7 +94,7 @@ class QtomePretrain(nn.Module):
         # every block's spatial attention (RelativeSpatialBias), on or off together (the ablation).
         self.spatial_bias = RelativeSpatialBias(enc_depth, spatial_heads) if spatial_embedding else None
 
-        self.atoms = AtomBank(embed_dim, patch_len, n_atoms=n_atoms, hidden_width=atom_hidden_width)
+        self.atoms = AtomBank(embed_dim, patch_len, n_atoms=n_atoms, hidden_width=atom_hidden_width, hidden_layers=atom_hidden_layers)
         # convenience alias — viz/checker code reads it off the model directly
         self.n_atoms = self.atoms.n_atoms
         self.atoms_frozen = False

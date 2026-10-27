@@ -26,9 +26,10 @@ class AtomBank(nn.Module):
     (no per-token shape warping). A free [patch_len] template's frequency content is
     bound to the patch_len FFT grid (Df = fs/patch_len); oscillator atoms were withdrawn (0010).
     """
-    def __init__(self, dim, patch_len, n_atoms=16, hidden_width=16):
+    def __init__(self, dim, patch_len, n_atoms=16, hidden_width=16, hidden_layers=1):
         super().__init__()
         self.n_atoms = n_atoms
+        self.hidden_layers = hidden_layers                                  # 1 = the original MLP z -> hidden -> (a, b); more = extra hidden -> hidden GELU maps
         # Normalizes z before it's used (z inherits whatever scale the encoder drifts to).
         self.input_norm = nn.LayerNorm(dim)
         # amp_s(z): per-atom MLP z -> hidden (GELU) -> quadrature gain pair (a, b). Because H is derived
@@ -36,6 +37,11 @@ class AtomBank(nn.Module):
         self.W_down = nn.Parameter(torch.empty(n_atoms, dim, hidden_width))
         self.b_down = nn.Parameter(torch.zeros(n_atoms, hidden_width))
         nn.init.kaiming_uniform_(self.W_down, a=math.sqrt(5))
+        if hidden_layers > 1:                                               # created only then, so a one-hidden-layer checkpoint loads unchanged
+            self.W_mid = nn.Parameter(torch.empty(hidden_layers - 1, n_atoms, hidden_width, hidden_width))
+            self.b_mid = nn.Parameter(torch.zeros(hidden_layers - 1, n_atoms, hidden_width))
+            for w in self.W_mid:
+                nn.init.kaiming_uniform_(w, a=math.sqrt(5))
         self.w_amp = nn.Parameter(torch.empty(n_atoms, hidden_width, 2))
         self.b_amp = nn.Parameter(torch.zeros(n_atoms, 2))
         nn.init.kaiming_uniform_(self.w_amp, a=math.sqrt(5))
@@ -46,6 +52,8 @@ class AtomBank(nn.Module):
         """z: [G, C, D] ALREADY input_norm'd tokens -> per-channel quadrature gains [G, C, n_atoms, 2],
         no rms. GELU between the two maps: without it they collapse into one of rank <= 2."""
         hidden = F.gelu(torch.einsum('gcd,hdk->gchk', z, self.W_down) + self.b_down)
+        for l in range(self.hidden_layers - 1):
+            hidden = F.gelu(torch.einsum('gchk,hkj->gchj', hidden, self.W_mid[l]) + self.b_mid[l])
         return torch.einsum('gchk,hkp->gchp', hidden, self.w_amp) + self.b_amp
 
     @staticmethod
