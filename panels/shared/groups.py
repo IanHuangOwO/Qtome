@@ -98,6 +98,17 @@ METHOD_TEXT = {
 }
 
 
+GENERAL = ('backbone64', 'ASR', 'ICLabel', 'ASR atoms 1.5', 'ASR atoms 1.5 + atoms -line')   # shown in every noise column
+MATCHED = {'eyem': 'atoms -eye', 'eye': 'atoms -eye', 'musc': 'atoms -muscle', 'muscle': 'atoms -muscle', 'elec': 'atoms -artifacts', 'electrode': 'atoms -artifacts', 'line': 'atoms -line'}
+
+
+def column_methods(methods, kind):
+    """The methods drawn in the column of one noise kind ('eyem_musc' = both): the general ones and the atom removal that matches the noise. The multi-task
+    filter and the other atom groups are left out of the figures (their numbers stay in the .md tables)."""
+    want = {MATCHED[t] for t in kind.split('_') if t in MATCHED}
+    return [m for m in methods if m in GENERAL or m in want]
+
+
 def describe(fig, methods, top=0.14):
     """Method legend at the bottom of a figure (call before tight_layout, which then keeps `top` of the height free)."""
     lines = [f'{m}: {METHOD_TEXT[m]}' for m in methods if m in METHOD_TEXT]

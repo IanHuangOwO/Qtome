@@ -38,6 +38,10 @@ def load(path):
     return out
 
 
+def add_args(flags):
+    flags.add('--with-multitask', action='store_true', default=False, help='noise_removal / noise_removal_synthetic / noise_classify: draw the earlier version too, every method in every column, the multi-task filter included (<name>_with_multitask.png)')
+
+
 def compute(ctx):
     data = {}
     for r, members in recipes(ctx.groups).items():
@@ -66,6 +70,11 @@ def compute(ctx):
 
 
 def draw(ctx):
+    for full in (False, True) if ctx.args.with_multitask else (False,):
+        draw_all(ctx, full)
+
+
+def draw_all(ctx, full):
     try:
         z = np.load(ctx.numbers('noise_classify.npz'))
     except FileNotFoundError:
@@ -73,9 +82,9 @@ def draw(ctx):
     targets, recs = [str(t) for t in z['targets']], [str(r) for r in z['recipes']]
     fig, ax = plt.subplots(2, len(targets), figsize=(5.6 * len(targets), 8.5), squeeze=False)
     for j, ds in enumerate(targets):
-        methods = [str(m) for m in z[f'{ds}__methods']]
+        methods = [str(m) for m in z[f'{ds}__methods']]; ix = [i for i, m in enumerate(methods) if full or not m.startswith('multi-task')]; methods = [methods[i] for i in ix]   # the multi-task filter stays in the .md only
         for i, key in enumerate(('within', 'loso')):
-            s = {r: mean_se(z[f'{r}__{ds}__{key}']) for r in recs}; x = np.arange(len(methods)); w = 0.8 / len(recs)
+            s = {r: mean_se(z[f'{r}__{ds}__{key}'][:, ix]) for r in recs}; x = np.arange(len(methods)); w = 0.8 / len(recs)
             for k, r in enumerate(recs):
                 ax[i, j].bar(x + (k - (len(recs) - 1) / 2) * w, s[r][0], w * 0.95, yerr=s[r][1], color=[MCOL.get(m, '#888888') for m in methods], hatch=HATCH[k % len(HATCH)], edgecolor='white', linewidth=0, capsize=1.5, error_kw={'lw': 0.8})
             ax[i, j].set_xticks(x); ax[i, j].set_xticklabels(methods, rotation=45, ha='right', fontsize=7)
@@ -86,4 +95,4 @@ def draw(ctx):
     if len(recs) > 1:
         ax[0, 0].legend(handles=bar_legend(recs)[:-1], fontsize=8)
     fig.suptitle(textwrap.fill('Classification after removal (dotted: raw signal; below it = the removed part carried what the decoder uses): mean ± SE over seeds', width=int(40 * len(targets))), fontweight='bold')
-    fig.tight_layout(rect=(0, 0, 1, 0.96)); out = ctx.figure('noise_classify.png'); fig.savefig(out, dpi=110); plt.close(fig); print(f'  -> {out}')
+    fig.tight_layout(rect=(0, 0, 1, 0.96)); out = ctx.figure('noise_classify_with_multitask.png' if full else 'noise_classify.png'); fig.savefig(out, dpi=110); plt.close(fig); print(f'  -> {out}')

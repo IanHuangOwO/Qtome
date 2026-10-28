@@ -5,7 +5,7 @@ Why: TUAR has no clean copy of an artifact window, so its scores are power ratio
 added noise n are both known, so a method's output c is regressed on them (c ~ s*x + a*n over the windows): s = signal kept, a = noise left
 (1 = untouched). The same power-ratio scores as task_filter_artifacts are reported too, each with the control (the method on the clean windows).
 Noise: eye (frontal blink wave + a slow step), muscle (30-90 Hz burst, one temporal side plus a diffuse part), electrode (a pop that decays over
-0.3 s on one channel), line (60 Hz on every channel). Strength --syn-levels: dB the scored quantity (frontal 1-10 Hz power / 30-90 Hz power /
+0.3 s on one channel, scored on that channel and its nearest neighbour as a bipolar pair, since 2026-10-28), line (60 Hz on every channel). Strength --syn-levels: dB the scored quantity (frontal 1-10 Hz power / 30-90 Hz power /
 squared 99.9th-percentile amplitude / 59-61 Hz power) rises over the window's own clean value; TUAR's real artifacts are at 1 / 3 / 5 dB over the
 patient's clean median (25th / 50th / 75th percentile over its annotated windows), the default. ASR is calibrated on the clean copies (a favour).
 Methods are those of task_filter_artifacts (atom removal needs the atom_labels panel first). Numbers per subject, mean +- SE over subjects."""
@@ -28,7 +28,7 @@ from panels.shared.task_filter.tests import _setup, asr_clean, hann_at, iclabel_
 
 PRESETS = set()
 NOISE = ('eye', 'muscle', 'electrode', 'line')
-TITLE = {'eye': 'eye (blink + step)\nfrontal 1-10 Hz power', 'muscle': 'muscle burst\n30-90 Hz power', 'electrode': 'electrode pop\npeak amplitude, squared', 'line': 'line 60 Hz\n59-61 Hz power'}
+TITLE = {'eye': 'eye (blink + step)\nfrontal 1-10 Hz power', 'muscle': 'muscle burst\n30-90 Hz power', 'electrode': 'electrode pop\npair peak amplitude, squared', 'line': 'line 60 Hz\n59-61 Hz power'}
 FPZ, T7, T8 = (0.00011, 0.08825, -0.00171), (-0.08416, -0.01602, -0.00935), (0.08508, -0.01502, -0.00949)
 EMG = butter(4, [30, 90], btype='band', fs=FS, output='sos')
 BASE = ('backbone64', 'multi-task 0.5', 'multi-task 0.1')
@@ -70,8 +70,9 @@ def shapes(kind, B, C, T, xyz, rng):
     return (0.5 + rng.random((1, C, 1))) * np.sin(2 * np.pi * (60 * t / FS + rng.random((B, 1, 1))))
 
 
-def quantity(kind, v, fp):
-    """The scored quantity of every window of v [N, C, T] -> [N]."""
+def quantity(kind, v, fp, ch=None, nbr=None):
+    """The scored quantity of every window of v [N, C, T] -> [N]. electrode: with ch (the popped channel of each window) and nbr (its nearest channel), the peak amplitude squared of that
+    bipolar pair (99.9th percentile of |a - b|), the measure of task_filter_artifacts' pair column; without them the pooled peak over every channel."""
     f = lambda s, a: sosfiltfilt(s, a, axis=-1)
     if kind == 'eye':
         return (f(SLOW, v[:, fp].mean(1)) ** 2).mean(-1)
@@ -79,18 +80,20 @@ def quantity(kind, v, fp):
         return (f(HIGH, v) ** 2).mean((1, 2))
     if kind == 'line':
         return (f(LINE, v) ** 2).mean((1, 2))
+    if ch is not None:
+        return np.array([np.percentile(np.abs(v[i, c] - v[i, nbr[c]]), 99.9) ** 2 for i, c in enumerate(ch)])
     return np.percentile(np.abs(v).reshape(len(v), -1), 99.9, axis=1) ** 2
 
 
-def scale(kind, x, n, db, fp):
+def scale(kind, x, n, db, fp, ch=None, nbr=None):
     """n * a per window so that the scored quantity of x + a*n is `db` over x's own."""
-    qx = quantity(kind, x, fp)
+    qx = quantity(kind, x, fp, ch, nbr)
     if kind != 'electrode':
         return n * np.sqrt(qx * (10 ** (db / 10) - 1) / np.maximum(quantity(kind, n, fp), 1e-30))[:, None, None]
     lo, hi = np.zeros(len(x)), np.full(len(x), 100 * np.sqrt(qx.max()))
     for _ in range(25):                                                       # bisection: the percentile is not additive
         a = (lo + hi) / 2
-        up = quantity(kind, x + a[:, None, None] * n, fp) > qx * 10 ** (db / 10)
+        up = quantity(kind, x + a[:, None, None] * n, fp, ch, nbr) > qx * 10 ** (db / 10)
         hi = np.where(up, a, hi); lo = np.where(up, lo, a)
     return n * ((lo + hi) / 2)[:, None, None]
 
@@ -102,6 +105,7 @@ def compute(ctx):
         raise SystemExit(f'{dst} is one of the datasets the filter was built from: pick another --syn-dataset')
     dst_r, dst_c, sel, encode, ops = _setup(tf, dst); dec = tf.backbone.decode
     lab = {m['label']: [m['cartesian'][k] for k in 'xyz'] for m in MONT}; xyz = np.array([lab[n] for n in dst_c])
+    dist = np.linalg.norm(xyz[:, None] - xyz[None], axis=-1); np.fill_diagonal(dist, np.inf); nbr = dist.argmin(1)      # each channel's nearest channel: the pair the electrode pop is scored on
     up = [n.upper() for n in dst_c]; fp = [up.index(n) for n in ('FP1', 'FP2')]
     atom_keep = {}
     if os.path.exists(ctx.numbers('atom_labels.npz')):
@@ -140,18 +144,19 @@ def compute(ctx):
         print(f'  {dst} subject {os.path.basename(f).split("_")[0]}: {len(x)} windows', flush=True)
         for kind in NOISE:
             n0 = shapes(kind, len(x), len(dst_c), T, xyz, rng)
+            ch = np.abs(n0).max(-1).argmax(-1) if kind == 'electrode' else None
             for db in ctx.args.syn_levels:
-                n = scale(kind, x, n0, db, fp); w1 = x + n
+                n = scale(kind, x, n0, db, fp, ch, nbr); w1 = x + n
                 sig = clean_all(w1)
                 if want('ASR'):
                     sig['ASR'] = asr_clean(w1.astype(np.float32) * 1e-5, calib, dst_c).astype(np.float64) * 1e5
                 if want('ICLabel'):
                     sig['ICLabel'] = iclabel_clean(w1.astype(np.float32) * 1e-5, dst_c)[0].astype(np.float64) * 1e5
-                qin, qx = quantity(kind, w1, fp).mean(), quantity(kind, x, fp).mean()
+                qin, qx = quantity(kind, w1, fp, ch, nbr).mean(), quantity(kind, x, fp, ch, nbr).mean()
                 for m, w in sig.items():
                     s_, a_ = kept(w, x, n); sc_, _ = kept(clean[m], x, np.zeros_like(x))
                     row = res.setdefault((kind, db, m), {})
-                    for k, v in (('artifact', quantity(kind, w, fp).mean() / qin), ('control', quantity(kind, clean[m], fp).mean() / qx),
+                    for k, v in (('artifact', quantity(kind, w, fp, ch, nbr).mean() / qin), ('control', quantity(kind, clean[m], fp, ch, nbr).mean() / qx),
                                  ('signal', s_), ('leak', a_), ('signal_clean', sc_)):
                         row.setdefault(k, []).append(float(v))
     methods = list(dict.fromkeys(m for (_, _, m) in res)); arrays = {}

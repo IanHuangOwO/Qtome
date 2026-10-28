@@ -11,7 +11,7 @@ import numpy as np
 
 from panels.core.numbers import load_npz
 from panels.pretrain.task_filter_artifacts import ATOM_COLORS
-from panels.shared.groups import bar_legend, color_of, describe, db, grouped_bars, load_all, mean_se
+from panels.shared.groups import bar_legend, color_of, column_methods, describe, db, grouped_bars, load_all, mean_se
 
 PRESETS = {'standard'}
 MARKERS = ('o', 's', '^', 'D')
@@ -19,10 +19,11 @@ HATCH = ('', '//', '..', 'xx')
 SYN = 'a clean dataset'
 SHOW = ('backbone64', 'multi-task 0.5', 'multi-task 0.1', 'atoms -eye', 'atoms -muscle', 'atoms -line', 'atoms -artifacts', 'atoms brain only', 'ASR', 'ICLabel', 'ASR atoms 1.5', 'ASR atoms 1.5 + atoms -line')
 KINDS = ('eye', 'muscle', 'electrode', 'line')
-WHAT = {'eye': 'frontal 1-10 Hz power', 'muscle': '30-90 Hz power', 'electrode': 'peak amplitude²', 'line': '59-61 Hz power'}
+WHAT = {'eye': 'frontal 1-10 Hz power', 'muscle': '30-90 Hz power', 'electrode': 'pair peak amplitude²', 'line': '59-61 Hz power'}
 
 
 def add_args(flags):
+    flags.add('--with-multitask', action='store_true', default=False, help='noise_removal / noise_removal_synthetic / noise_classify: draw the earlier version too, every method in every column, the multi-task filter included (<name>_with_multitask.png)')
     flags.add('--noise-dataset', default='PhysionetMI', help='noise_removal_synthetic (group): the clean dataset of the pretrain panel task_filter_noise_removal_synthetic')
 
 
@@ -62,37 +63,44 @@ def compute(ctx):
 
 
 def draw(ctx):
+    for full in (False, True) if ctx.args.with_multitask else (False,):
+        draw_all(ctx, full)
+
+
+def draw_all(ctx, full):
     try:
         z = np.load(ctx.numbers('noise_removal_synthetic.npz'))
     except FileNotFoundError:
         return
-    methods, recs = [str(m) for m in z['methods']], [str(r) for r in z['recipes']]; col = color_of(recs); n = len(recs); x = np.arange(len(methods)); w = 0.8 / n
+    methods, recs = [str(m) for m in z['methods']], [str(r) for r in z['recipes']]; col = color_of(recs); n = len(recs); w = 0.8 / n
+    shown = methods if full else [m for m in methods if any(m in column_methods(methods, k) for k in KINDS)]
     mcol = {'backbone64': '#555555', 'ASR': '#1baf7a', 'ICLabel': '#eda100', 'ASR atoms 1.5': '#e377c2', 'ASR atoms 1.5 + atoms -line': '#d62728', 'multi-task 0.5': '#eb6834', 'multi-task 0.1': '#b3410f', **{m: c for m, (c, _) in ATOM_COLORS.items()}}
     fig, ax = plt.subplots(3, len(KINDS), figsize=(3.9 * len(KINDS), 13.5), squeeze=False)
     for j, kind in enumerate(KINDS):
+        ms = methods if full else column_methods(methods, kind); ix = [methods.index(m) for m in ms]; x = np.arange(len(ms))
         a = ax[0, j]                                                          # row 1 as in noise_removal: removal against damage; the damage is the exact signal kept
         for i, r in enumerate(recs):
-            for m in methods:
+            for m in ms:
                 a.scatter(db(z[f'{r}__{kind}__artifact'])[:, methods.index(m)].mean(), z[f'{r}__{kind}__signal'][:, methods.index(m)].mean(), color=mcol.get(m, '#888888'), marker=MARKERS[i % len(MARKERS)], s=60, zorder=3)
         a.scatter([0], [1], color='#555555', marker='s', s=60, zorder=3); a.axvline(0, color='k', lw=.5, ls=':')
         a.set_xlabel('noise power change (dB)'); a.set_ylabel('signal kept (1 = all, exact)' if j == 0 else ''); a.set_title(f'{kind}\n{WHAT[kind]}', fontsize=9, fontweight='bold')
         if j == 0:
-            h = [plt.Line2D([], [], marker='s', color='#555555', ls='', label='input')] + [plt.Line2D([], [], marker='o', color=c, ls='', label=m) for m, c in mcol.items() if m in methods]
+            h = [plt.Line2D([], [], marker='s', color='#555555', ls='', label='input')] + [plt.Line2D([], [], marker='o', color=c, ls='', label=m) for m, c in mcol.items() if m in shown]
             h += [plt.Line2D([], [], marker=MARKERS[i % len(MARKERS)], color='k', mfc='none', ls='', label=f'recipe {r}') for i, r in enumerate(recs)]
             a.legend(handles=h, fontsize=7, loc='lower left')
         b = ax[1, j]                                                          # row 2: noisy windows (method colour; hatch = recipe) next to the control on clean windows (grey)
         for i, r in enumerate(recs):
             off = (i - (n - 1) / 2) * w
-            for kk, c, d in (('artifact', [mcol.get(m, '#888888') for m in methods], -w / 4), ('control', '#cccccc', w / 4)):
-                mu, se = mean_se(db(z[f'{r}__{kind}__{kk}']))
+            for kk, c, d in (('artifact', [mcol.get(m, '#888888') for m in ms], -w / 4), ('control', '#cccccc', w / 4)):
+                mu, se = mean_se(db(z[f'{r}__{kind}__{kk}'][:, ix]))
                 b.bar(x + off + d, mu, w / 2 * 0.95, yerr=se, color=c, hatch=HATCH[i % len(HATCH)], edgecolor='white', linewidth=0, capsize=1.5, error_kw={'lw': 0.8})
-        b.axhline(0, color='k', lw=.6); b.set_ylabel('power change (dB; 0 = unchanged)' if j == 0 else ''); b.set_xticks(x); b.set_xticklabels(methods, rotation=45, ha='right', fontsize=7)
+        b.axhline(0, color='k', lw=.6); b.set_ylabel('power change (dB; 0 = unchanged)' if j == 0 else ''); b.set_xticks(x); b.set_xticklabels(ms, rotation=45, ha='right', fontsize=7)
         if j == 0:
             b.legend(handles=bar_legend(recs), fontsize=7, loc='lower left')
         c = ax[2, j]                                                          # row 3: signal-to-noise change, exact: 20 log10(signal kept / noise left); 0 = as noisy as the input
         for i, r in enumerate(recs):
-            snr = 20 * np.log10(np.maximum(z[f'{r}__{kind}__signal'], 1e-2) / np.maximum(z[f'{r}__{kind}__leak'], 1e-2)); mu, se = mean_se(snr)
-            c.bar(x + (i - (n - 1) / 2) * w, mu, w * 0.95, yerr=se, color=[mcol.get(m, '#888888') for m in methods], hatch=HATCH[i % len(HATCH)], edgecolor='white', linewidth=0, capsize=1.5, error_kw={'lw': 0.8})
-        c.axhline(0, color='k', lw=.6); c.set_ylabel('SNR change (dB; > 0 = cleaner)' if j == 0 else ''); c.set_xticks(x); c.set_xticklabels(methods, rotation=45, ha='right', fontsize=7)
+            snr = 20 * np.log10(np.maximum(z[f'{r}__{kind}__signal'][:, ix], 1e-2) / np.maximum(z[f'{r}__{kind}__leak'][:, ix], 1e-2)); mu, se = mean_se(snr)
+            c.bar(x + (i - (n - 1) / 2) * w, mu, w * 0.95, yerr=se, color=[mcol.get(m, '#888888') for m in ms], hatch=HATCH[i % len(HATCH)], edgecolor='white', linewidth=0, capsize=1.5, error_kw={'lw': 0.8})
+        c.axhline(0, color='k', lw=.6); c.set_ylabel('SNR change (dB; > 0 = cleaner)' if j == 0 else ''); c.set_xticks(x); c.set_xticklabels(ms, rotation=45, ha='right', fontsize=7)
     fig.suptitle(textwrap.fill(f'Artificial noise at {float(z["level"]):g} dB over the clean window (TUAR\'s median strength) on {SYN}: same layout as noise_removal_TUAR, row 3 the exact signal-to-noise change 20 log10(signal kept / noise left) (mean over seeds, ± SE on the bars)', width=int(24 * len(KINDS))), fontweight='bold')
-    fig.tight_layout(rect=describe(fig, methods, 0.11)); out = ctx.figure('noise_removal_synthetic.png'); fig.savefig(out, dpi=110); plt.close(fig); print(f'  -> {out}')
+    fig.tight_layout(rect=describe(fig, shown, 0.11)); out = ctx.figure('noise_removal_synthetic_with_multitask.png' if full else 'noise_removal_synthetic.png'); fig.savefig(out, dpi=110); plt.close(fig); print(f'  -> {out}')

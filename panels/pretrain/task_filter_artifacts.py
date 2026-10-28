@@ -47,8 +47,8 @@ KINDS = ('eyem', 'musc', 'elec', 'eyem_musc', 'musc_elec')                 # the
 SETS = (*KINDS, 'clean')
 TUEV_KINDS = {'eyem': 3, 'musc_elec': 4}                                   # TUEV event codes: eyem, and artf (a generic artifact, scored on muscle and peak amplitude); code 5 = background = clean
 BANDS = ((1, 4), (4, 8), (8, 13), (13, 20), (20, 30), (30, 45), (45, 70), (70, 100))   # the decodability features: log band power per channel
-COLUMNS = (('eyem', 'eye left'), ('musc', 'muscle left'), ('elec', 'peak left'), ('eyem_musc', 'eye left'), ('eyem_musc', 'muscle left'),
-           ('musc_elec', 'muscle left'), ('musc_elec', 'peak left'), (None, 'line left'))     # (window set, score) per figure column
+COLUMNS = (('eyem', 'eye left'), ('musc', 'muscle left'), ('elec', 'peak left'), ('elec', 'pair left'), ('eyem_musc', 'eye left'), ('eyem_musc', 'muscle left'),
+           ('musc_elec', 'muscle left'), ('musc_elec', 'peak left'), ('musc_elec', 'pair left'), (None, 'line left'))     # (window set, score) per figure column
 ATOM_GROUPS = {'atoms -eye': ('eye',), 'atoms -muscle': ('muscle',), 'atoms -line': ('line noise', 'channel noise'),
                'atoms -artifacts': ('eye', 'muscle', 'heart', 'line noise', 'channel noise'),
                'atoms -other': ('other',), 'atoms -brain': ('brain',),
@@ -56,7 +56,7 @@ ATOM_GROUPS = {'atoms -eye': ('eye',), 'atoms -muscle': ('muscle',), 'atoms -lin
 ATOM_COLORS = {'atoms -eye': ('#2a78d6', 'o'), 'atoms -muscle': ('#7fb0ea', 'o'), 'atoms -line': ('#0b3d7a', 'o'), 'atoms -artifacts': ('#9a5fd0', 'P'),
                'atoms -other': ('#c9a000', 'X'), 'atoms -brain': ('#2d8a4e', 'v'),
                'atoms brain only': ('#8c2d6b', 'h')}
-SCORE_KIND = {'eye left': 'eyem', 'muscle left': 'musc', 'peak left': 'elec', 'line left': None}     # which measure a score is
+SCORE_KIND = {'eye left': 'eyem', 'muscle left': 'musc', 'peak left': 'elec', 'pair left': 'pair', 'line left': None}     # which measure a score is
 
 
 def add_args(flags):
@@ -66,6 +66,8 @@ def add_args(flags):
     flags.add('--art-shares', type=float, nargs='+', default=[0.5, 0.1], help='task_filter_artifacts: the multi-task filter shares tested')
     flags.add('--art-dataset', default='TUAR', choices=['TUAR', 'TUEV'], help='task_filter_artifacts: TUAR (annotated artifact types, real line noise) or TUEV (eyem and artf events against background windows)')
     flags.add('--art-views', action='store_true', default=False, help='task_filter_artifacts: also draw the detail views (spectrum, dose, atoms, decode, maps, patients; examples are always drawn for TUAR)')
+    flags.add('--art-asr-cutoffs', type=float, nargs='*', default=[], help='task_filter_artifacts: more cutoffs of the time-domain ASR, as methods "ASR <cutoff>" (the default "ASR" is asrpy\'s 20)')
+    flags.add('--art-atom-cutoffs', type=float, nargs='*', default=[], help='task_filter_artifacts: more cutoffs of the ASR in the qlet space, as methods "ASR atoms <cutoff>" (1.5 is always run)')
     flags.add('--art-windows', type=int, default=20, help='task_filter_artifacts: windows per artifact type and patient (clean: 1.5 x this)')
 
 
@@ -96,6 +98,46 @@ def tuar_coverage(sub):
     return {k: np.array(v) for k, v in cov.items()}, np.array(anyc)
 
 
+NEW_NAMES = {'T3': 'T7', 'T4': 'T8', 'T5': 'P7', 'T6': 'P8'}              # the annotation's 10-20 names -> the canonical 10-10 ones
+
+
+def tuar_pairs(sub):
+    """-> per window {label: set of annotated bipolar pairs ('FP1-F7') covering at least half of it} for the labels elec and musc_elec, in the loader's window layout.
+    Note: musc_elec events are annotated on every pair of the montage, a pure elec event on the pair(s) where the annotator saw it."""
+    import mne
+    mne.set_log_level('ERROR')
+    base = 'datas/finetune/TUAR/'
+    out = []
+    for r in json.load(open(base + 'metadata.json'))['data_structure'][str(sub)]['runs']:
+        try:
+            raw = mne.io.read_raw_edf(base + r['file'], preload=False, verbose=False)
+        except Exception:
+            continue
+        n, w = int(raw.n_times * FS / raw.info['sfreq']) // (5 * FS), 5 * FS
+        sets = {k: [set() for _ in range(n)] for k in ('elec', 'musc_elec')}
+        for line in open(base + r['ann']):
+            p = line.strip().split(',')
+            if len(p) >= 4 and p[1][:1].isdigit() and p[3].lower() in sets:
+                a, b = max(0, int(float(p[1]) * FS)), min(n * w, int(float(p[2]) * FS))
+                for i in range(a // w, min(n, (b - 1) // w + 1)):
+                    if (min(b, (i + 1) * w) - max(a, i * w)) / w >= 0.5:
+                        sets[p[3].lower()][i].add(p[0])
+        out += [{k: sets[k][i] for k in sets} for i in range(n)]
+    return out
+
+
+def pair_index(pair, up):
+    """'FP1-F7' -> (channel index, channel index) in the montage, or None when an electrode is not in it."""
+    ends = [NEW_NAMES.get(e, e) for e in pair.upper().split('-')]
+    return tuple(up.index(e) for e in ends) if len(ends) == 2 and all(e in up for e in ends) else None
+
+
+def pair_ratio(w, x, rows, row_pairs):
+    """Peak amplitude squared of the annotated bipolar derivations (99.9th percentile of |a - b|), output / input, over the windows `rows`; row_pairs[i] = index pairs of window i."""
+    q = lambda v: np.mean([np.percentile(np.abs(v[i, a] - v[i, b]), 99.9) for i, ps in zip(rows, row_pairs) for a, b in ps])
+    return (q(w) / q(x)) ** 2
+
+
 def tuev_coverage(labels):
     """TUEV windows carry one event code each: ({kind: 1 on a window of that kind}, 1 on every window that is not background)."""
     return {k: (labels == c).astype(float) for k, c in TUEV_KINDS.items()}, (labels != 5).astype(float)
@@ -124,7 +166,8 @@ def compute(ctx):
         print(f'  skipped: no loso impute64 cell for {missing} (the filter needs them; see task_filter_build)'); return
     out, tf = filter_context(ctx, ctx.args.filter_source)
     dst = ctx.args.art_dataset; kinds = KINDS if dst == 'TUAR' else tuple(TUEV_KINDS)
-    columns = [(k, sc) for k, sc in COLUMNS if k is None or k in kinds]
+    skip = 'peak left' if dst == 'TUAR' else 'pair left'                      # TUAR: the annotated-pair peak replaces the pooled peak; TUEV has no pair annotation in the cache
+    columns = [(k, sc) for k, sc in COLUMNS if (k is None or k in kinds) and sc != skip]
     dst_r, dst_c, sel, encode, ops = _setup(tf, dst); dec = tf.backbone.decode
     up = [n.upper() for n in dst_c]; fp = [up.index(n) for n in ('FP1', 'FP2')]
     atom_keep = {}                                                            # atom_labels.npz (panel atom_labels) -> which atoms each removal group keeps
@@ -151,6 +194,7 @@ def compute(ctx):
             print(f'  {dst} patient {sub}: annotation layout does not match the cache: left out'); continue
         rng = np.random.default_rng(sub); nw = ctx.args.art_windows
         idx = {k: rng.permutation(np.flatnonzero((cov[k] >= 0.5) & (anyc - cov[k] < 0.1)))[:nw] for k in kinds}
+        wpairs = tuar_pairs(sub) if dst == 'TUAR' else None
         idx['clean'] = rng.permutation(np.flatnonzero(anyc == 0))[:int(1.5 * nw)]
         want = [k for k in kinds if len(idx[k]) >= 5 and cnt[k] < ctx.args.art_patients]
         if len(idx['clean']) < 8 or not want:
@@ -172,8 +216,15 @@ def compute(ctx):
             ga, _ = atom_asr(g[:, :, sel], torch.as_tensor(pos['clean']), 1.5)
             sig['ASR atoms 1.5'] = dec(ga)[..., :T]
             sig['ASR atoms 1.5 + atoms -line'] = dec(ga * atom_keep['atoms -line'].view(1, 1, 1, -1, 1))[..., :T]
+            for c in ctx.args.art_atom_cutoffs:
+                if c != 1.5:
+                    gc, _ = atom_asr(g[:, :, sel], torch.as_tensor(pos['clean']), c)
+                    sig[f'ASR atoms {c:g}'] = dec(gc)[..., :T]
         calib = x[pos['clean']].astype(np.float32) * 1e-5
         sig['ASR'] = asr_clean(x.astype(np.float32) * 1e-5, calib, dst_c).astype(np.float64) * 1e5
+        for c in ctx.args.art_asr_cutoffs:
+            if c != 20:
+                sig[f'ASR {c:g}'] = asr_clean(x.astype(np.float32) * 1e-5, calib, dst_c, cutoff=c).astype(np.float64) * 1e5
         sig['ICLabel'] = iclabel_clean(x.astype(np.float32) * 1e-5, dst_c)[0].astype(np.float64) * 1e5
         methods = list(sig); cl = pos['clean']
         N = len(allidx)
@@ -194,10 +245,22 @@ def compute(ctx):
             ex['psd'].setdefault(m, []).append(P.mean(1).astype(np.float32)); ex['chan'].setdefault(m, []).append(P.sum(-1).astype(np.float32))
             ex['q'].setdefault(m, []).append(np.stack([(sosfiltfilt(SLOW, w[:, fp].mean(1), axis=-1) ** 2).mean(-1), (sosfiltfilt(HIGH, w, axis=-1) ** 2).mean((1, 2)),
                                                        np.percentile(np.abs(w).reshape(N, -1), 99.9, axis=1) ** 2], 1))
+        pairs = {}                                                            # annotated bipolar pairs per window set, as channel index pairs (TUAR elec / musc_elec windows)
+        for k in ('elec', 'musc_elec'):
+            if wpairs is not None and k in want:
+                rp = [[pi for pi in (pair_index(q, up) for q in sorted(wpairs[i][k])) if pi] for i in idx[k]]
+                if sum(map(bool, rp)) >= 3:
+                    pairs[k] = (rp, sorted({pi for ps in rp for pi in ps}))
         for m, w in sig.items():
             d = per.setdefault(m, {})
             for k, score in columns:
                 if k in want:
+                    if SCORE_KIND[score] == 'pair':
+                        if k in pairs:
+                            rp, allp = pairs[k]; use = [j for j, ps in enumerate(rp) if ps]
+                            d.setdefault(f'{k}__{score}', []).append(float(pair_ratio(w, x, pos[k][use], [rp[j] for j in use])))
+                            d.setdefault(f'{k}__{score}__control', []).append(float(pair_ratio(w, x, cl, [allp] * len(cl))))
+                        continue
                     d.setdefault(f'{k}__{score}', []).append(float(ratios(w, x, pos[k], SCORE_KIND[score], fp)))
                     d.setdefault(f'{k}__{score}__control', []).append(float(ratios(w, x, cl, SCORE_KIND[score], fp)))
             lw = sosfiltfilt(LINE, w[cl], axis=-1); li = sosfiltfilt(LINE, x[cl], axis=-1)

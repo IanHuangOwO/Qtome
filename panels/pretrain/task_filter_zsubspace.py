@@ -87,7 +87,7 @@ def projector(fit, k):
 
 def compute(ctx):
     out, tf = filter_context(ctx, ctx.args.filter_source)
-    columns = [(k, sc) for k, sc in COLUMNS if k is None or k in KINDS]
+    columns = [(k, sc) for k, sc in COLUMNS if (k is None or k in KINDS) and sc != 'pair left']
     dst_r, dst_c, sel, encode, ops = _setup(tf, 'TUAR'); dec = tf.backbone.decode; model = tf.backbone.model.eval()
     up = [n.upper() for n in dst_c]; fp = [up.index(n) for n in ('FP1', 'FP2')]
     zl = load_npz(ctx.numbers('atom_labels.npz')); top = [str(zl['classes'][i]) for i in zl['probs'].argmax(1)]

@@ -11,14 +11,14 @@ import numpy as np
 
 from panels.core.numbers import load_npz
 from panels.pretrain.task_filter_artifacts import ATOM_COLORS, COLUMNS, TUEV_KINDS
-from panels.shared.groups import bar_legend, color_of, describe, db, grouped_bars, load_all, mean_se
+from panels.shared.groups import bar_legend, color_of, column_methods, describe, db, grouped_bars, load_all, mean_se
 
 PRESETS = {'standard'}
 MARKERS = ('o', 's', '^', 'D')
 HATCH = ('', '//', '..', 'xx')
 ATOM_ASR = ('ASR atoms 1.5', 'ASR atoms 1.5 + atoms -line')                # from the pretrain panel task_filter_atom_asr (--asr-tag _combo), same patients as task_filter_artifacts
 SHOW = ('backbone64', 'multi-task 0.5', 'multi-task 0.1', 'atoms -eye', 'atoms -muscle', 'atoms -line', 'atoms -artifacts', 'atoms -brain', 'atoms brain only', 'ASR', 'ICLabel', *ATOM_ASR)
-WHAT = {'eye left': 'frontal 1-10 Hz power', 'muscle left': '30-90 Hz power', 'peak left': 'peak amplitude²', 'line left': '59-61 Hz power (real line noise)'}
+WHAT = {'eye left': 'frontal 1-10 Hz power', 'muscle left': '30-90 Hz power', 'peak left': 'peak amplitude²', 'pair left': 'peak amplitude² of the annotated bipolar pair', 'line left': '59-61 Hz power (real line noise)'}
 NAME = {'eyem': 'eye movement', 'musc': 'muscle', 'elec': 'electrode', 'eyem_musc': 'eyem + musc', 'musc_elec': 'musc + elec', None: 'line noise'}
 
 
@@ -35,6 +35,10 @@ def load(path):
                     out[k] = np.concatenate([pad(out[k]), pad(e[k][rows])])
             out['methods'] = np.array([*(str(m) for m in out['methods']), *(em[i] for i in rows)])
     return out
+
+
+def add_args(flags):
+    flags.add('--with-multitask', action='store_true', default=False, help='noise_removal / noise_removal_synthetic / noise_classify: draw the earlier version too, every method in every column, the multi-task filter included (<name>_with_multitask.png)')
 
 
 def compute(ctx):
@@ -66,6 +70,11 @@ def compute(ctx):
 
 
 def draw(ctx):
+    for full in (False, True) if ctx.args.with_multitask else (False,):
+        draw_all(ctx, full)
+
+
+def draw_all(ctx, full):
     for ds in ('TUAR', 'TUEV'):
         try:
             z = np.load(ctx.numbers(f'noise_removal_{ds}.npz'))
@@ -73,37 +82,38 @@ def draw(ctx):
             continue
         methods, cols, recs = [str(m) for m in z['methods']], [str(c) for c in z['cols']], [str(r) for r in z['recipes']]; col = color_of(recs); n = len(recs)
         mcol = {'backbone64': '#555555', 'ASR': '#1baf7a', 'ICLabel': '#eda100', 'multi-task 0.5': '#eb6834', 'multi-task 0.1': '#b3410f', **{m: c for m, (c, _) in ATOM_COLORS.items()}, 'ASR atoms 1.5': '#e377c2', 'ASR atoms 1.5 + atoms -line': '#d62728'}
-        fig, ax = plt.subplots(3, len(cols), figsize=(3.6 * len(cols), 13.5), squeeze=False); x = np.arange(len(methods)); w = 0.8 / n
+        fig, ax = plt.subplots(3, len(cols), figsize=(3.6 * len(cols), 13.5), squeeze=False); w = 0.8 / n
+        shown = methods if full else [m for m in methods if any(m in column_methods(methods, c.split('__')[0]) for c in cols)]
         for j, key in enumerate(cols):
-            k, sc = key.split('__', 1); a = ax[0, j]
+            k, sc = key.split('__', 1); a = ax[0, j]; ms = methods if full else column_methods(methods, k); ix = [methods.index(m) for m in ms]; x = np.arange(len(ms))
             for i, r in enumerate(recs):                                      # row 1: removal against damage, one marker shape per recipe, one colour per method
                 mk = MARKERS[i % len(MARKERS)]
-                for m in methods:
+                for m in ms:
                     a.scatter(z[f'{r}__{key}'][:, methods.index(m)].mean(), z[f'{r}__brain'][:, methods.index(m)].mean(), color=mcol.get(m, '#888888'), marker=mk, s=60, zorder=3)
             a.scatter([0], [1], color='#555555', marker='s', s=60, zorder=3); a.axvline(0, color='k', lw=.5, ls=':')
             a.set_xlabel('artifact power change (dB)'); a.set_ylabel('brain kept on clean windows (correlation)' if j == 0 else '')
             a.set_title(f'{NAME[None if k == "line" else k]}\n{WHAT[sc.replace("_", " ")]}', fontsize=9, fontweight='bold')
             if j == 0:
-                h = [plt.Line2D([], [], marker='s', color='#555555', ls='', label='input')] + [plt.Line2D([], [], marker='o', color=c, ls='', label=m) for m, c in mcol.items() if m in methods]
+                h = [plt.Line2D([], [], marker='s', color='#555555', ls='', label='input')] + [plt.Line2D([], [], marker='o', color=c, ls='', label=m) for m, c in mcol.items() if m in shown]
                 h += [plt.Line2D([], [], marker=MARKERS[i % len(MARKERS)], color='k', mfc='none', ls='', label=f'recipe {r}') for i, r in enumerate(recs)]
                 a.legend(handles=h, fontsize=7, loc='lower left')
             b = ax[1, j]                                                      # row 2: artifact windows (method colour; hatch = recipe) next to the control on clean windows (grey)
             for i, r in enumerate(recs):
                 off = (i - (n - 1) / 2) * w
-                for kk, c, d in ((key, [mcol.get(m, '#888888') for m in methods], -w / 4), (key + '__control', '#cccccc', w / 4)):
-                    mu, se = mean_se(z[f'{r}__{kk}'])
+                for kk, c, d in ((key, [mcol.get(m, '#888888') for m in ms], -w / 4), (key + '__control', '#cccccc', w / 4)):
+                    mu, se = mean_se(z[f'{r}__{kk}'][:, ix])
                     b.bar(x + off + d, mu, w / 2 * 0.95, yerr=se, color=c, hatch=HATCH[i % len(HATCH)], edgecolor='white', linewidth=0, capsize=1.5, error_kw={'lw': 0.8})
             b.axhline(0, color='k', lw=.6); b.set_ylabel('power change (dB; 0 = unchanged)' if j == 0 else '')
-            b.set_xticks(x); b.set_xticklabels(methods, rotation=45, ha='right', fontsize=7)
+            b.set_xticks(x); b.set_xticklabels(ms, rotation=45, ha='right', fontsize=7)
             if j == 0:
                 b.legend(handles=bar_legend(recs), fontsize=7, loc='lower left')
             c = ax[2, j]                                                      # row 3: the same on a linear scale, output power / input power (1 = unchanged)
             for i, r in enumerate(recs):
                 off = (i - (n - 1) / 2) * w
-                for kk, cc, d in ((key, [mcol.get(m, '#888888') for m in methods], -w / 4), (key + '__control', '#cccccc', w / 4)):
-                    mu, se = mean_se(10 ** (z[f'{r}__{kk}'] / 10))
+                for kk, cc, d in ((key, [mcol.get(m, '#888888') for m in ms], -w / 4), (key + '__control', '#cccccc', w / 4)):
+                    mu, se = mean_se(10 ** (z[f'{r}__{kk}'][:, ix] / 10))
                     c.bar(x + off + d, mu, w / 2 * 0.95, yerr=se, color=cc, hatch=HATCH[i % len(HATCH)], edgecolor='white', linewidth=0, capsize=1.5, error_kw={'lw': 0.8})
             c.axhline(1, color='k', lw=.6); c.set_ylabel('output power / input power (1 = unchanged)' if j == 0 else '')
-            c.set_xticks(x); c.set_xticklabels(methods, rotation=45, ha='right', fontsize=7)
-        fig.suptitle(f'{ds}: what each removal does to real artifacts and to the brain signal (mean over seeds, ± SE on the bars)', fontweight='bold')
-        fig.tight_layout(rect=describe(fig, methods, 0.12)); out = ctx.figure(f'noise_removal_{ds}.png'); fig.savefig(out, dpi=110); plt.close(fig); print(f'  -> {out}')
+            c.set_xticks(x); c.set_xticklabels(ms, rotation=45, ha='right', fontsize=7)
+        fig.suptitle(f'{ds}: what each removal does to real artifacts and to the brain signal (mean over seeds, ± SE on the bars)' + (': every method, multi-task filter included' if full else ''), fontweight='bold')
+        fig.tight_layout(rect=describe(fig, shown, 0.12)); out = ctx.figure(f'noise_removal_{ds}{"_with_multitask" if full else ""}.png'); fig.savefig(out, dpi=110); plt.close(fig); print(f'  -> {out}')

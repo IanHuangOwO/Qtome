@@ -128,11 +128,11 @@ def _raw(w, chans):                                                       # tria
     return mne.io.RawArray(np.concatenate(list(w), -1).astype(np.float64), mne.create_info(chans, FS, 'eeg')).set_montage('standard_1005')
 
 
-def asr_clean(noisy, calib, chans):
+def asr_clean(noisy, calib, chans, cutoff=20):
     import asrpy
     cal = _raw(calib, chans)
     for bs in (100, 99, 101, 98):                                         # asrpy's block covariance fails when the cleaned calibration length is 2 mod the block size
-        asr = asrpy.ASR(sfreq=FS, cutoff=20, blocksize=bs)
+        asr = asrpy.ASR(sfreq=FS, cutoff=cutoff, blocksize=bs)
         try:
             asr.fit(cal); break
         except ValueError:
