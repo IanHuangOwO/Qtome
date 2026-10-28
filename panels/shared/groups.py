@@ -9,6 +9,7 @@ import textwrap
 import numpy as np
 
 from IO.config import QLET_OUTPUT
+from panels.core.context import FIGURES
 
 PALETTE = ('#2a78d6', '#eb6834', '#1baf7a', '#9a5fd0', '#eda100', '#888888')
 
@@ -75,8 +76,8 @@ def own_numbers(ctx, group, name):
 
 
 def own_figure(ctx, group, name):
-    """A single backbone's finetune-side figure: output/Qlet/<backbone>/analysis/finetune/<head>/<name> (next to its training dashboards)."""
-    path = os.path.join(QLET_OUTPUT, ctx.groups[group], 'analysis', 'finetune', ctx.head, name)
+    """A single backbone's finetune-side figure: docs/figures/runs/<backbone>/finetune/<head>/<name> (next to its training dashboards)."""
+    path = os.path.join(FIGURES, 'runs', ctx.groups[group], 'finetune', ctx.head, name)
     os.makedirs(os.path.dirname(path), exist_ok=True)
     return path
 
@@ -100,6 +101,12 @@ METHOD_TEXT = {
 
 GENERAL = ('backbone64', 'ASR', 'ICLabel', 'ASR atoms 1.5', 'ASR atoms 1.5 + atoms -line')   # shown in every noise column
 MATCHED = {'eyem': 'atoms -eye', 'eye': 'atoms -eye', 'musc': 'atoms -muscle', 'muscle': 'atoms -muscle', 'elec': 'atoms -artifacts', 'electrode': 'atoms -artifacts', 'line': 'atoms -line'}
+
+
+def drop_pooled_muscle(keys):
+    """Column keys without the pooled muscle column of a window type that also has the annotated-pair one (TUAR: 30-90 Hz power of the annotated pairs replaces the
+    all-channel power in the figures; the pooled numbers stay in the .md tables)."""
+    return [k for k in keys if not (k.endswith('__muscle_left') and k.replace('__muscle_left', '__mpair_left') in keys)]
 
 
 def column_methods(methods, kind):

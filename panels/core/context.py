@@ -1,6 +1,7 @@
 """The context every panel receives: the run's config and paths, the lazily built model, the device and the parsed options.
-Numbers go under ctx.numbers_dir, figures under ctx.fig_dir (pretrain: <backbone>/pretrain/analysis and <backbone>/analysis/pretrain;
-group: both are --out)."""
+Numbers go under ctx.numbers_dir, figures under ctx.fig_dir -- in the docs vault, not in output/ (pretrain: numbers in
+output/Qlet/<backbone>/pretrain/analysis, figures in docs/figures/runs/<backbone>/pretrain; group: numbers in --out, figures in
+docs/figures/<name of --out>)."""
 import json
 import os
 from dataclasses import dataclass, field
@@ -9,6 +10,8 @@ from typing import Optional
 import torch
 
 from IO.config import QLET_OUTPUT, resolve_output_dir
+
+FIGURES = 'docs/figures'          # every figure the panels draw; the Obsidian vault embeds them from here
 
 
 def deep_merge(base: dict, override: dict) -> dict:
@@ -115,7 +118,9 @@ def make_ctx(stage, args, panel_modules, error):
             error(f'--ref {args.ref!r} is not a group name ({list(groups)})')
         out = args.out or default_analysis_dir(groups)
         os.makedirs(out, exist_ok=True)
-        return Ctx(stage, args, out, out, device=device, groups=groups, ref=args.ref, head=args.head, redraw=args.redraw)
+        fig_out = os.path.join(FIGURES, os.path.basename(os.path.normpath(out)))
+        os.makedirs(fig_out, exist_ok=True)
+        return Ctx(stage, args, out, fig_out, device=device, groups=groups, ref=args.ref, head=args.head, redraw=args.redraw)
 
     if args.threads:
         torch.set_num_threads(args.threads)
@@ -130,8 +135,8 @@ def make_ctx(stage, args, panel_modules, error):
         config = deep_merge(config, json.load(open(args.config)))
     if checkpoint:
         numbers_dir = resolve_output_dir(config, 'analysis')
-        # numbers in <backbone>/pretrain/analysis, figures in <backbone>/analysis/pretrain (the same two levels above)
-        fig_dir = os.path.join(os.path.dirname(os.path.dirname(numbers_dir)), 'analysis', 'pretrain')
+        # numbers in <backbone>/pretrain/analysis, figures in docs/figures/runs/<backbone>/pretrain
+        fig_dir = os.path.join(FIGURES, 'runs', os.path.basename(os.path.dirname(os.path.dirname(numbers_dir))), 'pretrain')
     else:
         numbers_dir = fig_dir = 'output/tools-profile'
     os.makedirs(numbers_dir, exist_ok=True)

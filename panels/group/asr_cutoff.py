@@ -10,13 +10,13 @@ import numpy as np
 
 from panels.core.numbers import load_npz
 from panels.pretrain.task_filter_artifacts import COLUMNS
-from panels.shared.groups import color_of, db, load_all
+from panels.shared.groups import color_of, db, drop_pooled_muscle, load_all
 
 PRESETS = set()
 TIME = (('ASR 3', 3), ('ASR 5', 5), ('ASR 10', 10), ('ASR', 20))
 ATOM = (('ASR atoms 1', 1), ('ASR atoms 1.5', 1.5), ('ASR atoms 2', 2), ('ASR atoms 3', 3), ('ASR atoms 5', 5))
 MARKERS = ('o', 's', '^', 'D')
-TITLE = {'eyem__eye_left': 'eye movement: frontal 1-10 Hz power', 'musc__muscle_left': 'muscle: 30-90 Hz power', 'elec__pair_left': 'electrode: annotated pair peak amplitude²',
+TITLE = {'musc__mpair_left': 'muscle: 30-90 Hz power of the annotated pairs', 'musc_elec__mpair_left': 'muscle + electrode: 30-90 Hz power of the annotated pairs', 'eyem__eye_left': 'eye movement: frontal 1-10 Hz power', 'musc__muscle_left': 'muscle: 30-90 Hz power', 'elec__pair_left': 'electrode: annotated pair peak amplitude²',
          'musc_elec__muscle_left': 'muscle + electrode: 30-90 Hz power', 'musc_elec__pair_left': 'muscle + electrode: annotated pair peak amplitude²',
          'musc_elec__peak_left': 'artifact events: peak amplitude²', 'line__line_left': 'real line noise: 59-61 Hz power'}
 
@@ -49,7 +49,7 @@ def compute(ctx):
         if not any(m.startswith('ASR atoms ') and m != 'ASR atoms 1.5' and 'line' not in m for m in have) and 'ASR 3' not in have:
             print(f'  {ds}: no cutoff sweep in the numbers (task_filter_artifacts --art-asr-cutoffs ... --art-atom-cutoffs ...)'); continue
         cols = [(k, sc) for k, sc in COLUMNS if k != 'eyem_musc' and all(f'{k or "line"}__{sc}'.replace(' ', '_') in s for v in data.values() for s in v)]
-        keys = [f'{k or "line"}__{sc}'.replace(' ', '_') for k, sc in cols]
+        keys = drop_pooled_muscle([f'{k or "line"}__{sc}'.replace(' ', '_') for k, sc in cols])
         out = {'recipes': np.array(list(data)), 'keys': np.array(keys)}
         lines.append(f'\n{ds}: per recipe, per cutoff: artifact dB (control dB) | brain kept')
         for r, v in data.items():

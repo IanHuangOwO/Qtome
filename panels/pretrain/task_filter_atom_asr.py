@@ -40,7 +40,7 @@ def add_args(flags):
 
 def compute(ctx):
     out, tf = filter_context(ctx, ctx.args.filter_source)
-    columns = [(k, sc) for k, sc in COLUMNS if (k is None or k in KINDS) and sc != 'pair left']
+    columns = [(k, sc) for k, sc in COLUMNS if (k is None or k in KINDS) and sc not in ('pair left', 'mpair left')]
     dst_r, dst_c, sel, encode, ops = _setup(tf, 'TUAR'); dec = tf.backbone.decode
     up = [n.upper() for n in dst_c]; fp = [up.index(n) for n in ('FP1', 'FP2')]
     zl = load_npz(ctx.numbers('atom_labels.npz')); top = [str(zl['classes'][i]) for i in zl['probs'].argmax(1)]

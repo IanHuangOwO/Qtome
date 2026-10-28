@@ -18,7 +18,7 @@ from panels.core.numbers import load_npz, save_npz
 from panels.pretrain.task_filter_artifacts import ATOM_COLORS, ATOM_GROUPS
 from panels.shared.task_filter.atom_asr import atom_asr
 from panels.shared.task_filter.context import filter_context
-from panels.shared.task_filter.tests import _setup, lda, lda_auc, loso, mi_features, p300_features, subjects
+from panels.shared.task_filter.tests import _setup, asr_clean, iclabel_clean, lda, lda_auc, loso, mi_features, p300_features, subjects
 
 PRESETS = set()
 PARADIGM = {'PhysionetMI': 'mi', 'BNCI2014004': 'mi', 'BNCI2014001': 'mi', 'BNCI2014008': 'p300', 'BNCI2014009': 'p300'}
@@ -65,6 +65,11 @@ def compute(ctx):
                 ga, _ = atom_asr(g[:, :, sel], torch.arange(len(x)), 1.5)
                 sig['ASR atoms 1.5'] = dec(ga)[..., :T]
                 sig['ASR atoms 1.5 + atoms -line'] = dec(ga * atom_keep['atoms -line'].view(1, 1, 1, -1, 1))[..., :T]
+            xf = x.astype(np.float32) * 1e-5                                       # the time-domain methods, only when asked for (ICLabel runs an ICA per subject); calibrated on the subject's own windows, a favour
+            if 'ASR' in (ctx.args.cls_methods or ()):
+                sig['ASR'] = asr_clean(xf, xf, dst_c).astype(np.float64) * 1e5
+            if 'ICLabel' in (ctx.args.cls_methods or ()):
+                sig['ICLabel'] = iclabel_clean(xf, dst_c)[0].astype(np.float64) * 1e5
             if ctx.args.cls_methods:
                 sig = {m: w for m, w in sig.items() if m in ctx.args.cls_methods}
             ys.append(y)

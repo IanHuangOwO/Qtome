@@ -47,8 +47,8 @@ KINDS = ('eyem', 'musc', 'elec', 'eyem_musc', 'musc_elec')                 # the
 SETS = (*KINDS, 'clean')
 TUEV_KINDS = {'eyem': 3, 'musc_elec': 4}                                   # TUEV event codes: eyem, and artf (a generic artifact, scored on muscle and peak amplitude); code 5 = background = clean
 BANDS = ((1, 4), (4, 8), (8, 13), (13, 20), (20, 30), (30, 45), (45, 70), (70, 100))   # the decodability features: log band power per channel
-COLUMNS = (('eyem', 'eye left'), ('musc', 'muscle left'), ('elec', 'peak left'), ('elec', 'pair left'), ('eyem_musc', 'eye left'), ('eyem_musc', 'muscle left'),
-           ('musc_elec', 'muscle left'), ('musc_elec', 'peak left'), ('musc_elec', 'pair left'), (None, 'line left'))     # (window set, score) per figure column
+COLUMNS = (('eyem', 'eye left'), ('musc', 'muscle left'), ('musc', 'mpair left'), ('elec', 'peak left'), ('elec', 'pair left'), ('eyem_musc', 'eye left'), ('eyem_musc', 'muscle left'),
+           ('eyem_musc', 'mpair left'), ('musc_elec', 'muscle left'), ('musc_elec', 'mpair left'), ('musc_elec', 'peak left'), ('musc_elec', 'pair left'), (None, 'line left'))     # (window set, score) per figure column
 ATOM_GROUPS = {'atoms -eye': ('eye',), 'atoms -muscle': ('muscle',), 'atoms -line': ('line noise', 'channel noise'),
                'atoms -artifacts': ('eye', 'muscle', 'heart', 'line noise', 'channel noise'),
                'atoms -other': ('other',), 'atoms -brain': ('brain',),
@@ -56,7 +56,7 @@ ATOM_GROUPS = {'atoms -eye': ('eye',), 'atoms -muscle': ('muscle',), 'atoms -lin
 ATOM_COLORS = {'atoms -eye': ('#2a78d6', 'o'), 'atoms -muscle': ('#7fb0ea', 'o'), 'atoms -line': ('#0b3d7a', 'o'), 'atoms -artifacts': ('#9a5fd0', 'P'),
                'atoms -other': ('#c9a000', 'X'), 'atoms -brain': ('#2d8a4e', 'v'),
                'atoms brain only': ('#8c2d6b', 'h')}
-SCORE_KIND = {'eye left': 'eyem', 'muscle left': 'musc', 'peak left': 'elec', 'pair left': 'pair', 'line left': None}     # which measure a score is
+SCORE_KIND = {'eye left': 'eyem', 'muscle left': 'musc', 'peak left': 'elec', 'pair left': 'pair', 'mpair left': 'mpair', 'line left': None}
 
 
 def add_args(flags):
@@ -98,12 +98,13 @@ def tuar_coverage(sub):
     return {k: np.array(v) for k, v in cov.items()}, np.array(anyc)
 
 
+PAIR_LABELS = ('elec', 'musc_elec', 'musc', 'eyem_musc')
 NEW_NAMES = {'T3': 'T7', 'T4': 'T8', 'T5': 'P7', 'T6': 'P8'}              # the annotation's 10-20 names -> the canonical 10-10 ones
 
 
 def tuar_pairs(sub):
-    """-> per window {label: set of annotated bipolar pairs ('FP1-F7') covering at least half of it} for the labels elec and musc_elec, in the loader's window layout.
-    Note: musc_elec events are annotated on every pair of the montage, a pure elec event on the pair(s) where the annotator saw it."""
+    """-> per window {label: set of annotated bipolar pairs ('FP1-F7') covering at least half of it} for the labels elec, musc_elec, musc and eyem_musc, in the loader's window layout.
+    An event lists the pairs the annotator marked: median 2 pairs per elec / musc / musc_elec event over 60 patients, about 15% to 25% of the events mark every pair of the montage."""
     import mne
     mne.set_log_level('ERROR')
     base = 'datas/finetune/TUAR/'
@@ -114,7 +115,7 @@ def tuar_pairs(sub):
         except Exception:
             continue
         n, w = int(raw.n_times * FS / raw.info['sfreq']) // (5 * FS), 5 * FS
-        sets = {k: [set() for _ in range(n)] for k in ('elec', 'musc_elec')}
+        sets = {k: [set() for _ in range(n)] for k in PAIR_LABELS}
         for line in open(base + r['ann']):
             p = line.strip().split(',')
             if len(p) >= 4 and p[1][:1].isdigit() and p[3].lower() in sets:
@@ -136,6 +137,12 @@ def pair_ratio(w, x, rows, row_pairs):
     """Peak amplitude squared of the annotated bipolar derivations (99.9th percentile of |a - b|), output / input, over the windows `rows`; row_pairs[i] = index pairs of window i."""
     q = lambda v: np.mean([np.percentile(np.abs(v[i, a] - v[i, b]), 99.9) for i, ps in zip(rows, row_pairs) for a, b in ps])
     return (q(w) / q(x)) ** 2
+
+
+def pair_band_ratio(w, x, rows, row_pairs, sos):
+    """Power of the band `sos` of the annotated bipolar derivations (a - b), output / input, over the windows `rows`; row_pairs[i] = index pairs of window i."""
+    f = lambda v: np.mean([np.mean(sosfiltfilt(sos, v[i, a] - v[i, b]) ** 2) for i, ps in zip(rows, row_pairs) for a, b in ps])
+    return f(w) / f(x)
 
 
 def tuev_coverage(labels):
@@ -166,8 +173,8 @@ def compute(ctx):
         print(f'  skipped: no loso impute64 cell for {missing} (the filter needs them; see task_filter_build)'); return
     out, tf = filter_context(ctx, ctx.args.filter_source)
     dst = ctx.args.art_dataset; kinds = KINDS if dst == 'TUAR' else tuple(TUEV_KINDS)
-    skip = 'peak left' if dst == 'TUAR' else 'pair left'                      # TUAR: the annotated-pair peak replaces the pooled peak; TUEV has no pair annotation in the cache
-    columns = [(k, sc) for k, sc in COLUMNS if (k is None or k in kinds) and sc != skip]
+    skip = {'peak left'} if dst == 'TUAR' else {'pair left', 'mpair left'}    # TUAR: the annotated-pair measures replace the pooled peak (the pooled muscle is kept too, the group figures draw the pair one); TUEV has no pair annotation in the cache
+    columns = [(k, sc) for k, sc in COLUMNS if (k is None or k in kinds) and sc not in skip]
     dst_r, dst_c, sel, encode, ops = _setup(tf, dst); dec = tf.backbone.decode
     up = [n.upper() for n in dst_c]; fp = [up.index(n) for n in ('FP1', 'FP2')]
     atom_keep = {}                                                            # atom_labels.npz (panel atom_labels) -> which atoms each removal group keeps
@@ -246,7 +253,7 @@ def compute(ctx):
             ex['q'].setdefault(m, []).append(np.stack([(sosfiltfilt(SLOW, w[:, fp].mean(1), axis=-1) ** 2).mean(-1), (sosfiltfilt(HIGH, w, axis=-1) ** 2).mean((1, 2)),
                                                        np.percentile(np.abs(w).reshape(N, -1), 99.9, axis=1) ** 2], 1))
         pairs = {}                                                            # annotated bipolar pairs per window set, as channel index pairs (TUAR elec / musc_elec windows)
-        for k in ('elec', 'musc_elec'):
+        for k in PAIR_LABELS:
             if wpairs is not None and k in want:
                 rp = [[pi for pi in (pair_index(q, up) for q in sorted(wpairs[i][k])) if pi] for i in idx[k]]
                 if sum(map(bool, rp)) >= 3:
@@ -255,11 +262,12 @@ def compute(ctx):
             d = per.setdefault(m, {})
             for k, score in columns:
                 if k in want:
-                    if SCORE_KIND[score] == 'pair':
+                    if SCORE_KIND[score] in ('pair', 'mpair'):
                         if k in pairs:
                             rp, allp = pairs[k]; use = [j for j, ps in enumerate(rp) if ps]
-                            d.setdefault(f'{k}__{score}', []).append(float(pair_ratio(w, x, pos[k][use], [rp[j] for j in use])))
-                            d.setdefault(f'{k}__{score}__control', []).append(float(pair_ratio(w, x, cl, [allp] * len(cl))))
+                            fn = pair_ratio if SCORE_KIND[score] == 'pair' else (lambda a, b, r, q: pair_band_ratio(a, b, r, q, HIGH))
+                            d.setdefault(f'{k}__{score}', []).append(float(fn(w, x, pos[k][use], [rp[j] for j in use])))
+                            d.setdefault(f'{k}__{score}__control', []).append(float(fn(w, x, cl, [allp] * len(cl))))
                         continue
                     d.setdefault(f'{k}__{score}', []).append(float(ratios(w, x, pos[k], SCORE_KIND[score], fp)))
                     d.setdefault(f'{k}__{score}__control', []).append(float(ratios(w, x, cl, SCORE_KIND[score], fp)))

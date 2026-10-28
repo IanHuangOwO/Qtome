@@ -3,6 +3,7 @@ each recipe -> noise_removal_<dataset>.png and noise_removal.md. Bars: artifact 
 same method on clean windows: a method that removes the artifact and the control equally is a frequency filter); top row: brain kept (correlation with the
 clean windows) against the artifact power change, one marker shape per recipe; bottom row: the same on a linear scale (output power / input power). Needs the pretrain panel task_filter_artifacts (TUAR and TUEV) and, for atom removal, atom_labels on each backbone."""
 import os
+import textwrap
 
 import matplotlib
 matplotlib.use('Agg')
@@ -11,14 +12,25 @@ import numpy as np
 
 from panels.core.numbers import load_npz
 from panels.pretrain.task_filter_artifacts import ATOM_COLORS, COLUMNS, TUEV_KINDS
-from panels.shared.groups import bar_legend, color_of, column_methods, describe, db, grouped_bars, load_all, mean_se
+from panels.shared.groups import bar_legend, color_of, column_methods, describe, db, drop_pooled_muscle, grouped_bars, load_all, mean_se
 
 PRESETS = {'standard'}
+HOW = {'TUAR': ("How the artifacts are defined. Artifact windows: 5 s windows of one patient that the annotation covers for at least half with the labelled event (eyem eye movement, musc muscle, elec electrode; a mixed label such as "
+                "musc_elec is a window with that mixed event) and for less than 10% with any other label. Clean windows (grey bars, the control): the same patient's windows with no annotated event at all. Real recordings have no "
+                "separate noise signal, so each column scores one measure of the whole window (brain plus artifact), on the method's output and on its input (windows scaled by their own standard deviation): eye = 1-10 Hz power "
+                "of the mean of Fp1 and Fp2; muscle = 30-90 Hz power of the annotated bipolar pairs (a - b), the channels the annotator marked; electrode = peak amplitude squared (99.9th percentile of |a - b|) of the annotated bipolar pair; line noise = 59-61 Hz power on clean windows "
+                "(its control is 8-30 Hz power). Row 3 is that measure's power, output / input: 1 = unchanged, 0 = that band is gone from the window (brain and artifact together, not the noise alone). Top row: brain kept = correlation "
+                "of the output with the input on clean windows."),
+       'TUEV': ("How the artifacts are defined. Artifact windows: the windows of the TUEV event labelled eyem (eye movement) or artf (a generic artifact, scored on muscle and peak amplitude); clean windows (grey bars, the control): "
+                "the windows labelled background. Real recordings have no separate noise signal, so each column scores one measure of the whole window (brain plus artifact), on the method's output and on its input (windows scaled by "
+                "their own standard deviation): eye = 1-10 Hz power of the mean of Fp1 and Fp2; muscle = 30-90 Hz power over all channels; peak = peak amplitude squared (99.9th percentile of |amplitude| over all channels), pooled, as TUEV "
+                "has no per-pair annotation here; line noise = 59-61 Hz power on clean windows (its control is 8-30 Hz power). Row 3 is that measure's power, output / input: 1 = unchanged, 0 = that band is gone from the window (brain and "
+                "artifact together, not the noise alone). Top row: brain kept = correlation of the output with the input on clean windows.")}
 MARKERS = ('o', 's', '^', 'D')
 HATCH = ('', '//', '..', 'xx')
 ATOM_ASR = ('ASR atoms 1.5', 'ASR atoms 1.5 + atoms -line')                # from the pretrain panel task_filter_atom_asr (--asr-tag _combo), same patients as task_filter_artifacts
 SHOW = ('backbone64', 'multi-task 0.5', 'multi-task 0.1', 'atoms -eye', 'atoms -muscle', 'atoms -line', 'atoms -artifacts', 'atoms -brain', 'atoms brain only', 'ASR', 'ICLabel', *ATOM_ASR)
-WHAT = {'eye left': 'frontal 1-10 Hz power', 'muscle left': '30-90 Hz power', 'peak left': 'peak amplitude²', 'pair left': 'peak amplitude² of the annotated bipolar pair', 'line left': '59-61 Hz power (real line noise)'}
+WHAT = {'eye left': 'frontal 1-10 Hz power', 'muscle left': '30-90 Hz power', 'peak left': 'peak amplitude²', 'pair left': 'peak amplitude² of the annotated bipolar pair', 'mpair left': '30-90 Hz power of the annotated pairs', 'line left': '59-61 Hz power (real line noise)'}
 NAME = {'eyem': 'eye movement', 'musc': 'muscle', 'elec': 'electrode', 'eyem_musc': 'eyem + musc', 'musc_elec': 'musc + elec', None: 'line noise'}
 
 
@@ -80,7 +92,7 @@ def draw_all(ctx, full):
             z = np.load(ctx.numbers(f'noise_removal_{ds}.npz'))
         except FileNotFoundError:
             continue
-        methods, cols, recs = [str(m) for m in z['methods']], [str(c) for c in z['cols']], [str(r) for r in z['recipes']]; col = color_of(recs); n = len(recs)
+        methods, cols, recs = [str(m) for m in z['methods']], drop_pooled_muscle([str(c) for c in z['cols']]), [str(r) for r in z['recipes']]; col = color_of(recs); n = len(recs)
         mcol = {'backbone64': '#555555', 'ASR': '#1baf7a', 'ICLabel': '#eda100', 'multi-task 0.5': '#eb6834', 'multi-task 0.1': '#b3410f', **{m: c for m, (c, _) in ATOM_COLORS.items()}, 'ASR atoms 1.5': '#e377c2', 'ASR atoms 1.5 + atoms -line': '#d62728'}
         fig, ax = plt.subplots(3, len(cols), figsize=(3.6 * len(cols), 13.5), squeeze=False); w = 0.8 / n
         shown = methods if full else [m for m in methods if any(m in column_methods(methods, c.split('__')[0]) for c in cols)]
@@ -103,7 +115,7 @@ def draw_all(ctx, full):
                 for kk, c, d in ((key, [mcol.get(m, '#888888') for m in ms], -w / 4), (key + '__control', '#cccccc', w / 4)):
                     mu, se = mean_se(z[f'{r}__{kk}'][:, ix])
                     b.bar(x + off + d, mu, w / 2 * 0.95, yerr=se, color=c, hatch=HATCH[i % len(HATCH)], edgecolor='white', linewidth=0, capsize=1.5, error_kw={'lw': 0.8})
-            b.axhline(0, color='k', lw=.6); b.set_ylabel('power change (dB; 0 = unchanged)' if j == 0 else '')
+            b.axhline(0, color='k', lw=.6); b.set_ylabel('power of the scored measure, change (dB)\n(0 = unchanged; grey = clean windows)' if j == 0 else '')
             b.set_xticks(x); b.set_xticklabels(ms, rotation=45, ha='right', fontsize=7)
             if j == 0:
                 b.legend(handles=bar_legend(recs), fontsize=7, loc='lower left')
@@ -113,7 +125,7 @@ def draw_all(ctx, full):
                 for kk, cc, d in ((key, [mcol.get(m, '#888888') for m in ms], -w / 4), (key + '__control', '#cccccc', w / 4)):
                     mu, se = mean_se(10 ** (z[f'{r}__{kk}'][:, ix] / 10))
                     c.bar(x + off + d, mu, w / 2 * 0.95, yerr=se, color=cc, hatch=HATCH[i % len(HATCH)], edgecolor='white', linewidth=0, capsize=1.5, error_kw={'lw': 0.8})
-            c.axhline(1, color='k', lw=.6); c.set_ylabel('output power / input power (1 = unchanged)' if j == 0 else '')
+            c.axhline(1, color='k', lw=.6); c.set_ylabel('power of the scored measure, output / input\n(1 = unchanged, 0 = band gone)' if j == 0 else '')
             c.set_xticks(x); c.set_xticklabels(ms, rotation=45, ha='right', fontsize=7)
-        fig.suptitle(f'{ds}: what each removal does to real artifacts and to the brain signal (mean over seeds, ± SE on the bars)' + (': every method, multi-task filter included' if full else ''), fontweight='bold')
-        fig.tight_layout(rect=describe(fig, shown, 0.12)); out = ctx.figure(f'noise_removal_{ds}{"_with_multitask" if full else ""}.png'); fig.savefig(out, dpi=110); plt.close(fig); print(f'  -> {out}')
+        fig.suptitle(f'{ds}: what each removal does to real artifacts and to the brain signal (mean over seeds, ± SE on the bars). Rows 2 and 3: power of the scored measure, output / input' + (': every method, multi-task filter included' if full else ''), fontweight='bold')
+        fig.text(0.01, 0.962, textwrap.fill(HOW[ds], int(40 * len(cols))), fontsize=8, va='top', ha='left', color='#333333'); fig.tight_layout(rect=(lambda r: (r[0], r[1], r[2], 0.89))(describe(fig, shown, 0.12))); out = ctx.figure(f'noise_removal_{ds}{"_with_multitask" if full else ""}.png'); fig.savefig(out, dpi=110); plt.close(fig); print(f'  -> {out}')

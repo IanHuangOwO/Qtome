@@ -10,7 +10,7 @@ leave-one-subject-out over the training subjects). Score: balanced accuracy on t
 number: on BNCI2014001 it reads ~10 points below the factorised SGD probe (latent_signed), whose low-rank form regularises
 22-channel data better than plain L2.
 
-fewshot_ridge (a few-shot variant on the calibration trials, cited in docs/finetune-caveats.md) is kept here; no panel runs it."""
+fewshot_ridge (a few-shot variant on the calibration trials, cited in docs/notes/guides/finetune-caveats.md) is kept here; no panel runs it."""
 import copy
 import json
 
