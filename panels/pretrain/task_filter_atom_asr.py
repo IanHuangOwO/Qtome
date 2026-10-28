@@ -19,9 +19,9 @@ from scipy.signal import sosfiltfilt
 
 from panels.core.numbers import load_npz, save_npz
 from panels.pretrain.task_filter_artifacts import ATOM_GROUPS, BRAIN, COLUMNS, KINDS, LINE, SCORE_KIND, power, ratios
-from panels.pretrain.task_filter_zsubspace import dst_windows, stack
 from panels.shared.task_filter.atom_asr import atom_asr
 from panels.shared.task_filter.context import filter_context
+from panels.shared.task_filter.tuar_windows import dst_windows, stack
 from panels.shared.task_filter.tests import _setup, asr_clean, subjects
 
 PRESETS = set()

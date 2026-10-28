@@ -2,7 +2,7 @@
 
 One analysis = one file under `panels/<stage>/`, run by `analyze.py`. It computes its numbers, saves them, then draws its figures from
 the saved numbers, so `--redraw` never recomputes. (This replaced `tools/analysis` + `tools/viz` + `tools/panels`, 2026-10-24,
-`docs/plans/2026-10-24-analysis-restructure.md`.)
+`docs/archive/plans/2026-10-24-analysis-restructure.md`.)
 
 ```
 analyze.py                 python analyze.py list | pretrain ... | group ...   (`finetune` = the old name of group)

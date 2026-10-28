@@ -16,10 +16,6 @@ san = lambda m: m.replace(' ', '_')
 db = lambda r: np.maximum(10 * np.log10(np.maximum(r, 1e-12)), FLOOR)
 
 
-def _have(z):
-    return 'win_set' in z and 'psd__input' in z
-
-
 def _sel(z, k):
     return np.flatnonzero(z['win_set'] == SETS.index(k))
 
