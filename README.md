@@ -107,7 +107,7 @@ reads only the qlets: `atom_power` (MI) and `signed_ab` (signed gains, P300); sw
 (`training_params.finetune.split.type`): `loso`, `subject_kfold`, `eval_subjects`, `kfold`,
 `blocked_kfold`, `fewshot`. Frozen protocols (`configs/finetune_protocols.json`: `mi_loso`,
 `mi_fewshot`, `p300_loso`, `p300_fewshot`) were tuned on development sets only. Read
-`docs/notes/guides/finetune-caveats.md` before you report or compare finetune numbers.
+`docs/agents/finetune-evaluation.md` before you report or compare finetune numbers.
 
 ## Outputs
 

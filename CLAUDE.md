@@ -1,7 +1,7 @@
 # CLAUDE.md
 
 Guidance for Claude Code in this repository. Canonical terms: `CONTEXT.md`. Design history is the Obsidian vault `docs/`:
-`docs/notes/<cards|reports|decisions|papers|guides>/` (cards = pre-registered experiments and plans, reports = results, decisions = the old ADRs; frontmatter + `[[wikilinks]]`),
+`docs/notes/<cards|reports|decisions|paper>/` (cards = pre-registered experiments and plans, reports = results, decisions = the old ADRs; frontmatter + `[[wikilinks]]`),
 `docs/figures/` (every figure the panels draw), `docs/files/<note>/` (scripts and tables a note cites), `docs/Home.md` (generated index). The vault is mostly not tracked in git.
 How to write a note (templates in `docs/_templates/`, rebuild the index with `python -m tools.misc.doc_index`): `docs/agents/writing-notes.md`.
 No new decision note (ADR) since 2026-10-07: an experiment's verdict goes in its card, the current state in this file.
@@ -261,7 +261,7 @@ with labels and, where the dataset ships them, its own positions -- polar `coord
 `polar_equator_radius`, or `xyz`; per-subject `channel_xyz` in `data_structure` -- not read by training (template positions only);
 `event_onset_seconds`, `moabb` class/kwargs/window, optional `cohort`) and
 `data_structure` (per-subject files or `moabb_subject`). `datas/DATASETS.md` lists every dataset; regenerate
-with `python -m tools.misc.dataset_inventory`. Read `docs/notes/guides/finetune-caveats.md` before reporting finetune numbers.
+with `python -m tools.misc.dataset_inventory`. Read `docs/agents/finetune-evaluation.md` before reporting finetune numbers.
 
 ## Agent docs
 
