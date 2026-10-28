@@ -1,3 +1,7 @@
+---
+type: guide
+tags: [guide]
+---
 # Adding a new EEG dataset
 
 How to convert a raw dataset (zip download, per-subject files, whatever
@@ -103,6 +107,9 @@ moment a file is added/removed), and anything computable from the raw files
 (coordinates, per-subject class labels, etc.) gets computed instead of typed.
 `datas/_template_gen_metadata.py` has the boilerplate/schema already filled
 in — copy it, fill in `DATASET_INFO`/`CHANNELS`/`TARGETS`/`build_data_structure`.
+The generator keeps only what is specific to the dataset; `IO/metadata.py`'s `write_files_metadata` builds the dict (key order
+fixed), checks the REQUIRED fields (sample rate, dense 0-indexed targets matching `count`, channels, subjects) and writes the file.
+MOABB- and BIDS-backed datasets use `write_moabb_metadata` / `write_bids_metadata` instead and have no `build_data_structure`.
 See `BCICIV1_Train/gen_metadata.py` (reads `nfo.xpos`/`nfo.ypos` out of a
 `.mat` file, converts cartesian → polar), `Inria_Train/gen_metadata.py`
 (walks `raw/signals/` to group per-subject session lists, reads

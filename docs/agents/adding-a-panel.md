@@ -1,8 +1,11 @@
+---
+type: guide
+tags: [guide]
+---
 # Adding a panel (an analysis and its figures)
 
 One analysis = one file under `panels/<stage>/`, run by `analyze.py`. It computes its numbers, saves them, then draws its figures from
-the saved numbers, so `--redraw` never recomputes. (This replaced `tools/analysis` + `tools/viz` + `tools/panels`, 2026-10-24,
-`docs/archive/plans/2026-10-24-analysis-restructure.md`.)
+the saved numbers, so `--redraw` never recomputes. (This replaced `tools/analysis` + `tools/viz` + `tools/panels`, 2026-10-24.)
 
 ```
 analyze.py                 python analyze.py list | pretrain ... | group ...   (`finetune` = the old name of group)
@@ -34,7 +37,7 @@ def draw(ctx): ...                   # optional: reads those numbers, writes fig
 - `Ctx` (panels/core/context.py): `stage`, `args` (the common options plus every selected panel's own), `device`, `cmap`, `numbers(*parts)` /
   `figure(*parts)` (a path under the numbers / figure folder, its directory created). Pretrain: `config`, `checkpoint`, `model` (built from
   the checkpoint's `build_config` on first use). Finetune: `groups` ({name: backbone}), `ref`, `head`.
-- Folders: pretrain numbers `output/Qlet/<bb>/pretrain/analysis/`, figures `output/Qlet/<bb>/analysis/pretrain/`; finetune: both `--out`.
+- Folders: pretrain numbers `output/Qlet/<bb>/pretrain/analysis/`, figures `docs/figures/runs/<bb>/pretrain/`; group: numbers `--out`, figures `docs/figures/<name of --out>/`.
 - Two panels may declare the same option (`--max-trials`, `--datasets`) if they agree on the default. `--panel X --help` shows only X's options.
 - A panel that is only numbers (a table, a JSON) has no `draw`; one that only draws stored history (`training_dashboard`) has no `compute`.
 - `--redraw` skips `compute`: a heavy panel saves the arrays its figures read (snapshots save the trial and the qlet readout, the codebook its

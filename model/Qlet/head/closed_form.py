@@ -16,7 +16,7 @@ probe):
 Every step is a formula, an eigen-decomposition or one convex solve: the same training trials give the same head
 (no seed, no epochs, no learning rate). Loses to the SGD head on loso (no cross-subject alignment): few-shot only.
 Picked on DEV few-shot over the per-paradigm closed-form heads it replaced (CSP power, xDAWN tangent space, TRCA;
-removed 2026-10-07, docs/reports/2026-10-06-structured-fewshot-head.md).
+removed 2026-10-07, docs/notes/reports/2026-10-06-structured-fewshot-head-report.md).
 """
 import numpy as np
 from pyriemann.estimation import Covariances

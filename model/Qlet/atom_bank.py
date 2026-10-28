@@ -119,7 +119,7 @@ class AtomBank(nn.Module):
         recon = torch.einsum('gck,kl->gcl', amp[..., 0], D) + torch.einsum('gck,kl->gcl', amp[..., 1], H)
 
         # Ranked per patch by h, not by qlet index (a fixed global hierarchy): the nested loss's sets are each
-        # patch's strongest k qlets (docs/adr/0018, adopted 2026-10-17; it replaced the MP residual loss).
+        # patch's strongest k qlets (docs/notes/decisions/0018-nested-reconstruction-loss.md, adopted 2026-10-17; it replaced the MP residual loss).
         ranked = None
         if rank:
             contrib = self.decode(amp)                                      # [G, C, S, L]

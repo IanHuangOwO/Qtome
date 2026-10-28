@@ -1,3 +1,7 @@
+---
+type: guide
+tags: [guide]
+---
 # Reshape/view pitfall: silent axis scrambling
 
 `tensor.reshape(...)`/`.view(...)` never transposes anything. It reinterprets the

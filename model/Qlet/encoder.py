@@ -192,7 +192,7 @@ class TSABlock(nn.Module):
 class TSAEncoder(nn.Module):
     """depth TSABlocks at one resolution: every block sees all N patches of every channel. (Until
     2026-10-13 the patch axis was pooled by 2 between stages of blocks and upsampled back through gated
-    skips; the flat stack reconstructs better at the same parameter count, docs/cards/2026-10-12-no-pooling.md.)
+    skips; the flat stack reconstructs better at the same parameter count, docs/notes/cards/2026-10-12-no-pooling.md.)
     Time position: FoPE on every block's temporal attention (fope_train_len = patches per training window)."""
     def __init__(self, dim, depth=8, num_heads=8, mlp_ratio=4., dropout=0.0,
                  n_routed_ffn_experts=4, n_shared_ffn_experts=1, ffn_top_k=2,

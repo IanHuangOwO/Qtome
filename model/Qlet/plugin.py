@@ -43,7 +43,7 @@ class QletTrainer(BaseTrainer):
                                unmasked_weight=hparams.get('unmasked_weight', 1.0),
                                ffn_lb_loss=out.ffn_lb_loss, ffn_lb_weight=ffn_lb_weight,
                                valid_channels=out.valid_channels,
-                               # nested reconstruction loss (docs/adr/0018); unset = QletPretrain.NESTED_* defaults
+                               # nested reconstruction loss (docs/notes/decisions/0018-nested-reconstruction-loss.md); unset = QletPretrain.NESTED_* defaults
                                nested_sizes=hparams.get('nested_sizes'), nested_weights=hparams.get('nested_weights'))
 
     @torch.no_grad()

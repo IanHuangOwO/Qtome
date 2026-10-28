@@ -1,7 +1,10 @@
 # CLAUDE.md
 
-Guidance for Claude Code in this repository. Canonical terms: `CONTEXT.md`. Design history: `docs/adr/` (decisions),
-`docs/cards/` (pre-registered experiments), `docs/reports/` (results) -- kept locally, not tracked in git.
+Guidance for Claude Code in this repository. Canonical terms: `CONTEXT.md`. Design history is the Obsidian vault `docs/`:
+`docs/notes/<cards|reports|decisions|papers|guides>/` (cards = pre-registered experiments and plans, reports = results, decisions = the old ADRs; frontmatter + `[[wikilinks]]`),
+`docs/figures/` (every figure the panels draw), `docs/files/<note>/` (scripts and tables a note cites), `docs/Home.md` (generated index). The vault is mostly not tracked in git.
+How to write a note (templates in `docs/_templates/`, rebuild the index with `python -m tools.misc.doc_index`): `docs/agents/writing-notes.md`.
+No new decision note (ADR) since 2026-10-07: an experiment's verdict goes in its card, the current state in this file.
 
 **Name:** the model is **Qlet** since 2026-10-27 (it was Qtome, MeSAE before 2026-10-06); its unit is the **qlet** (it was Q-atom; `atom` in code identifiers). Code, folders (`model/Qlet/`, `configs/Qlet/`, `output/Qlet/`), `model_params.Qlet` and run names (`qlet_*`) were renamed the same day. Checkpoints and saved configs from before still carry `model_type` `Qtome` / `model_params.Qtome`: `IO/config.py` and `model/factory.py` read both. The phoneme-like framing is dropped (qlets act as a filterbank). The conda env, the repo folder and the GitHub repo keep the name `qtome`.
 
@@ -21,7 +24,7 @@ cap threads (`--threads`, `training_params.<mode>.num_threads`). Parallel jobs: 
 # --dataset NAME narrows it, --verify-only / --deep for checks). See docs/agents/adding-a-dataset.md.
 python cache_dataset.py --config configs/compile.json
 
-# Pretrain: one run, masked phase only since 2026-10-21 (tokenizer_epochs 0; the unmasked tokenizer phase of docs/adr/0013
+# Pretrain: one run, masked phase only since 2026-10-21 (tokenizer_epochs 0; the unmasked tokenizer phase of docs/notes/decisions/0013-fuse-tokenizer-and-pretrain-into-one-run.md
 # is still available with tokenizer_epochs > 0)
 python train_pretrain.py --config configs/runs/<backbone>/pretrain.json
 
@@ -42,7 +45,7 @@ python -m tools.misc.run_queue output/queue/<plan>.plan --max-parallel 2 --threa
 
 # Analysis: one file per analysis under panels/<stage>/ (compute the numbers, then draw the figures from them; failures don't stop the
 # other panels; presets are tagged in each panel's PRESETS). Pretrain = one backbone -> numbers in
-# output/Qlet/<backbone>/pretrain/analysis/, figures in output/Qlet/<backbone>/analysis/pretrain/ (standard: backbone_eval,
+# output/Qlet/<backbone>/pretrain/analysis/, figures in docs/figures/runs/<backbone>/pretrain/ (standard: backbone_eval,
 # attention_range, atom_usage, ridge_probe, atom_vs_raw, atom_templates, atom_duplicates, atom_labels, snapshot,
 # training_dashboard, task_filter_artifacts (skipped without the three loso impute64 cells; TUAR eye / muscle / electrode / line-noise test of the multi-task filter); quick: attention_range, atom_usage, ridge_probe, atom_vs_raw, atom_templates, atom_duplicates; on request: atom_distribution, codebook (each loads every pretrain dataset: ~20-30 min),
 # coord_robustness, long_context, profile, other task_filter_*; finetune: atom_maps,
@@ -53,12 +56,12 @@ python analyze.py list                                                  # every 
 python analyze.py check                                                 # every panel imports, flags consistent (no data; run after editing a panel)
 python analyze.py pretrain --run <backbone> [--preset quick] [--panel <name> ...] [--redraw]
 python analyze.py pretrain --panel profile [--train]                    # parameter counts + timing, no checkpoint
-# Group = several backbones compared in one folder -> output/Qlet/<common name of the backbones>_analysis/ (--out overrides). A group name is <recipe>_s<seed> (s1, small_s2) or a bare s1;
+# Group = several backbones compared in one folder -> numbers in output/Qlet/<common name of the backbones>_analysis/ (--out overrides), figures in docs/figures/<that folder's name>/. A group name is <recipe>_s<seed> (s1, small_s2) or a bare s1;
 # the recipe is the name without the seed, so one run can hold a recipe's seeds (qlet_tiny_v4flat_onephase_analysis) or several recipes (mean +- SE over each recipe's seeds).
 # The stage was called `finetune` until 2026-10-27 (that name still works). Standard panels: summary, atom_seed_match (all seed pairs; skipped with one group), and from the numbers the pretrain panels saved under each backbone: backbone_eval (masked MSE per mask), atom_labels
 # (ICLabel classes per seed and their agreement across seeds), noise_removal (TUAR / TUEV artifacts and brain kept), noise_removal_synthetic (artificial noise at TUAR strength), noise_classify (accuracy after
 # removal); on request: report, gradient_correlation, subspace_affinity, pretrain_alignment, asr_cutoff (both ASR variants against their cutoff; needs task_filter_artifacts run with --art-asr-cutoffs 3 5 10 --art-atom-cutoffs 1 2 3 5). The noise figures show the general methods and the one atom removal that matches each noise (the multi-task filter and the other atom groups stay in the .md tables); --with-multitask also draws the earlier all-methods version (<name>_with_multitask.png). TUAR's electrode column scores the annotated bipolar pair (task_filter_artifacts reads the pair from the annotation; TUEV keeps the pooled peak). The noise panels need the pretrain panels backbone_eval, atom_labels, task_filter_artifacts (--art-dataset TUAR and TUEV), task_filter_noise_removal_synthetic and task_filter_atom_classify run on every
-# backbone first (the last three are on request, about 2 h per backbone together). Figures that describe one backbone stay in <backbone>/analysis/; figures that compare backbones or seeds live here. The three noise panels on a backbone (task_filter_artifacts, task_filter_noise_removal_synthetic, task_filter_atom_classify) save numbers only; `--redraw` draws a single backbone's figure from them.
+# backbone first (the last three are on request, about 2 h per backbone together). Figures that describe one backbone stay in docs/figures/runs/<backbone>/; figures that compare backbones or seeds live here. The three noise panels on a backbone (task_filter_artifacts, task_filter_noise_removal_synthetic, task_filter_atom_classify) save numbers only; `--redraw` draws a single backbone's figure from them.
 python analyze.py group --group base=<backbone> --group X=<backbone> --ref base [--head frozen_learned] [--panel <name> ...]
 # Cross-task gradient panels (on request, per backbone; EEG-FM-Bench Figs. 3, 4, 8): backbone gradients of each finetune cell's trained head, shared probe cached as gradient_probe_<group>.npz
 python analyze.py group --group base=<backbone> --head <head> --panel gradient_correlation --panel subspace_affinity --panel pretrain_alignment [--cells <cell> ...]
@@ -68,7 +71,7 @@ python -m panels.group.summary 'output/Qlet/<backbone>/finetune/<head>/*' [--ref
 # analyze.py pretrain, run on request (not in a preset). --filter-source 'multi' (multi-task filter: MI + P300 + SSVEP
 # heads) or one dataset (single-task filter); needs loso cells <ds>_impute64_loso_seed1 (impute_missing_channels=true).
 # Numbers: output/Qlet/<backbone>/pretrain/analysis/filter/<source>/ (filter.pt, eval_*) and .../compare/; figures
-# (filter_analysis_*, filter_<ds>_*, compare_*.png): output/Qlet/<backbone>/analysis/filter/<source>/ and .../compare/
+# (filter_analysis_*, filter_<ds>_*, compare_*.png): docs/figures/runs/<backbone>/filter/<source>/ and .../compare/
 python analyze.py pretrain --run <backbone> --panel task_filter_build               # fit and save the filter (again)
 python analyze.py pretrain --run <backbone> --panel task_filter_filter [--share 0.1]   # the filter alone: importance maps, power kept of white input
 python analyze.py pretrain --run <backbone> --panel task_filter_eval [--filter-test mi p300 noise] [--target <ds> ...]
@@ -113,22 +116,22 @@ sub-montages), `configs/finetune_protocols.json` (evaluation splits per protocol
 Key fields (templates show defaults):
 - `model_params.Qlet.pretrain`: `patch_len`, `embed_dim`, `enc_depth`, (the encoder is `enc_depth` blocks at full patch
   resolution; pooling of the patch axis, its upsampling and the gated skips -- `blocks_per_stage` -- were removed
-  2026-10-13: the user adopted the flat encoder on one seed, masked MSE -4.3%, docs/cards/2026-10-12-no-pooling.md; the
+  2026-10-13: the user adopted the flat encoder on one seed, masked MSE -4.3%, docs/notes/cards/2026-10-12-no-pooling.md; the
   pooled backbones, up to `qlet_tiny_v4tr2`, can no longer be rebuilt, their results stay in their output dirs),
   (the skip drop-path `skip_drop` was removed 2026-10-12: without it masked MSE fell 12% and no downstream cell lost
-  over 3 seeds, docs/cards/2026-10-11-skip-drop.md; a `skip_drop` key in an old build_config is ignored),
+  over 3 seeds, docs/notes/cards/2026-10-11-skip-drop.md; a `skip_drop` key in an old build_config is ignored),
   (time position: FoPE on every block's temporal attention, the only option since 2026-10-07 -- it replaced the learned
   absolute time table and the `temporal_bias` lag bias; checkpoints from before, v2 / v3, can no longer be rebuilt,
   their results stay in their output dirs; `time_idx` is still passed but unused by Qlet; block order is sequential,
   temporal -> spatial -> FFN: parallel attention was screened and rejected 2026-10-07),
   `spatial_heads`, `moe_ffn`, `atom_bank` (`n_atoms`, `hidden_width`), `loss` (the nested reconstruction loss, the only one since 2026-10-17:
   per patch, the error of the strongest 3 / 6 / 12 / 24 qlets weighted 1/8, 1/8, 1/4, 1/2 -- `nested_sizes` /
-  `nested_weights`; it replaced the MP loss, removed with `mp_weight`, docs/adr/0018; spectral whitening of the error
+  `nested_weights`; it replaced the MP loss, removed with `mp_weight`, docs/notes/decisions/0018-nested-reconstruction-loss.md; spectral whitening of the error
   was tested and removed 2026-10-18), `spatial_embedding` (true: Fourier electrode-coordinate
   embedding + per-block directional relative spatial bias; false: neither -- the spatial ablation).
 - `preprocess_params`: `canonical_channels` (a `montages.json` name or a list; every EEG channel
   of the dataset is kept, non-10-10 ones in free slots, > 64 channels reduced to the 64 sites, coordinates = MNE's
-  template position for the channel name -- docs/adr/0023; the 10-10-only `grid` layout and the datasets' own
+  template position for the channel name -- docs/notes/decisions/0023-real-channel-coordinates.md; the 10-10-only `grid` layout and the datasets' own
   `recorded` positions were removed 2026-10-07), `window_length`,
   `window_min_real`, `window_fraction`, `patch_length` 50, `patch_stride` 25 (50% overlap), `sample_freq` 200,
   `bandpass_filter` (input normalisation: per-trial z-score, the only option), and `mask` (`IO/masking.py`): `masking_strategy` `mixture` (one
@@ -138,16 +141,16 @@ Key fields (templates show defaults):
   v2 backbones predate it): 1-2 holes splitting the ratio at random cut points, each >= 3 patches; `subsample` removes channels down to a
   `montages.json` sub-montage for part of the dense-cap windows (`prob` 0.1 in the templates since 2026-10-06, the
   user's choice without a test; earlier backbones used 0.2). Draw probabilities of the four masking methods (adopted
-  2026-10-13 on 3 flat seeds, docs/cards/2026-10-12-token-runs-plus-time-block.md: token-run MSE -18%, channel masks -2%,
+  2026-10-13 on 3 flat seeds, docs/notes/cards/2026-10-12-token-runs-plus-time-block.md: token-run MSE -18%, channel masks -2%,
   time holes +1 to +4%, loso level): channel cluster 0.35, random channels 0.35, token runs (`random_token`) 0.20, time
   blocks 0.10; maximum ratios 0.3 / 0.3 / 0.4 / 0.4. Before: time blocks 0.30 and no token runs (cluster ratio 0.2
   before 2026-10-06). Channel modes take `exact` (templates since 2026-10-15): the count is rounded down, and the
   cluster stops at it (it used to overshoot, up to 68% of BCI-22 at ratio 0.3) and applies only when it can hide >= 2
   channels (floor(ratio x C) >= 2). Mode
   `montage` (MontageMask, not in the template, never evaluated, card closed 2026-10-18): channels outside a sparse
-  montage hidden as targets, replacing the padding subsampling (docs/cards/2026-10-15-sparse-montage-mask.md).
+  montage hidden as targets, replacing the padding subsampling (docs/notes/cards/2026-10-15-sparse-montage-mask.md).
 - `training_params.pretrain`: `model_name`, `output_path`, `epochs`, `tokenizer_epochs` (0 = one phase, adopted 2026-10-21 on 3 small seeds: masked MSE
-  level, finetune level, 30-45 Hz coding worse, docs/cards/2026-10-19-one-phase.md; the mask ramp is 20 epochs, subsampling from epoch 21), `freeze_atoms`,
+  level, finetune level, 30-45 Hz coding worse, docs/notes/cards/2026-10-19-one-phase.md; the mask ramp is 20 epochs, subsampling from epoch 21), `freeze_atoms`,
   `warmup_epochs`, `batch_size`, LR fields, `train_val_split`, `seed`.
 - `model_params.Qlet.finetune` (the head, validated at build): `features` = a list of `{"type": <entry>,
   <per-entry keys>}`; entries are classes in `model/Qlet/head/entries.py`'s `ENTRY_TYPES` (`atom_power`, `signed_ab`,
@@ -165,9 +168,9 @@ Key fields (templates show defaults):
   `fit`: `sgd` (default) or `closed_form` (`model/Qlet/head/closed_form.py`, no SGD). Few-shot always uses the closed-form
   structured head: the all-atom head's own factors (spatial filter x qlet weights x time course) set in closed
   form, one head for every paradigm, signed half at full time resolution (the protocols set it;
-  docs/reports/2026-10-06-structured-fewshot-head.md); since 2026-10-15 both halves use the Fisher score and full time
+  docs/notes/reports/2026-10-06-structured-fewshot-head-report.md); since 2026-10-15 both halves use the Fisher score and full time
   rank (`power_score` / `signed_score` `fisher`, `time_rank` / `signed_time_rank` `full`; DEV +4.6, Nakanishi2015
-  few-shot 86.3 -> 96.7; docs/reports/2026-10-15-closed-form-unified.md). (The per-paradigm CSP / xDAWN / TRCA heads it replaced were removed 2026-10-07.)
+  few-shot 86.3 -> 96.7; docs/notes/reports/2026-10-15-closed-form-unified-report.md). (The per-paradigm CSP / xDAWN / TRCA heads it replaced were removed 2026-10-07.)
   Loso uses SGD (closed-form loses there). SSVEP DEV sets: Kalunga2016 (not phase-locked), Wang2016_dev (phase-locked,
   in the pretraining corpus as unlabelled windows).
 
@@ -186,12 +189,12 @@ A new pretrained backbone follows `docs/agents/adding-a-model.md` (plugin); a ne
 
 **Qlet**: an EEG tokenizer. A TSA encoder feeds a static qlet dictionary (AtomBank: every qlet active at
 every patch; each reconstructs a patch as `a*D + b*H`, D a template and H its quadrature partner), trained by
-masked reconstruction (nested loss: qlets ranked per patch by strength, docs/adr/0018). Routed (top-k) qlets were removed (docs/adr/0022; code on the `routed-stamps`
+masked reconstruction (nested loss: qlets ranked per patch by strength, docs/notes/decisions/0018-nested-reconstruction-loss.md). Routed (top-k) qlets were removed (docs/notes/decisions/0022-routed-stamps-removed.md; code on the `routed-stamps`
 branch). The default downstream head reads only the qlets: qlet power (`atom_power`, induced band power: MI) and the
 signed qlet gains (`signed_ab`: phase-locked / P300). The stronger head swaps `signed_ab` for the signed encoder
 output z (`latent_signed`, PCA): level on loso, better on MI few-shot (BNCI2014004 +3.5)
-(docs/reports/2026-10-02-head-ablation.md, docs/reports/2026-09-29-combined-head.md). Plugged in via `model/Qlet/plugin.py` (`model/factory.py`
-`MODEL_REGISTRY`, docs/adr/0004).
+(docs/notes/reports/2026-10-02-head-ablation-report.md, docs/notes/reports/2026-09-29-combined-head-report.md). Plugged in via `model/Qlet/plugin.py` (`model/factory.py`
+`MODEL_REGISTRY`, docs/notes/decisions/0004-model-plugin-base-classes.md).
 
 ```
 datas/<split>/<Name>/loader.py  compile time only; MOABB datasets have none (metadata's moabb block -> IO/loader.py's MoabbLoader)
@@ -225,10 +228,10 @@ datas/<split>/<Name>/loader.py  compile time only; MOABB datasets have none (met
 
 **Sparsity budget, a hard ceiling:** each active qlet gives two free scalars per channel, so keep
 `2 * n_atoms < patch_len` with margin (template: 24 qlets since 2026-10-09, 48 < 100; 16 / 24 / 32 compared over 3
-seeds in docs/cards/2026-10-08-atoms-32.md: 24 keeps most of 32's hidden-channel and high-frequency gain at half its
+seeds in docs/notes/cards/2026-10-08-atoms-32.md: 24 keeps most of 32's hidden-channel and high-frequency gain at half its
 SSVEP cost). Past it, the active slots fit any patch
 regardless of the templates and it stops being sparse coding (measured at DOF 56 > 50: recon MSE ~0 on every
-dataset, kurtosis 6.7 -> 1.2). docs/adr/0011.
+dataset, kurtosis 6.7 -> 1.2). docs/notes/decisions/0011-matching-pursuit-residual-loss.md.
 
 ## Outputs
 
@@ -243,13 +246,13 @@ onto an easy epoch of the mask curriculum; `artifacts/config.json`, `artifacts/h
 fingerprint) and `output/Qlet/<backbone>/finetune/<head>/<cell>/` (`artifacts/group_eval.json`: per-subject `tail` = mean
 of the last 10 epochs' balanced accuracy, `last`, kappa; `finetune/run_<fold>/` = `head.pth`, `history.json` (curves, lr, per-subject bal. acc. and kappa every epoch), `predictions.npz`
 (eval trial indices, labels, last-epoch logits)). Runs store
-logs, numbers and checkpoints only: **every figure lives in `output/Qlet/<backbone>/analysis/`** (`pretrain/` = the
+logs, numbers and checkpoints only: **every figure lives in the vault, `docs/figures/runs/<backbone>/`** (`pretrain/` = the
 pretrain panels, incl. `training_dashboard.png`, `snapshot/`; `filter/` = the task-filter panels; `finetune/<head>/<cell>/<fold>_training_dashboard.png`),
 drawn afterwards from the stored numbers by the analysis panels (`--panel training_dashboard`, `--panel snapshot`);
-training draws nothing. `output/Qlet/<name>_analysis/` (name = what the backbones' names share, e.g. `qlet_small_v4flat_onephase_analysis`) holds generated multi-backbone analysis (regenerable),
+training draws nothing. `output/Qlet/<name>_analysis/` (name = what the backbones' names share, e.g. `qlet_small_v4flat_onephase_analysis`) holds the numbers and tables of the multi-backbone analysis (regenerable); its figures are in `docs/figures/<name>_analysis/`,
 `output/queue/` queue state, `output/Qlet/archive/<date>_<topic>/` superseded experiments. Once a result is final, write it up
-in `docs/reports/` (fixed format and index in `docs/reports/README.md`; copy the figures, tables and
-pipeline scripts it cites) and delete the generated `*_analysis/` and queue folders.
+in `docs/notes/` as a report (template `docs/_templates/report.md`, index `docs/notes/guides/reports-index.md`; copy the tables and
+pipeline scripts it cites to `docs/files/<report>/`) and delete the generated `*_analysis/` and queue folders.
 
 ## Data
 
@@ -258,7 +261,7 @@ with labels and, where the dataset ships them, its own positions -- polar `coord
 `polar_equator_radius`, or `xyz`; per-subject `channel_xyz` in `data_structure` -- not read by training (template positions only);
 `event_onset_seconds`, `moabb` class/kwargs/window, optional `cohort`) and
 `data_structure` (per-subject files or `moabb_subject`). `datas/DATASETS.md` lists every dataset; regenerate
-with `python -m tools.misc.dataset_inventory`. Read `docs/finetune-caveats.md` before reporting finetune numbers.
+with `python -m tools.misc.dataset_inventory`. Read `docs/notes/guides/finetune-caveats.md` before reporting finetune numbers.
 
 ## Agent docs
 

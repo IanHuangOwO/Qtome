@@ -3,7 +3,7 @@
 An EEG foundation model: **Qlet** (called Qtome before 2026-10-27, MeSAE before 2026-10-06) turns multi-channel EEG into per-patch sparse qlet codes, pretrained by
 masked reconstruction, then read by a small head on a frozen backbone. The retired MeFSQ model (discrete
 FSQ codes; terms Expert, Code, Codebook, Expert View, pre-/post-VQ feature) is documented in
-`docs/adr/0001`, `0002`, `0013` -- only relevant when reading those.
+`docs/notes/decisions/0001-moe-style-quantization.md`, `0002`, `0013` -- only relevant when reading those.
 
 ## Data
 
@@ -27,7 +27,7 @@ p300-8, 10-20, bci-22, ...) is what channel subsampling cuts a dense cap down to
 
 **Channel layout**: which of a dataset's channels are kept -- **grid** (only the 64 canonical 10-10 names) or
 **native** (every EEG channel; non-10-10 ones fill free slots; > 64 channels reduced to the 64 canonical sites, IDW
-for missing ones). Native is the default for new runs (docs/adr/0023).
+for missing ones). Native is the default for new runs (docs/notes/decisions/0023-real-channel-coordinates.md).
 _Avoid_: real layout, real coordinates (old name for native; it never meant measured positions)
 
 **Template / recorded positions**: where a channel sits -- MNE's standard position for its name (template, the
@@ -50,10 +50,10 @@ content (evoked responses, P300).
 
 **Static dictionary**: every qlet is active at every patch position, shared by all channels, each channel
 with its own gains -- so a qlet's per-channel gains form a **mixing column** (an ICA-style topography).
-Routed (top-k selected) qlets were removed (docs/adr/0022; `routed-stamps` branch).
+Routed (top-k selected) qlets were removed (docs/notes/decisions/0022-routed-stamps-removed.md; `routed-stamps` branch).
 
 **Sparsity budget**: `2 * n_atoms` free scalars per channel must stay well below
-`patch_len` (50), or the active slots fit any patch and it stops being sparse coding (docs/adr/0011).
+`patch_len` (50), or the active slots fit any patch and it stops being sparse coding (docs/notes/decisions/0011-matching-pursuit-residual-loss.md).
 
 **Residual ordering** (`mp_loss`): matching-pursuit grading -- slots ranked by amplitude, each graded against
 the residual the higher ranks leave (detached), so duplicate atoms earn nothing. Only while qlets train.
@@ -73,7 +73,7 @@ spatial bias, on or off together (`spatial_embedding`).
 
 **Tokenizer phase**: epochs 1..`tokenizer_epochs`: every block runs with temporal attention only (no
 spatial attention, no coordinate embedding), unmasked, so the AtomBank learns from single-channel content
-(docs/adr/0003, 0013).
+(docs/notes/decisions/0003-qtome-two-stage-masked-training.md, 0013).
 
 **Masked phase**: the rest of the same run: spatial attention and the coordinate embedding on, masked
 reconstruction with the mask curriculum counted from here. qlets stay trainable unless `freeze_atoms`.
@@ -119,4 +119,4 @@ visible samples weighted 0.1 in the masked phase. Removed: trial MSE (ADR 0021),
 + channel subsampling. Channels: native layout, MNE template positions. Finetune head: atom_power + signed_ab (all-atom; atom_power + latent_signed is the stronger head).
 
 **Unit**: umbrella term in shared tooling (`model/base_*`, `tools/`) for whatever a model codes per patch --
-a qlet for Qlet. Plugins: `model/<Name>/plugin.py`, docs/adr/0004.
+a qlet for Qlet. Plugins: `model/<Name>/plugin.py`, docs/notes/decisions/0004-model-plugin-base-classes.md.

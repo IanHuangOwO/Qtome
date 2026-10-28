@@ -38,7 +38,7 @@ class EEGDataset(Dataset):
         self.config = config
         self.channel_names = desired_channels
         self.Nc = len(desired_channels)
-        # Channel layout (docs/adr/0023): every EEG channel of the dataset is kept, canonical-name channels on their
+        # Channel layout (docs/notes/decisions/0023-real-channel-coordinates.md): every EEG channel of the dataset is kept, canonical-name channels on their
         # slot, the others in free slots; > Nc channels are reduced to the canonical sites. Coordinates: MNE's template
         # position for each channel name (channel_xyz).
         self._plans = {}

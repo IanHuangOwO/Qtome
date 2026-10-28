@@ -7,7 +7,7 @@ Architecture as in EEG-FM-Compass (github.com/Dingkun0817/EEG-FM-Benchmark, mode
 so our numbers compare with their tables: EEGNet-8,2 (F1 8, D 2, F2 16, temporal kernel 64), dropout configurable.
 A temporal convolution (band-pass-like filters) -> a depthwise spatial convolution per filter (a spatial pattern per
 band, CSP-like) -> a separable convolution -> a linear classifier. Input [B, C, T] in microvolts: the BatchNorm eps
-(1e-5) swamps a signal in volts (docs/reports/2026-10-06-eegnet-compass-check.md). Trained by train_baseline.py.
+(1e-5) swamps a signal in volts (docs/notes/reports/2026-10-06-eegnet-compass-check-report.md). Trained by train_baseline.py.
 """
 import torch
 import torch.nn as nn

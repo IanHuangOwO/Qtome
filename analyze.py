@@ -8,7 +8,7 @@
     add --redraw to draw again from the saved numbers (no recompute)
 
 `--panel <name> --help` shows that panel's own options. Pretrain: numbers in output/Qlet/<backbone>/pretrain/analysis/, figures in
-output/Qlet/<backbone>/analysis/pretrain/. Group: --out, default output/Qlet/<common name of the backbones>_analysis/. Writing a panel:
+docs/figures/runs/<backbone>/pretrain/. Group: numbers in --out (default output/Qlet/<common name of the backbones>_analysis/), figures in docs/figures/<its name>/. Writing a panel:
 docs/agents/adding-a-panel.md.
 """
 import sys

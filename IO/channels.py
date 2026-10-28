@@ -1,6 +1,6 @@
 """Channels and electrode positions: MNE's template positions (10-20, then 10-05), the polar-metadata fallback, the montages in
 configs/montages.json, the channel list a run uses, and the inverse-distance interpolation of missing sites. A dataset's own
-recorded positions are never used (docs/adr/0023)."""
+recorded positions are never used (docs/notes/decisions/0023-real-channel-coordinates.md)."""
 import json
 import os
 from typing import Dict, List, Optional
@@ -41,7 +41,7 @@ HEAD_RADIUS_M = 0.095   # polar metadata coordinates are projected onto a sphere
 def channel_xyz(ch_info: Dict) -> Optional[np.ndarray]:
     """Template coordinate of one metadata channel: MNE's standard_1020 position for the label, else
     standard_1005, else the polar topomap coordinates projected onto a head sphere (radius 0.5 = the equator), else
-    None. A dataset's own recorded positions are never used (tested and rejected, docs/adr/0023)."""
+    None. A dataset's own recorded positions are never used (tested and rejected, docs/notes/decisions/0023-real-channel-coordinates.md)."""
     p = get_standard_coords(ch_info.get('label', ''))
     if p is None:
         p = _standard_1005().get(ch_info.get('label', '').strip().lower())   # 10-05 names (FFC1h, TPP9h, AFp3h, ...)

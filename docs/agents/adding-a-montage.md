@@ -1,3 +1,7 @@
+---
+type: guide
+tags: [guide]
+---
 # Adding a montage (standard or custom)
 
 `configs/montages.json` and the `IO/dataset.py` lookup branch described here are live.

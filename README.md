@@ -31,27 +31,27 @@ raw dataset files
 - **qlets.** A qlet is a unit-norm temporal template `D` plus its quadrature partner `H`. Each
   qlet adds `a·D + b·H` to a channel, which gives an amplitude and a phase per channel; the
   per-channel gains of one qlet form a topography. The dictionary is static: 16 qlets, all active
-  on every patch (routed top-k qlets were removed, `docs/adr/0022`). Downstream heads read the
+  on every patch (routed top-k qlets were removed, `docs/notes/decisions/0022-routed-stamps-removed.md`). Downstream heads read the
   encoder output z; the qlets are the reconstruction objective and an interpretable view.
 - **Sparsity budget (a hard limit).** Keep `2·n_atoms < patch_len` with
   margin. Past that line the active qlets can fit any patch exactly and the model stops doing
-  sparse coding (`docs/adr/0011`). The current budget is 2·16 = 32 against a `patch_len` of 50.
-- **Two-phase pretraining** (`docs/adr/0013`). In the *tokenizer phase* every block runs with
+  sparse coding (`docs/notes/decisions/0011-matching-pursuit-residual-loss.md`). The current budget is 2·16 = 32 against a `patch_len` of 50.
+- **Two-phase pretraining** (`docs/notes/decisions/0013-fuse-tokenizer-and-pretrain-into-one-run.md`). In the *tokenizer phase* every block runs with
   temporal attention only and no masking. In the *masked phase* spatial attention and the
   coordinate embedding switch on and the masking curriculum starts (channel clusters, random
   channels, token runs, time blocks, plus channel subsampling to sparse montages).
 - **Loss.** Patch MSE (visible patches count at 0.1 of masked ones) + a per-atom matching-pursuit
   term (`mp`: qlets ranked per patch by strength, each trained on what the stronger ones left, so a
   duplicate earns nothing) + MoE load balance. Tested and removed: an overlap-added trial MSE
-  (`docs/adr/0021`: without it neighbouring patches agree better), a masked STFT loss (`0019`: it
+  (`docs/notes/decisions/0021-trial-term-removed.md`: without it neighbouring patches agree better), a masked STFT loss (`0019`: it
   restores masked band power but did not reach the tasks), and a merged nested loss (`0018`).
 - **Evaluation.** Each backbone change is judged by its own mechanism metric on held-out windows
-  (`docs/adr/0020`: coordinate / time / skip ablations, seam disagreement, qlet usage, masked band
+  (`docs/notes/decisions/0020-mechanism-first-evaluation.md`: coordinate / time / skip ablations, seam disagreement, qlet usage, masked band
   power, a closed-form ridge probe), not by single-seed finetuning, which runs only when a recipe is
   frozen.
 
 The default model has about 2.26M parameters; the AtomBank is under 1 % of them. `CONTEXT.md`
-has the canonical terms and `docs/adr/` the reasoning behind each choice.
+has the canonical terms and `docs/notes/` (decisions numbered `NNNN-`, cards, reports) the reasoning behind each choice.
 
 ## Setup
 
@@ -107,7 +107,7 @@ reads only the qlets: `atom_power` (MI) and `signed_ab` (signed gains, P300); sw
 (`training_params.finetune.split.type`): `loso`, `subject_kfold`, `eval_subjects`, `kfold`,
 `blocked_kfold`, `fewshot`. Frozen protocols (`configs/finetune_protocols.json`: `mi_loso`,
 `mi_fewshot`, `p300_loso`, `p300_fewshot`) were tuned on development sets only. Read
-`docs/finetune-caveats.md` before you report or compare finetune numbers.
+`docs/notes/guides/finetune-caveats.md` before you report or compare finetune numbers.
 
 ## Outputs
 
@@ -122,7 +122,7 @@ output/Qlet/<backbone>/          # every Qlet run; archive/ beside the backbones
   finetune/<head>/<dataset>_<split>/
     artifacts/group_eval.json     # per-subject balanced accuracy (tail = mean of the last 10 epochs)
 output/EEGNet/finetune/compass/<dataset>_<mode>_seed<k>/   # from-scratch baseline (train_baseline.py)
-output/Qlet/<name>_analysis/       # generated multi-backbone analysis (name = what the backbones' names share) (curated write-ups: docs/reports/)
+output/Qlet/<name>_analysis/       # numbers of the multi-backbone analysis (name = what the backbones' names share); figures: docs/figures/ (curated write-ups: docs/notes/)
 output/Qlet/archive/<date>_<topic>/     # superseded experiments, grouped by topic
 ```
 
@@ -151,7 +151,7 @@ Pretraining splits train/val by person, per cohort, so no subject's data appears
 ## Further reading
 
 - `CONTEXT.md`: canonical terms
-- `docs/adr/`: architecture decisions (qlet dictionary 0009, matching-pursuit loss 0011,
+- `docs/notes/00NN-*`: architecture decisions (qlet dictionary 0009, matching-pursuit loss 0011,
   two-phase run 0013, loss trimming 0015, finetune heads 0016, nested loss 0018)
 - `docs/agents/`: how-tos for adding a model, dataset, montage or tool, plus reshape pitfalls
 - `CLAUDE.md`: detailed developer and agent reference

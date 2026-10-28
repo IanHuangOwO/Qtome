@@ -1,3 +1,7 @@
+---
+type: guide
+tags: [guide]
+---
 # Adding a new model
 
 **Two kinds of model live under `model/`.** A *pretrained backbone* (Qlet) follows the plugin protocol below and is registered in
@@ -9,7 +13,7 @@ Qlet cell. Feed it microvolts: the caches store volts.
 
 ## A pretrained backbone
 
-Read `docs/adr/0004-model-plugin-base-classes.md` first. **The rule:** a new backbone touches only files under `model/<Name>/`, one
+Read `docs/notes/decisions/0004-model-plugin-base-classes.md` first. **The rule:** a new backbone touches only files under `model/<Name>/`, one
 line in `model/factory.py`, and its own panels. If you find yourself editing `train_pretrain.py`, `model/pretrain_loop.py` or
 `model/base_trainer.py`, stop: either the model needs a real contract change (discuss first) or it is being solved the wrong way.
 Qlet is the only model today, so this protocol has been exercised once; correct it when a second backbone is added.

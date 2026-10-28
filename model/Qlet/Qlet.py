@@ -302,8 +302,8 @@ class QletPretrain(nn.Module):
 
     def _recon_loss(self, recon, x, ranked, bool_masked_pos, valid_channels=None,
                     mse_patch_weight=1.0, unmasked_weight=1.0, nested_sizes=None, nested_weights=None):
-        """Recon loss: the nested reconstruction loss (docs/adr/0018; adopted 2026-10-17 over 3 seeds,
-        docs/cards/2026-10-17-nested-loss-retest.md) -- per patch, sum_k w_k * |x - (strongest s_k qlets)|^2,
+        """Recon loss: the nested reconstruction loss (docs/notes/decisions/0018-nested-reconstruction-loss.md; adopted 2026-10-17 over 3 seeds,
+        docs/notes/cards/2026-10-17-nested-loss-retest.md) -- per patch, sum_k w_k * |x - (strongest s_k qlets)|^2,
         qlets ranked per patch by strength (ranked [B, C, N, S, L], AtomBank.forward), nothing detached. The last
         size is every qlet, so that term is the plain patch MSE (nested_sizes [S] + nested_weights [1] is plain MSE,
         bit-identical). The smaller sets penalise a qlet that repeats a stronger one's content: the anti-duplicate
@@ -318,8 +318,8 @@ class QletPretrain(nn.Module):
         Removed terms, with the evidence: the overlap-added trial MSE (it let
         neighbouring patches disagree on their shared samples as long as the crossfade averaged
         out; without it seam disagreement fell 40%), a masked STFT loss (0019); a window level (0011); spectral
-        whitening of the error (full to 90 Hz, then partial S^-1/2 to 40 Hz: it did not beat plain error, docs/cards/
-        2026-10-17-whitened-mse.md and 2026-10-17-partial-whitening-mse-mp.md; removed 2026-10-18).
+        whitening of the error (full to 90 Hz, then partial S^-1/2 to 40 Hz: it did not beat plain error,
+        docs/notes/cards/2026-10-17-whitened-mse.md and 2026-10-17-partial-whitening-mse-mp.md; removed 2026-10-18).
 
         Logged mse_patch stays the plain all-valid-position MSE, comparable across phases
         whatever the weights, and mse_nested_<k> each set's plain error. masked/unmasked are a diagnostic split.
