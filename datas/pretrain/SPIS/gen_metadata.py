@@ -19,9 +19,12 @@ label. Each file is one long continuous block per condition -- chopped into
 non-overlapping window_size_seconds windows at load time (same pattern as
 GraspAndLift_Train's loader), each window inheriting its file's EC/EO label.
 """
-import json
 import os
 import re
+import sys
+
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", ".."))
+from IO.metadata import write_files_metadata
 
 ROOT = os.path.dirname(__file__)
 
@@ -109,29 +112,14 @@ def main():
     raw_dir = os.path.join(ROOT, "raw", "Pre-SART EEG")
     structure = build_data_structure(raw_dir)
 
-    meta = {
-        "data_metadata": {
-            "dataset_name": "SPIS",
-            "dataset_info": DATASET_INFO,
-            "acquisition": {
-                "sample_frequency": 256,
-                "window_size_seconds": 5.0,
-                "num_subjects": len(structure),
-            },
-            "targets": TARGETS,
-            "channels": {"count": len(CHANNELS), "system": "10-20 International System (10-10)",
-                         "coordinates_source": "raw/Pre-SART EEG/biosemi_64_besa_sph.besa", **besa_xyz()},
-            "event_onset_sample": 0,
-            "event_onset_sample_note": "Resting-state EC/EO .mat, fixed-window chopping, no event structure at all -- no real onset to mark.",
-        },
-        "data_structure": structure,
-    }
-
-    out_path = os.path.join(ROOT, "metadata.json")
-    with open(out_path, "w") as f:
-        json.dump(meta, f, indent=4)
-        f.write("\n")
-    print(f"wrote {out_path}: {len(structure)} subjects")
+    write_files_metadata(
+        ROOT, "SPIS", DATASET_INFO,
+        acquisition={'sample_frequency': 256, 'window_size_seconds': 5.0, 'num_subjects': None},
+        targets=TARGETS,
+        channels=besa_xyz(),
+        structure=structure,
+        channel_header={'system': "10-20 International System (10-10)", 'coordinates_source': "raw/Pre-SART EEG/biosemi_64_besa_sph.besa"},
+        after_channels={'event_onset_sample': 0, 'event_onset_sample_note': "Resting-state EC/EO .mat, fixed-window chopping, no event structure at all -- no real onset to mark."})
 
 
 if __name__ == "__main__":

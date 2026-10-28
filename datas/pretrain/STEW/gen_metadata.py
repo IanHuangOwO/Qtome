@@ -17,10 +17,13 @@ so the dataset can also serve a rest-vs-workload task later. ratings.txt (per-su
 self-reported workload, 1-9, for rest and test; missing for subjects 5, 24, 42) is not
 used.
 """
-import json
 import os
 import re
 from collections import OrderedDict
+import sys
+
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", ".."))
+from IO.metadata import write_files_metadata
 
 ROOT = os.path.dirname(__file__)
 DATA_DIR = "STEW Dataset"
@@ -68,25 +71,14 @@ def build_data_structure(raw_dir):
 
 def main():
     structure = build_data_structure(os.path.join(ROOT, "raw", DATA_DIR))
-    meta = {
-        "data_metadata": {
-            "dataset_name": "STEW",
-            "dataset_info": DATASET_INFO,
-            "acquisition": {
-                "sample_frequency": 128,
-                "window_size_seconds": 5.0,
-                "num_subjects": len(structure),
-            },
-            "targets": TARGETS,
-            "channels": {"count": len(CHANNELS), "system": "10-20 (Emotiv EPOC)", **CHANNELS},
-        },
-        "data_structure": structure,
-    }
-    out_path = os.path.join(ROOT, "metadata.json")
-    with open(out_path, "w") as f:
-        json.dump(meta, f, indent=4)
-    print(f"wrote {out_path}: {len(structure)} subjects, "
-          f"{sum(len(v['files']) for v in structure.values())} recordings")
+    write_files_metadata(
+        ROOT, "STEW", DATASET_INFO,
+        acquisition={'sample_frequency': 128, 'window_size_seconds': 5.0, 'num_subjects': None},
+        targets=TARGETS,
+        channels=CHANNELS,
+        structure=structure,
+        channel_header={'system': "10-20 (Emotiv EPOC)"},
+        newline=False)
 
 
 if __name__ == "__main__":

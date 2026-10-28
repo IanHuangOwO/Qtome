@@ -18,9 +18,12 @@ so channel unification drops them at train time.
 """
 import csv
 import glob
-import json
 import os
 from collections import OrderedDict
+import sys
+
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", ".."))
+from IO.metadata import write_files_metadata
 
 ROOT = os.path.dirname(__file__)
 
@@ -77,25 +80,14 @@ def main():
     ch = read_channels(raw_dir)
     channels = OrderedDict((str(i + 1), {"label": c}) for i, c in enumerate(ch))
     structure = build_data_structure(raw_dir)
-    meta = {
-        "data_metadata": {
-            "dataset_name": "BCIC2020-3",
-            "dataset_info": DATASET_INFO,
-            "acquisition": {
-                "sample_frequency": 256,
-                "window_size_seconds": 795 / 256,
-                "num_subjects": len(structure),
-            },
-            "targets": TARGETS,
-            "channels": {"count": len(channels), "system": "extended 10-20", **channels},
-        },
-        "data_structure": structure,
-    }
-    out_path = os.path.join(ROOT, "metadata.json")
-    with open(out_path, "w") as f:
-        json.dump(meta, f, indent=4)
-    print(f"wrote {out_path}: {len(structure)} subjects, "
-          f"{sum(len(v['runs']) for v in structure.values())} runs, {len(channels)} channels")
+    write_files_metadata(
+        ROOT, "BCIC2020-3", DATASET_INFO,
+        acquisition={'sample_frequency': 256, 'window_size_seconds': 795 / 256, 'num_subjects': None},
+        targets=TARGETS,
+        channels=channels,
+        structure=structure,
+        channel_header={'system': "extended 10-20"},
+        newline=False)
 
 
 if __name__ == "__main__":

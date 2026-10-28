@@ -16,10 +16,13 @@ a lot from adult EEG (slower rhythms, discontinuous background), so check this
 dataset's effect on the adult benchmarks before keeping it in the pretrain mix.
 """
 import glob
-import json
 import os
 import re
 from collections import OrderedDict
+import sys
+
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", ".."))
+from IO.metadata import write_files_metadata
 
 ROOT = os.path.dirname(__file__)
 
@@ -56,24 +59,14 @@ def main():
     num = lambda p: int(re.match(r"eeg(\d+)\.edf$", os.path.basename(p)).group(1))
     structure = OrderedDict((str(num(p)), {"file": "raw/" + os.path.basename(p)})
                             for p in sorted(files, key=num))
-    meta = {
-        "data_metadata": {
-            "dataset_name": "Neonatal_Helsinki",
-            "dataset_info": DATASET_INFO,
-            "acquisition": {
-                "sample_frequency": 256,
-                "window_size_seconds": 5.0,
-                "num_subjects": len(structure),
-            },
-            "targets": TARGETS,
-            "channels": {"count": len(CHANNELS), "system": "10-20", **CHANNELS},
-        },
-        "data_structure": structure,
-    }
-    out_path = os.path.join(ROOT, "metadata.json")
-    with open(out_path, "w") as f:
-        json.dump(meta, f, indent=4)
-    print(f"wrote {out_path}: {len(structure)} subjects")
+    write_files_metadata(
+        ROOT, "Neonatal_Helsinki", DATASET_INFO,
+        acquisition={'sample_frequency': 256, 'window_size_seconds': 5.0, 'num_subjects': None},
+        targets=TARGETS,
+        channels=CHANNELS,
+        structure=structure,
+        channel_header={'system': "10-20"},
+        newline=False)
 
 
 if __name__ == "__main__":

@@ -15,10 +15,13 @@ Added for pretraining: each recording is cut into non-overlapping 5 s windows, l
 (CMS/DRL), so the loader re-references to the average of the 32 scalp channels.
 """
 import glob
-import json
 import os
 import re
 from collections import OrderedDict
+import sys
+
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", ".."))
+from IO.metadata import write_files_metadata
 
 ROOT = os.path.dirname(__file__)
 
@@ -72,25 +75,14 @@ def build_data_structure(raw_dir):
 def main():
     structure = build_data_structure(os.path.join(ROOT, "raw"))
     channels = OrderedDict((str(i + 1), {"label": c}) for i, c in enumerate(CHANNEL_LABELS))
-    meta = {
-        "data_metadata": {
-            "dataset_name": "UCSD_PD",
-            "dataset_info": DATASET_INFO,
-            "acquisition": {
-                "sample_frequency": 512,
-                "window_size_seconds": 5.0,
-                "num_subjects": len(structure),
-            },
-            "targets": TARGETS,
-            "channels": {"count": len(channels), "system": "BioSemi 32 (10-20)", **channels},
-        },
-        "data_structure": structure,
-    }
-    out_path = os.path.join(ROOT, "metadata.json")
-    with open(out_path, "w") as f:
-        json.dump(meta, f, indent=4)
-    print(f"wrote {out_path}: {len(structure)} subjects, "
-          f"{sum(len(v['runs']) for v in structure.values())} recordings")
+    write_files_metadata(
+        ROOT, "UCSD_PD", DATASET_INFO,
+        acquisition={'sample_frequency': 512, 'window_size_seconds': 5.0, 'num_subjects': None},
+        targets=TARGETS,
+        channels=channels,
+        structure=structure,
+        channel_header={'system': "BioSemi 32 (10-20)"},
+        newline=False)
 
 
 if __name__ == "__main__":

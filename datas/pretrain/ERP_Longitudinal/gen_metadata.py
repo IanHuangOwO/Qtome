@@ -39,9 +39,12 @@ abstract describes 52 additional single-session subjects not present in
 this figshare deposit (15 subjects only, Subject.txt confirms).
 """
 import glob
-import json
 import os
 import re
+import sys
+
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", ".."))
+from IO.metadata import write_files_metadata
 
 ROOT = os.path.dirname(__file__)
 
@@ -133,27 +136,14 @@ def main():
     raw_dir = os.path.join(ROOT, "raw")
     structure = build_data_structure(raw_dir)
 
-    meta = {
-        "data_metadata": {
-            "dataset_name": "ERP_Longitudinal",
-            "dataset_info": DATASET_INFO,
-            "acquisition": {
-                "sample_frequency": 1000,
-                "window_size_seconds": 5.0,
-                "num_subjects": len(structure),
-            },
-            "targets": TARGETS,
-            "channels": {"count": len(CHANNELS), "system": "10-20 International System (10-10)",
-                         "coordinates_source": "raw/ChannelPosition.locs (figshare 27201003)",
-                         "polar_equator_radius": 0.406, **locs_coordinates()},
-        },
-        "data_structure": structure,
-    }
-
-    out_path = os.path.join(ROOT, "metadata.json")
-    with open(out_path, "w") as f:
-        json.dump(meta, f, indent=4)
-    print(f"wrote {out_path}: {len(structure)} subjects ({sorted(structure.keys())})")
+    write_files_metadata(
+        ROOT, "ERP_Longitudinal", DATASET_INFO,
+        acquisition={'sample_frequency': 1000, 'window_size_seconds': 5.0, 'num_subjects': None},
+        targets=TARGETS,
+        channels=locs_coordinates(),
+        structure=structure,
+        channel_header={'system': "10-20 International System (10-10)", 'coordinates_source': "raw/ChannelPosition.locs (figshare 27201003)", 'polar_equator_radius': 0.406},
+        newline=False)
 
 
 if __name__ == "__main__":

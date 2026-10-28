@@ -20,9 +20,12 @@ workload label since the label describes task performance, not the resting
 state; "_1" files are downloaded but unused by loader.py.
 """
 import csv
-import json
 import os
 import re
+import sys
+
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", ".."))
+from IO.metadata import write_files_metadata
 
 ROOT = os.path.dirname(__file__)
 
@@ -92,26 +95,15 @@ def main():
     labels = load_labels(os.path.join(raw_dir, "subject-info.csv"))
     structure = build_data_structure(raw_dir, labels)
 
-    meta = {
-        "data_metadata": {
-            "dataset_name": "EEGMAT",
-            "dataset_info": DATASET_INFO,
-            "acquisition": {
-                "sample_frequency": 500,
-                "window_size_seconds": 4.0,
-                "num_subjects": len(structure),
-            },
-            "targets": TARGETS,
-            "channels": {"count": len(CHANNELS), "system": "10-20 International System", **CHANNELS},
-            "event_onset_sample_note": "Continuous EDF chopped into fixed non-overlapping windows, no cue/trigger read at all -- no real onset to mark.",
-        },
-        "data_structure": structure,
-    }
-
-    out_path = os.path.join(ROOT, "metadata.json")
-    with open(out_path, "w") as f:
-        json.dump(meta, f, indent=4)
-    print(f"wrote {out_path}: {len(structure)} subjects")
+    write_files_metadata(
+        ROOT, "EEGMAT", DATASET_INFO,
+        acquisition={'sample_frequency': 500, 'window_size_seconds': 4.0, 'num_subjects': None},
+        targets=TARGETS,
+        channels=CHANNELS,
+        structure=structure,
+        channel_header={'system': "10-20 International System"},
+        after_channels={'event_onset_sample_note': "Continuous EDF chopped into fixed non-overlapping windows, no cue/trigger read at all -- no real onset to mark."},
+        newline=False)
 
 
 if __name__ == "__main__":

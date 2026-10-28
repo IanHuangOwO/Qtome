@@ -8,12 +8,13 @@ Raw: rsync nedc-tuh-eeg@www.isip.piconepress.com:data/tuh_eeg/tuh_eeg_slowing/v2
 F:\\tuh_data\\tuh_eeg_slowing\\v2.0.1\\edf).
 """
 import glob
-import json
 import os
 import sys
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", ".."))
 from IO.loader import SITES21, patient_of
+
+from IO.metadata import write_files_metadata
 
 ROOT = os.path.dirname(os.path.abspath(__file__))
 CLASSES = ['seizure', 'slowing', 'background']
@@ -39,21 +40,14 @@ def main(raw_dir=None):
             continue
         rel = os.path.relpath(f, ROOT) if raw_dir.startswith(ROOT) else f
         subs.setdefault(patient_of(f), []).append({"file": rel, "ann": rel[:-4] + ".tse_agg"})
-    meta = {
-        "data_metadata": {
-            "dataset_name": "TUSL", "dataset_info": DATASET_INFO,
-            "acquisition": {"sample_frequency": 250, "window_size_seconds": 10.0, "num_subjects": len(subs)},
-            "targets": {"count": 3, "type": "slowing", **{str(i): {"label": c} for i, c in enumerate(CLASSES)}},
-            "channels": {"count": len(SITES21), "system": "10-20 International System",
-                         **{str(i + 1): {"label": c, "original_label": c.upper()} for i, c in enumerate(SITES21)}},
-            "cohort": "TUEG",
-        },
-        "data_structure": {str(i + 1): {"patient": p, "runs": runs} for i, (p, runs) in enumerate(sorted(subs.items()))},
-    }
-    with open(os.path.join(ROOT, "metadata.json"), "w") as f:
-        json.dump(meta, f, indent=4)
-        f.write("\n")
-    print(f"wrote TUSL/metadata.json: {len(subs)} patients, {sum(len(v) for v in subs.values())} recordings")
+    write_files_metadata(
+        ROOT, "TUSL", DATASET_INFO,
+        acquisition={'sample_frequency': 250, 'window_size_seconds': 10.0, 'num_subjects': None},
+        targets={"count": 3, "type": "slowing", **{str(i): {"label": c} for i, c in enumerate(CLASSES)}},
+        channels={str(i + 1): {"label": c, "original_label": c.upper()} for i, c in enumerate(SITES21)},
+        structure={str(i + 1): {"patient": p, "runs": runs} for i, (p, runs) in enumerate(sorted(subs.items()))},
+        channel_header={'system': "10-20 International System"},
+        after_channels={'cohort': "TUEG"})
 
 
 if __name__ == "__main__":

@@ -13,8 +13,11 @@ ASR + ICA cleaned): our pipeline applies its own 0.5-100 Hz band-pass to every d
 (arXiv 2508.17742) cuts this dataset.
 """
 import csv
-import json
 import os
+import sys
+
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", ".."))
+from IO.metadata import write_files_metadata
 
 ROOT = os.path.dirname(__file__)
 SET = os.path.join(ROOT, 'raw', 'set')
@@ -55,20 +58,14 @@ def main():
             rel = f"raw/set/{sid}/eeg/{sid}_task-eyesclosed_eeg.set"
             if os.path.exists(os.path.join(ROOT, rel)):
                 structure[str(int(sid[4:]))] = {"file": rel, "label": GROUP[row['Group']]}
-    meta = {
-        "data_metadata": {
-            "dataset_name": "ADFTD",
-            "dataset_info": DATASET_INFO,
-            "acquisition": {"sample_frequency": 500, "window_size_seconds": 10.0, "num_subjects": len(structure)},
-            "targets": TARGETS,
-            "channels": {"count": len(CHANNELS), "system": "10-20 International System", **CHANNELS},
-        },
-        "data_structure": structure,
-    }
-    out = os.path.join(ROOT, 'metadata.json')
-    json.dump(meta, open(out, 'w'), indent=4)
-    print(f"wrote {out}: {len(structure)} subjects, classes " +
-          str({k: sum(v['label'] == i for v in structure.values()) for k, i in GROUP.items()}))
+    write_files_metadata(
+        ROOT, "ADFTD", DATASET_INFO,
+        acquisition={'sample_frequency': 500, 'window_size_seconds': 10.0, 'num_subjects': None},
+        targets=TARGETS,
+        channels=CHANNELS,
+        structure=structure,
+        channel_header={'system': "10-20 International System"},
+        newline=False)
 
 
 if __name__ == '__main__':

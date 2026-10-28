@@ -1,5 +1,6 @@
 """Dataset setup tools, run once when a dataset is added (not at training or compile time): the metadata.json writers that
-datas/<Name>/gen_metadata.py calls (MOABB-backed: write_moabb_metadata; BIDS-backed: write_bids_metadata). The loaders they
+datas/<Name>/gen_metadata.py calls (MOABB-backed: write_moabb_metadata; BIDS-backed: write_bids_metadata; raw files laid out by hand:
+write_files_metadata, the generator keeps only its dataset's text, channels, targets and file walk). The loaders they
 describe are in IO/loader.py; downloads are tools/misc/fetch_datasets.py."""
 import json
 import os
@@ -113,4 +114,43 @@ def write_bids_metadata(root: str, name: str, dataset_info: Dict, task: str = No
         f.write("\n")
     print(f"wrote {name}/metadata.json: {len(runs)} subjects, {sum(map(len, runs.values()))} recordings, "
           f"{len(channels)} EEG channels, rates {dict(rates)}")
+    return meta
+
+
+def labelled(labels, original=None) -> Dict:
+    """The per-channel entries of a generator that lists plain labels: {"1": {"label": L, "original_label": original(L)}, ...} (original defaults to L)."""
+    return {str(i + 1): {"label": c, "original_label": (original or str)(c)} for i, c in enumerate(labels)}
+
+
+def write_files_metadata(root: str, name: str, dataset_info: Dict, acquisition: Dict, targets: Dict, channels: Dict, structure: Dict,
+                         channel_header: Dict = None, after_info: Dict = None, after_targets: Dict = None, after_channels: Dict = None,
+                         newline: bool = True) -> Dict:
+    """Writes <root>/metadata.json for a dataset whose raw files the generator walks itself (structure = {subject id: {...paths...}},
+    built by the generator's own build_data_structure). The key order is the file's order (diffs stay readable):
+    dataset_name, dataset_info, **after_info, acquisition, targets, **after_targets, channels {count, **channel_header, **channels},
+    **after_channels (a generator's extra keys go in the slot where its file has them).
+    `acquisition["num_subjects"]` may be None: it becomes len(structure) at that position. Checks the REQUIRED fields of
+    docs/agents/adding-a-dataset.md Step 3: sample_frequency, a dense 0-indexed target list matching targets["count"], a
+    non-empty channel list and subject structure."""
+    acq = {k: (len(structure) if k == "num_subjects" and v is None else v) for k, v in acquisition.items()}
+    assert acq.get("sample_frequency"), f"{name}: acquisition.sample_frequency is required"
+    assert structure, f"{name}: no subjects found"
+    assert channels, f"{name}: no channels"
+    labels = [k for k in targets if k.isdigit()]
+    assert labels == [str(i) for i in range(len(labels))] and targets.get("count") == len(labels), \
+        f"{name}: targets must be 0-indexed, dense, and match count ({targets.get('count')} vs {labels})"
+    meta = {
+        "data_metadata": {
+            "dataset_name": name, "dataset_info": dataset_info, **(after_info or {}),
+            "acquisition": acq, "targets": targets, **(after_targets or {}),
+            "channels": {"count": len(channels), **(channel_header or {}), **channels},
+            **(after_channels or {}),
+        },
+        "data_structure": structure,
+    }
+    with open(os.path.join(root, "metadata.json"), "w") as f:
+        json.dump(meta, f, indent=4)
+        if newline:
+            f.write("\n")
+    print(f"wrote {name}/metadata.json: {len(structure)} subjects, {len(channels)} channels, {acq['sample_frequency']} Hz")
     return meta

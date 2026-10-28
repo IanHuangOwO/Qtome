@@ -1,7 +1,10 @@
-import json
 import os
 import re
 from collections import defaultdict
+import sys
+
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", ".."))
+from IO.metadata import write_files_metadata
 
 ROOT = os.path.dirname(__file__)
 
@@ -96,27 +99,15 @@ def main():
     test_dir = os.path.join(ROOT, "raw", "test")
     structure = build_data_structure(test_dir)
 
-    meta = {
-        "data_metadata": {
-            "dataset_name": "GraspAndLift_Test",
-            "dataset_info": DATASET_INFO,
-            "acquisition": {
-                "sample_frequency": 500,
-                "window_size_seconds": 5.0,  # 5 s = the pretrain window, so windows map 1:1 (was 4.0: 4 s pieces got spliced into 5 s windows)
-                "num_subjects": len(structure),
-                "num_series_per_subject": 2,
-            },
-            "targets": TARGETS,
-            "channels": {"count": len(CHANNELS), "system": "10-20/10-10 International System", **CHANNELS},
-            "cohort": "GraspAndLift",
-        },
-        "data_structure": structure,
-    }
-
-    out_path = os.path.join(ROOT, "metadata.json")
-    with open(out_path, "w") as f:
-        json.dump(meta, f, indent=4)
-    print(f"wrote {out_path}: {len(structure)} subjects")
+    write_files_metadata(
+        ROOT, "GraspAndLift_Test", DATASET_INFO,
+        acquisition={'sample_frequency': 500, 'window_size_seconds': 5.0, 'num_subjects': None, 'num_series_per_subject': 2},
+        targets=TARGETS,
+        channels=CHANNELS,
+        structure=structure,
+        channel_header={'system': "10-20/10-10 International System"},
+        after_channels={'cohort': "GraspAndLift"},
+        newline=False)
 
 
 if __name__ == "__main__":

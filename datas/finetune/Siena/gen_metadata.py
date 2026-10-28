@@ -19,9 +19,12 @@ polygraphy channels in some), so loader.py picks channels by name, not by
 index. PN10 was recorded with only 20 EEG channels (subject_info.csv
 eeg_channel=20) -- its missing channels are zero-filled.
 """
-import json
 import os
 from collections import OrderedDict
+import sys
+
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", ".."))
+from IO.metadata import write_files_metadata
 
 ROOT = os.path.dirname(__file__)
 
@@ -81,26 +84,14 @@ def build_data_structure(raw_dir):
 def main():
     raw_dir = os.path.join(ROOT, "raw")
     structure = build_data_structure(raw_dir)
-    meta = {
-        "data_metadata": {
-            "dataset_name": "Siena",
-            "dataset_info": DATASET_INFO,
-            "acquisition": {
-                "sample_frequency": 512,
-                "window_size_seconds": 5.0,
-                "num_subjects": len(structure),
-                "num_recordings": sum(len(v["runs"]) for v in structure.values()),
-            },
-            "targets": TARGETS,
-            "channels": {"count": len(CHANNELS), "system": "10-20 extended (Fc/Cp/F9/F10)", **CHANNELS},
-        },
-        "data_structure": structure,
-    }
-    out_path = os.path.join(ROOT, "metadata.json")
-    with open(out_path, "w") as f:
-        json.dump(meta, f, indent=4)
-    print(f"wrote {out_path}: {len(structure)} subjects, "
-          f"{meta['data_metadata']['acquisition']['num_recordings']} recordings")
+    write_files_metadata(
+        ROOT, "Siena", DATASET_INFO,
+        acquisition={'sample_frequency': 512, 'window_size_seconds': 5.0, 'num_subjects': None, 'num_recordings': sum(len(v["runs"]) for v in structure.values())},
+        targets=TARGETS,
+        channels=CHANNELS,
+        structure=structure,
+        channel_header={'system': "10-20 extended (Fc/Cp/F9/F10)"},
+        newline=False)
 
 
 if __name__ == "__main__":

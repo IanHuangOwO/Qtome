@@ -29,9 +29,12 @@ windows at load time (same pattern as SPIS/GraspAndLift_Train's loaders),
 discarding all trigger/event timing for now.
 """
 import glob
-import json
 import os
 import re
+import sys
+
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", ".."))
+from IO.metadata import write_files_metadata
 
 ROOT = os.path.dirname(__file__)
 
@@ -103,29 +106,14 @@ def main():
     raw_dir = os.path.join(ROOT, "raw")
     structure = build_data_structure(raw_dir)
 
-    meta = {
-        "data_metadata": {
-            "dataset_name": "BCMI_MusicEmotion",
-            "dataset_info": DATASET_INFO,
-            "acquisition": {
-                "sample_frequency": 1000,
-                "window_size_seconds": 5.0,
-                "num_subjects": len(structure),
-            },
-            "targets": TARGETS,
-            "channels": {"count": len(CHANNELS), "system": "10-20 International System", **CHANNELS},
-            "event_onset_sample": 0,
-            "event_onset_sample_note": "Continuous EDF runs chopped into fixed windows, no marker read -- no real onset to mark.",
-        },
-        "data_structure": structure,
-    }
-
-    out_path = os.path.join(ROOT, "metadata.json")
-    with open(out_path, "w") as f:
-        json.dump(meta, f, indent=4)
-        f.write("\n")
-    n_runs = sum(len(v["files"]) for v in structure.values())
-    print(f"wrote {out_path}: {len(structure)} subjects, {n_runs} runs")
+    write_files_metadata(
+        ROOT, "BCMI_MusicEmotion", DATASET_INFO,
+        acquisition={'sample_frequency': 1000, 'window_size_seconds': 5.0, 'num_subjects': None},
+        targets=TARGETS,
+        channels=CHANNELS,
+        structure=structure,
+        channel_header={'system': "10-20 International System"},
+        after_channels={'event_onset_sample': 0, 'event_onset_sample_note': "Continuous EDF runs chopped into fixed windows, no marker read -- no real onset to mark."})
 
 
 if __name__ == "__main__":

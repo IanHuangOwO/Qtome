@@ -4,10 +4,13 @@ Pretraining only: compiled as continuous windows (compile_params.continuous_seco
 sampling rates 250 / 256 / 400 / 512 Hz (resampled), referential (REF) or linked-ears (LE) montage files.
 """
 import glob
-import json
 import os
 
 import numpy as np
+import sys
+
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", ".."))
+from IO.metadata import write_files_metadata
 
 ROOT = os.path.dirname(os.path.abspath(__file__))
 N_PATIENTS, MIN_SECONDS, SEED = 1000, 300, 0     # the corpus rule: a dataset over 1,000 subjects keeps a seeded pick of 1,000
@@ -48,23 +51,16 @@ def main():
                 subs[str(p)] = [os.path.relpath(f, ROOT)]; break
         if len(subs) == N_PATIENTS:
             break
-    meta = {
-        "data_metadata": {
-            "dataset_name": "TUEG", "dataset_info": DATASET_INFO,
-            "bids": {"task": None},
-            "acquisition": {"sample_frequency": 250, "window_size_seconds": None, "num_subjects": len(subs)},
-            "targets": {"count": 1, "type": "pretrain_dummy", "0": {"label": "dummy (continuous window, no task label)"}},
-            "channels": {"count": len(SITES), "system": "10-20 International System",
-                         **{str(i + 1): {"label": c, "original_label": c.upper()} for i, c in enumerate(SITES)}},
-            "cohort": "TUEG",
-        },
-        "data_structure": {str(i + 1): {"patient": p, "runs": [{"file": f} for f in fs]}
+    write_files_metadata(
+        ROOT, "TUEG", DATASET_INFO,
+        acquisition={'sample_frequency': 250, 'window_size_seconds': None, 'num_subjects': None},
+        targets={"count": 1, "type": "pretrain_dummy", "0": {"label": "dummy (continuous window, no task label)"}},
+        channels={str(i + 1): {"label": c, "original_label": c.upper()} for i, c in enumerate(SITES)},
+        structure={str(i + 1): {"patient": p, "runs": [{"file": f} for f in fs]}
                            for i, (p, fs) in enumerate(sorted(subs.items()))},
-    }
-    with open(os.path.join(ROOT, "metadata.json"), "w") as f:
-        json.dump(meta, f, indent=4)
-        f.write("\n")
-    print(f"wrote TUEG/metadata.json: {len(subs)} subjects, {sum(len(v) for v in subs.values())} recordings, {len(SITES)} channels")
+        channel_header={'system': "10-20 International System"},
+        after_info={'bids': {"task": None}},
+        after_channels={'cohort': "TUEG"})
 
 
 if __name__ == "__main__":

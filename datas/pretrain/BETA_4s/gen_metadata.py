@@ -1,6 +1,9 @@
-import json
 import os
 import re
+import sys
+
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", ".."))
+from IO.metadata import write_files_metadata
 
 ROOT = os.path.dirname(__file__)  # datas/pretrain/BETA_4s — also writes sibling datas/pretrain/BETA_3s
 DATAS_ROOT = os.path.dirname(ROOT)
@@ -151,44 +154,26 @@ ONSET_NOTE = {
 }
 
 
-def build_metadata(dataset_name, window_seconds, signals_dir):
+def generate(dataset_name, window_seconds, signals_dir, root):
     info = {k: (v.format(w=window_seconds) if isinstance(v, str) and "{w" in v else v)
             for k, v in DATASET_INFO_TEMPLATE.items()}
-    structure = build_data_structure(signals_dir)
-    channels = source_coordinates(signals_dir)
-    return {
-        "data_metadata": {
-            "dataset_name": dataset_name,
-            "dataset_info": info,
-            "acquisition": {
-                "sample_frequency": 250,
-                "window_size_seconds": window_seconds,
-                "num_subjects": len(structure),
-                "num_runs_per_subject": 4,
-            },
-            "targets": build_targets(),
-            "channels": {"count": len(channels), "system": "10-20 International System",
-                         "coordinates_source": "data.suppl_info.chan of every .mat (the authors' table)",
-                         "polar_equator_radius": 0.5, **channels},
-            # 0.5 s pre-stimulus is baked into the released epochs (native 250 Hz) -> 100 samples at 200 Hz
-            "event_onset_sample": 100,
-            "event_onset_sample_note": ONSET_NOTE[dataset_name],
-        },
-        "data_structure": structure,
-    }
+    write_files_metadata(
+        root, dataset_name, info,
+        acquisition={"sample_frequency": 250, "window_size_seconds": window_seconds, "num_subjects": None, "num_runs_per_subject": 4},
+        targets=build_targets(), channels=source_coordinates(signals_dir),
+        channel_header={"system": "10-20 International System",
+                        "coordinates_source": "data.suppl_info.chan of every .mat (the authors' table)",
+                        "polar_equator_radius": 0.5},
+        structure=build_data_structure(signals_dir),
+        # 0.5 s pre-stimulus is baked into the released epochs (native 250 Hz) -> 100 samples at 200 Hz
+        after_channels={"event_onset_sample": 100, "event_onset_sample_note": ONSET_NOTE[dataset_name]})
 
 
 def main():
     # Both siblings live under datas/pretrain/ as of 2026-09-22 (BETA_4s moved last,
     # once its in-flight finetune baseline job released its cache).
     for name, window_seconds in (("BETA_4s", 4.0), ("BETA_3s", 3.0)):
-        signals_dir = os.path.join(DATAS_ROOT, name, "raw", "signals_labels")
-        meta = build_metadata(name, window_seconds, signals_dir)
-        out_path = os.path.join(DATAS_ROOT, name, "metadata.json")
-        with open(out_path, "w") as f:
-            json.dump(meta, f, indent=4)
-            f.write("\n")
-        print(f"wrote {out_path}: {len(meta['data_structure'])} subjects")
+        generate(name, window_seconds, os.path.join(DATAS_ROOT, name, "raw", "signals_labels"), os.path.join(DATAS_ROOT, name))
 
 
 if __name__ == "__main__":

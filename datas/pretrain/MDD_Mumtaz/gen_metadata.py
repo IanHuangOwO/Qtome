@@ -20,10 +20,13 @@ integers and HS/MDDS numbers overlap, so healthy subject n -> 'n', MDD subject n
 '100+n'.
 """
 import glob
-import json
 import os
 import re
 from collections import OrderedDict
+import sys
+
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", ".."))
+from IO.metadata import write_files_metadata
 
 ROOT = os.path.dirname(__file__)
 
@@ -80,26 +83,14 @@ def build_data_structure(raw_dir):
 
 def main():
     structure = build_data_structure(os.path.join(ROOT, "raw"))
-    meta = {
-        "data_metadata": {
-            "dataset_name": "MDD_Mumtaz",
-            "dataset_info": DATASET_INFO,
-            "acquisition": {
-                "sample_frequency": 256,
-                "window_size_seconds": 5.0,
-                "num_subjects": len(structure),
-            },
-            "targets": TARGETS,
-            "channels": {"count": len(CHANNELS), "system": "10-20, linked-ear/left-ear reference", **CHANNELS},
-        },
-        "data_structure": structure,
-    }
-    out_path = os.path.join(ROOT, "metadata.json")
-    with open(out_path, "w") as f:
-        json.dump(meta, f, indent=4)
-    n_hc = sum(v["label"] == 0 for v in structure.values())
-    print(f"wrote {out_path}: {len(structure)} subjects ({n_hc} healthy, {len(structure) - n_hc} MDD), "
-          f"{sum(len(v['files']) for v in structure.values())} recordings")
+    write_files_metadata(
+        ROOT, "MDD_Mumtaz", DATASET_INFO,
+        acquisition={'sample_frequency': 256, 'window_size_seconds': 5.0, 'num_subjects': None},
+        targets=TARGETS,
+        channels=CHANNELS,
+        structure=structure,
+        channel_header={'system': "10-20, linked-ear/left-ear reference"},
+        newline=False)
 
 
 if __name__ == "__main__":

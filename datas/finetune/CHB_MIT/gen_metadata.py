@@ -27,10 +27,13 @@ picked by name; a missing derivation is zero-filled.
 24 cases (chb01..chb24; chb21 is chb01 recorded 1.5 years later, kept as its own
 subject as PhysioNet lists it). Subject key = case number ('chb05' -> '5').
 """
-import json
 import os
 import re
 from collections import OrderedDict
+import sys
+
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", ".."))
+from IO.metadata import write_files_metadata
 
 ROOT = os.path.dirname(__file__)
 
@@ -119,27 +122,14 @@ def main():
     raw_dir = os.path.join(ROOT, "raw")
     structure = build_data_structure(raw_dir)
     n_seiz = sum(len(r["seizures"]) for v in structure.values() for r in v["runs"])
-    meta = {
-        "data_metadata": {
-            "dataset_name": "CHB_MIT",
-            "dataset_info": DATASET_INFO,
-            "acquisition": {
-                "sample_frequency": 256,
-                "window_size_seconds": 5.0,
-                "num_subjects": len(structure),
-                "num_recordings": sum(len(v["runs"]) for v in structure.values()),
-                "num_seizures": n_seiz,
-            },
-            "targets": TARGETS,
-            "channels": {"count": len(CHANNELS), "system": "bipolar double banana, first-electrode labels", **CHANNELS},
-        },
-        "data_structure": structure,
-    }
-    out_path = os.path.join(ROOT, "metadata.json")
-    with open(out_path, "w") as f:
-        json.dump(meta, f, indent=4)
-    print(f"wrote {out_path}: {len(structure)} subjects, "
-          f"{meta['data_metadata']['acquisition']['num_recordings']} recordings, {n_seiz} seizures")
+    write_files_metadata(
+        ROOT, "CHB_MIT", DATASET_INFO,
+        acquisition={'sample_frequency': 256, 'window_size_seconds': 5.0, 'num_subjects': None, 'num_recordings': sum(len(v["runs"]) for v in structure.values()), 'num_seizures': n_seiz},
+        targets=TARGETS,
+        channels=CHANNELS,
+        structure=structure,
+        channel_header={'system': "bipolar double banana, first-electrode labels"},
+        newline=False)
 
 
 if __name__ == "__main__":

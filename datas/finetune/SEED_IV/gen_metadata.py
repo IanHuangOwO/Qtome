@@ -9,9 +9,12 @@ ReadMe.txt: 0 neutral, 1 sad, 2 fear, 3 happy (kept as is). 62ch ESI NeuroScan, 
 
 Windows: non-overlapping 4 s within each clip (the ReadMe's feature window; no FM benchmark cuts SEED-IV).
 """
-import json
 import os
 import re
+import sys
+
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", ".."))
+from IO.metadata import write_files_metadata
 
 ROOT = os.path.dirname(__file__)
 RAW = os.path.join(ROOT, 'raw', 'eeg_raw_data')
@@ -57,21 +60,15 @@ def main():
                 by_sub.setdefault(int(m.group(1)), {})[int(sess)] = f"raw/eeg_raw_data/{sess}/{f}"
     structure = {str(s): {"sessions": [v[k] for k in sorted(v)]} for s, v in sorted(by_sub.items())}
     assert all(len(v['sessions']) == 3 for v in structure.values())
-    meta = {
-        "data_metadata": {
-            "dataset_name": "SEED_IV",
-            "dataset_info": DATASET_INFO,
-            "acquisition": {"sample_frequency": 200, "window_size_seconds": 4.0, "num_subjects": len(structure),
-                            "num_sessions_per_subject": 3},
-            "targets": TARGETS,
-            "session_clip_labels": SESSION_LABELS,
-            "channels": {"count": len(CHANNELS), "system": "10-20 (ESI NeuroScan 62ch)", **CHANNELS},
-        },
-        "data_structure": structure,
-    }
-    out = os.path.join(ROOT, 'metadata.json')
-    json.dump(meta, open(out, 'w'), indent=4)
-    print(f"wrote {out}: {len(structure)} subjects")
+    write_files_metadata(
+        ROOT, "SEED_IV", DATASET_INFO,
+        acquisition={'sample_frequency': 200, 'window_size_seconds': 4.0, 'num_subjects': None, 'num_sessions_per_subject': 3},
+        targets=TARGETS,
+        channels=CHANNELS,
+        structure=structure,
+        channel_header={'system': "10-20 (ESI NeuroScan 62ch)"},
+        after_targets={'session_clip_labels': SESSION_LABELS},
+        newline=False)
 
 
 if __name__ == '__main__':

@@ -10,11 +10,14 @@ Clip labels (label.mat, the same for every session): 1 positive, 0 neutral, -1 n
 
 Windows: non-overlapping 1 s within each clip, as EEG-FM-Compass cuts SEED (50,910 windows over 45 sessions).
 """
-import json
 import os
 import re
 
 import scipy.io as sio
+import sys
+
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", ".."))
+from IO.metadata import write_files_metadata
 
 ROOT = os.path.dirname(__file__)
 RAW = os.path.join(ROOT, 'raw', 'Preprocessed_EEG')
@@ -53,21 +56,15 @@ def main():
         if m:
             by_sub.setdefault(int(m.group(1)), []).append((m.group(2), f"raw/Preprocessed_EEG/{f}"))
     structure = {str(s): {"sessions": [p for _, p in sorted(v)]} for s, v in sorted(by_sub.items())}
-    meta = {
-        "data_metadata": {
-            "dataset_name": "SEED",
-            "dataset_info": DATASET_INFO,
-            "acquisition": {"sample_frequency": 200, "window_size_seconds": 1.0, "num_subjects": len(structure),
-                            "num_sessions_per_subject": 3},
-            "targets": TARGETS,
-            "clip_labels": clip_labels,
-            "channels": {"count": len(CHANNELS), "system": "10-20 (ESI NeuroScan 62ch)", **CHANNELS},
-        },
-        "data_structure": structure,
-    }
-    out = os.path.join(ROOT, 'metadata.json')
-    json.dump(meta, open(out, 'w'), indent=4)
-    print(f"wrote {out}: {len(structure)} subjects, {sum(len(v['sessions']) for v in structure.values())} sessions")
+    write_files_metadata(
+        ROOT, "SEED", DATASET_INFO,
+        acquisition={'sample_frequency': 200, 'window_size_seconds': 1.0, 'num_subjects': None, 'num_sessions_per_subject': 3},
+        targets=TARGETS,
+        channels=CHANNELS,
+        structure=structure,
+        channel_header={'system': "10-20 (ESI NeuroScan 62ch)"},
+        after_targets={'clip_labels': clip_labels},
+        newline=False)
 
 
 if __name__ == '__main__':

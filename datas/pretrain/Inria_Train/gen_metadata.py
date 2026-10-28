@@ -1,8 +1,11 @@
 import csv
-import json
 import os
 import re
 from collections import defaultdict
+import sys
+
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", ".."))
+from IO.metadata import write_files_metadata
 
 ROOT = os.path.dirname(__file__)
 
@@ -73,42 +76,20 @@ def main():
     signals_dir = os.path.join(ROOT, "raw", "signals")
     structure = build_data_structure(signals_dir)
 
-    meta = {
-        "data_metadata": {
-            "dataset_name": "Inria_Train",
-            "dataset_info": DATASET_INFO,
-            "acquisition": {
-                "sample_frequency": 200,
-                "window_size_seconds": 1.3,
-                "num_subjects": len(structure),
-                "num_sessions_per_subject": 5,
-            },
-            "targets": {
+    write_files_metadata(
+        ROOT, "Inria_Train", DATASET_INFO,
+        acquisition={'sample_frequency': 200, 'window_size_seconds': 1.3, 'num_subjects': None, 'num_sessions_per_subject': 5},
+        targets={
                 "count": 2,
                 "type": "error_related_potential",
                 "0": {"label": "Correct feedback"},
                 "1": {"label": "Erroneous feedback",
                       "description": "ErrP: subject perceived the speller's feedback as an error"},
             },
-            "channels": {
-                "count": len(channels),
-                "system": "10-20/10-10 International System",
-                # raw/ChannelsLocation.csv (shipped with the Kaggle data): idealised 10-20, equator ring at radius 0.36
-                "coordinates_source": "raw/ChannelsLocation.csv",
-                "polar_equator_radius": 0.36,
-                **channels,
-            },
-            "event_onset_sample": 200,
-            "event_onset_sample_note": "Cue-onset sample at preprocess_params.sample_freq (200Hz): round(pre_event_seconds * sample_freq) = round(1.0*200) = 200 -- the cut_event_window pad point. Verified >=6.57s real pre-event headroom, far more than the 1.0s pad.",
-        },
-        "data_structure": structure,
-    }
-
-    out_path = os.path.join(ROOT, "metadata.json")
-    with open(out_path, "w") as f:
-        json.dump(meta, f, indent=4)
-        f.write("\n")
-    print(f"wrote {out_path}: {len(structure)} subjects")
+        channels=channels,
+        structure=structure,
+        channel_header={'system': "10-20/10-10 International System", 'coordinates_source': "raw/ChannelsLocation.csv", 'polar_equator_radius': 0.36},
+        after_channels={'event_onset_sample': 200, 'event_onset_sample_note': "Cue-onset sample at preprocess_params.sample_freq (200Hz): round(pre_event_seconds * sample_freq) = round(1.0*200) = 200 -- the cut_event_window pad point. Verified >=6.57s real pre-event headroom, far more than the 1.0s pad."})
 
 
 if __name__ == "__main__":

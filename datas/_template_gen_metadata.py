@@ -5,11 +5,14 @@ reproducible source of truth for that dataset. See
 docs/agents/adding-a-dataset.md Step 3 for the full schema and field-by-field
 notes (REQUIRED fields, coordinate convention, raw/-prefixing, etc).
 """
-import json
 import os
 import re
+import sys
 
-ROOT = os.path.dirname(__file__)
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", ".."))      # the repo root (datas/<split>/<Name>/ -> three up), for IO
+from IO.metadata import write_files_metadata
+
+ROOT = os.path.dirname(os.path.abspath(__file__))
 
 # TODO: fill in from Step 0 research (source_url, description, task_type,
 # reference, contact, and any dataset-specific notes worth preserving).
@@ -55,28 +58,18 @@ def build_data_structure(raw_dir):
 
 
 def main():
-    raw_dir = os.path.join(ROOT, "raw")
-    structure = build_data_structure(raw_dir)
-
-    meta = {
-        "data_metadata": {
-            "dataset_name": "MyDataset",
-            "dataset_info": DATASET_INFO,
-            "acquisition": {
-                "sample_frequency": 250,          # REQUIRED. Hz, used for filtering/resampling.
-                "window_size_seconds": 4.0,       # REQUIRED if the loader needs to cut fixed windows.
-                "num_subjects": len(structure),
-            },
-            "targets": TARGETS,
-            "channels": {"count": len(CHANNELS), "system": "10-20 International System", **CHANNELS},
+    structure = build_data_structure(os.path.join(ROOT, "raw"))
+    # IO/metadata.py's write_files_metadata assembles data_metadata + data_structure, checks the REQUIRED fields and writes
+    # metadata.json. Extra keys of your dataset go in after_info / after_targets / after_channels (where the file has them).
+    write_files_metadata(
+        ROOT, "MyDataset", DATASET_INFO,
+        acquisition={
+            "sample_frequency": 250,          # REQUIRED. Hz, used for filtering/resampling.
+            "window_size_seconds": 4.0,       # REQUIRED if the loader needs to cut fixed windows.
+            "num_subjects": None,             # None -> len(structure)
         },
-        "data_structure": structure,
-    }
-
-    out_path = os.path.join(ROOT, "metadata.json")
-    with open(out_path, "w") as f:
-        json.dump(meta, f, indent=4)
-    print(f"wrote {out_path}: {len(structure)} subjects")
+        targets=TARGETS, channels=CHANNELS, structure=structure,
+        channel_header={"system": "10-20 International System"})
 
 
 if __name__ == "__main__":

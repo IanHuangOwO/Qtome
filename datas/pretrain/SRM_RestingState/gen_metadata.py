@@ -21,9 +21,12 @@ convention for one recording device/montage). All 64 names resolve via MNE's
 standard_1020 montage (checked 2026-09-22), so per-channel "coordinates" are
 omitted, same precedent as PhysionetMI/DEAP.
 """
-import json
 import os
 import re
+import sys
+
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", ".."))
+from IO.metadata import write_files_metadata
 
 ROOT = os.path.dirname(__file__)
 
@@ -104,29 +107,14 @@ def main():
     raw_dir = os.path.join(ROOT, "raw")
     structure = build_data_structure(raw_dir)
 
-    meta = {
-        "data_metadata": {
-            "dataset_name": "SRM_RestingState",
-            "dataset_info": DATASET_INFO,
-            "acquisition": {
-                "sample_frequency": 1024,
-                "window_size_seconds": 5.0,
-                "num_subjects": len(structure),
-            },
-            "targets": TARGETS,
-            "channels": {"count": len(CHANNELS), "system": "10-20 International System (10-10)", **CHANNELS},
-            "event_onset_sample": 0,
-            "event_onset_sample_note": "Resting-state EDF sessions cut into fixed windows, no events/conditions at all -- no real onset to mark.",
-        },
-        "data_structure": structure,
-    }
-
-    out_path = os.path.join(ROOT, "metadata.json")
-    with open(out_path, "w") as f:
-        json.dump(meta, f, indent=4)
-        f.write("\n")
-    n_sessions = sum(len(v["files"]) for v in structure.values())
-    print(f"wrote {out_path}: {len(structure)} subjects, {n_sessions} sessions")
+    write_files_metadata(
+        ROOT, "SRM_RestingState", DATASET_INFO,
+        acquisition={'sample_frequency': 1024, 'window_size_seconds': 5.0, 'num_subjects': None},
+        targets=TARGETS,
+        channels=CHANNELS,
+        structure=structure,
+        channel_header={'system': "10-20 International System (10-10)"},
+        after_channels={'event_onset_sample': 0, 'event_onset_sample_note': "Resting-state EDF sessions cut into fixed windows, no events/conditions at all -- no real onset to mark."})
 
 
 if __name__ == "__main__":

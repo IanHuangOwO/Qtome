@@ -36,9 +36,12 @@ exact dataset (used in the original Sleep-EDF papers and MNE's own
 sleep-physionet tutorial), not an invented cutoff.
 """
 import glob
-import json
 import os
 import re
+import sys
+
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", ".."))
+from IO.metadata import write_files_metadata
 
 ROOT = os.path.dirname(__file__)
 
@@ -120,26 +123,14 @@ def main():
     raw_dir = os.path.join(ROOT, "raw")
     structure = build_data_structure(raw_dir)
 
-    meta = {
-        "data_metadata": {
-            "dataset_name": "Sleep_EDFx",
-            "dataset_info": DATASET_INFO,
-            "acquisition": {
-                "sample_frequency": 100,
-                "window_size_seconds": 30.0,
-                "num_subjects": len(structure),
-            },
-            "targets": TARGETS,
-            "channels": {"count": len(CHANNELS), "system": "Bipolar derivations (not a standard montage)", **CHANNELS},
-        },
-        "data_structure": structure,
-    }
-
-    out_path = os.path.join(ROOT, "metadata.json")
-    with open(out_path, "w") as f:
-        json.dump(meta, f, indent=4)
-    n_nights = sum(len(v["files"]) for v in structure.values())
-    print(f"wrote {out_path}: {len(structure)} subjects, {n_nights} nights")
+    write_files_metadata(
+        ROOT, "Sleep_EDFx", DATASET_INFO,
+        acquisition={'sample_frequency': 100, 'window_size_seconds': 30.0, 'num_subjects': None},
+        targets=TARGETS,
+        channels=CHANNELS,
+        structure=structure,
+        channel_header={'system': "Bipolar derivations (not a standard montage)"},
+        newline=False)
 
 
 if __name__ == "__main__":

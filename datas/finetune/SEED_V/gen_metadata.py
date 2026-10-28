@@ -15,6 +15,10 @@ Windows: non-overlapping 10 s within each clip, as EEG-FM-Bench (arXiv 2508.1774
 import json
 import os
 import re
+import sys
+
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", ".."))
+from IO.metadata import write_files_metadata
 
 ROOT = os.path.dirname(__file__)
 RAW = os.path.join(ROOT, 'raw', 'EEG_raw')
@@ -66,21 +70,15 @@ def main():
             by_sub.setdefault(int(m.group(1)), {})[int(m.group(2))] = f"raw/EEG_raw/{f}"
     structure = {str(s): {"sessions": [v[k] for k in sorted(v)]} for s, v in sorted(by_sub.items())}
     assert all(len(v['sessions']) == 3 for v in structure.values())
-    meta = {
-        "data_metadata": {
-            "dataset_name": "SEED_V",
-            "dataset_info": DATASET_INFO,
-            "acquisition": {"sample_frequency": 1000, "window_size_seconds": 10.0, "num_subjects": len(structure),
-                            "num_sessions_per_subject": 3},
-            "targets": TARGETS,
-            "session_clips": clips,
-            "channels": {"count": len(CHANNELS), "system": "10-20 (ESI NeuroScan 62ch)", **CHANNELS},
-        },
-        "data_structure": structure,
-    }
-    out = os.path.join(ROOT, 'metadata.json')
-    json.dump(meta, open(out, 'w'), indent=4)
-    print(f"wrote {out}: {len(structure)} subjects")
+    write_files_metadata(
+        ROOT, "SEED_V", DATASET_INFO,
+        acquisition={'sample_frequency': 1000, 'window_size_seconds': 10.0, 'num_subjects': None, 'num_sessions_per_subject': 3},
+        targets=TARGETS,
+        channels=CHANNELS,
+        structure=structure,
+        channel_header={'system': "10-20 (ESI NeuroScan 62ch)"},
+        after_targets={'session_clips': clips},
+        newline=False)
 
 
 if __name__ == '__main__':
